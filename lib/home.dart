@@ -174,42 +174,48 @@ class _HomePageState extends State<Home> {
               subtitle: 'Schedule pet tasks',
               icon: Icons.calendar_today,
               color: const Color(0xFFF4CFC6),
-              assetImage: 'assets/icons/reminders.icon.png',
+              badgeAsset: 'assets/icons/reminders.icon.png',
+              illustrationAsset: 'assets/icons/reminders.icon.png',
             ),
             _serviceCard(
               title: 'Adoption',
               subtitle: 'Find new friends',
               icon: Icons.favorite_border,
               color: const Color(0xFFDFF6EF),
-              assetImage: 'assets/icons/adoption.icon.png',
+              badgeAsset: 'assets/icons/adoption.icon.png',
+              illustrationAsset: 'assets/icons/adoption.icon.png',
             ),
             _serviceCard(
               title: 'Pet Supplies',
               subtitle: 'Shop Now',
               icon: Icons.shopping_bag_outlined,
               color: const Color(0xFFF7EACD),
-              assetImage: 'assets/icons/pet_supplies.icon.png',
+              badgeAsset: 'assets/icons/pet_supplies.icon.png',
+              illustrationAsset: 'assets/icons/pet_supplies.icon.png',
             ),
             _serviceCard(
               title: 'Pet Care',
               subtitle: 'Book Services',
               icon: Icons.pets_outlined,
               color: const Color(0xFFFDE0C8),
-              assetImage: 'assets/icons/pet_care.icon.png',
+              badgeAsset: 'assets/icons/pet_care.icon.png',
+              illustrationAsset: 'assets/icons/pet_care.icon.png',
             ),
             _serviceCard(
               title: 'Doctor Appointments',
               subtitle: 'Book vet consults',
               icon: Icons.medical_services_outlined,
               color: const Color(0xFFD9F1F9),
-              assetImage: 'assets/icons/health_records.icon.png',
+              badgeAsset: 'assets/icons/health_records.icon.png',
+              illustrationAsset: 'assets/icons/health_records.icon.png',
             ),
             _serviceCard(
               title: 'Health Records',
               subtitle: 'Medical history',
               icon: Icons.receipt_long,
               color: const Color(0xFFE6F6F0),
-              assetImage: 'assets/icons/health_records.icon.png',
+              badgeAsset: 'assets/icons/health_records.icon.png',
+              illustrationAsset: 'assets/icons/health_records.icon.png',
             ),
           ],
         ),
@@ -222,61 +228,86 @@ class _HomePageState extends State<Home> {
     required String subtitle,
     required IconData icon,
     required Color color,
-    String? assetImage,
+    String? badgeAsset,
+    String? illustrationAsset,
   }) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 6, offset: const Offset(0, 2)),
+        ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(14),
         child: Stack(
+          clipBehavior: Clip.none,
           children: [
-            Column(
+            // Main content: badge + texts
+            Row(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                // White circular badge with icon
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  width: 44,
+                  height: 44,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.6),
-                    borderRadius: BorderRadius.circular(10),
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 6, offset: const Offset(0, 2)),
+                    ],
                   ),
-                  child: assetImage != null
-                      ? Image.asset(
-                          assetImage,
-                          width: 22,
-                          height: 22,
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) => Icon(icon, size: 22, color: const Color(0xFF6B6B6B)),
-                        )
-                      : Icon(icon, size: 22, color: const Color(0xFF6B6B6B)),
+                  child: Center(
+                    child: badgeAsset != null
+                        ? Image.asset(
+                            badgeAsset,
+                            width: 22,
+                            height: 22,
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) => Icon(icon, size: 20, color: const Color(0xFF6B6B6B)),
+                          )
+                        : Icon(icon, size: 20, color: const Color(0xFF6B6B6B)),
+                  ),
                 ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: const TextStyle(fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
-                    const SizedBox(height: 6),
-                    Text(subtitle, style: const TextStyle(fontSize: 12, color: Color(0xFF6E6E6E)), maxLines: 2, overflow: TextOverflow.ellipsis),
-                  ],
-                )
+                const SizedBox(width: 12),
+                // Title & subtitle
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF4B3B34)),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF6E6E6E)),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
-            if (assetImage != null)
+
+            // Decorative illustration at bottom-right
+            if (illustrationAsset != null)
               Positioned(
-                right: 0,
-                bottom: 0,
-                child: Opacity(
-                  opacity: 0.95,
-                  child: Image.asset(
-                    assetImage,
-                    width: 64,
-                    height: 64,
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
-                  ),
+                right: -6,
+                bottom: -6,
+                child: Image.asset(
+                  illustrationAsset,
+                  width: 76,
+                  height: 76,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
                 ),
               ),
           ],
