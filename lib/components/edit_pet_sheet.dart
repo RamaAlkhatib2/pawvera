@@ -6,7 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:pawvera/model/pet_model.dart';
 
 class EditPetSheet extends StatefulWidget {
-  final Pet pet; // الحيوان المراد تعديله
+  final Pet pet; 
   final Function(Pet) onPetUpdated;
 
   const EditPetSheet({
@@ -46,7 +46,7 @@ class _EditPetSheetState extends State<EditPetSheet> {
   @override
   void initState() {
     super.initState();
-    // تعبئة البيانات الحالية في الحقول
+    
     _nameController = TextEditingController(text: widget.pet.name);
     _breedController = TextEditingController(text: widget.pet.breed);
     _ageController = TextEditingController(
@@ -78,7 +78,7 @@ class _EditPetSheetState extends State<EditPetSheet> {
             ),
             const SizedBox(height: 20),
 
-            // --- قسم رفع الصورة (بناءً على تصميم Figma) ---
+            
             const Text(
               "Pet Photo",
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
