@@ -13,7 +13,7 @@ class MyPetPage extends StatefulWidget {
 }
 
 class _MyPetPageState extends State<MyPetPage> {
-  // قائمة الحيوانات الأليفة
+
   List<Pet> myPets = [
     Pet(
       name: "Buddy",
