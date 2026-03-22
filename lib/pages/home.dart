@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'my_pet_page.dart'; // تأكدي من استيراد الصفحة الجديدة هنا
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -13,25 +14,33 @@ class _HomePageState extends State<Home> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(),
-              const SizedBox(height: 20),
-              _buildMyPetsRow(),
-              const SizedBox(height: 20),
-              _buildServicesGrid(),
-              const SizedBox(height: 22),
-              _buildUpcomingReminderCard(),
-              const SizedBox(height: 20),
-            ],
-          ),
+      // التعديل الأساسي هنا: فحص الـ Index المختار
+      body: _selectedIndex == 1
+          ? const MyPetPage() // إذا اخترتِ My Pets (index 1) تفتح هذه الصفحة
+          : _buildHomeContent(), // غير ذلك تظهر محتويات الصفحة الرئيسية
+      bottomNavigationBar: _buildBottomNav(),
+    );
+  }
+
+  // قمت بنقل محتوى الصفحة الرئيسية لميثود منفصلة ليبقى الكود منظماً
+  Widget _buildHomeContent() {
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildHeader(),
+            const SizedBox(height: 20),
+            _buildMyPetsRow(),
+            const SizedBox(height: 20),
+            _buildServicesGrid(),
+            const SizedBox(height: 22),
+            _buildUpcomingReminderCard(),
+            const SizedBox(height: 20),
+          ],
         ),
       ),
-      bottomNavigationBar: _buildBottomNav(),
     );
   }
 
@@ -41,16 +50,16 @@ class _HomePageState extends State<Home> {
         Container(
           width: 64,
           height: 64,
-          decoration: BoxDecoration(
-            color: const Color(0xFFDFF3EE),
+          decoration: const BoxDecoration(
+            color: Color(0xFFDFF3EE),
             shape: BoxShape.circle,
           ),
           child: const Icon(Icons.pets, color: Color(0xFF3AA78E), size: 34),
         ),
         const SizedBox(width: 12),
-        Column(
+        const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
+          children: [
             Text(
               'PawVera',
               style: TextStyle(
@@ -62,10 +71,7 @@ class _HomePageState extends State<Home> {
             SizedBox(height: 4),
             Text(
               'Where Every Paw Matters',
-              style: TextStyle(
-                fontSize: 12,
-                color: Color(0xFF8A7A6C),
-              ),
+              style: TextStyle(fontSize: 12, color: Color(0xFF8A7A6C)),
             ),
           ],
         ),
@@ -75,7 +81,11 @@ class _HomePageState extends State<Home> {
             width: 38,
             height: 38,
             color: const Color(0xFFDDEEEA),
-            child: const Icon(Icons.notifications_none, size: 20, color: Color(0xFF6B6B6B)),
+            child: const Icon(
+              Icons.notifications_none,
+              size: 20,
+              color: Color(0xFF6B6B6B),
+            ),
           ),
         ),
       ],
@@ -115,7 +125,10 @@ class _HomePageState extends State<Home> {
         CircleAvatar(
           radius: 28,
           backgroundColor: color,
-          child: Text(name[0], style: const TextStyle(fontSize: 18, color: Colors.white)),
+          child: Text(
+            initial,
+            style: const TextStyle(fontSize: 18, color: Colors.white),
+          ),
         ),
         const SizedBox(height: 6),
         SizedBox(
@@ -125,7 +138,7 @@ class _HomePageState extends State<Home> {
             textAlign: TextAlign.center,
             style: const TextStyle(fontSize: 12),
           ),
-        )
+        ),
       ],
     );
   }
@@ -137,8 +150,8 @@ class _HomePageState extends State<Home> {
         Container(
           width: 56,
           height: 56,
-          decoration: BoxDecoration(
-            color: const Color(0xFFDFF3EE),
+          decoration: const BoxDecoration(
+            color: Color(0xFFDFF3EE),
             shape: BoxShape.circle,
           ),
           child: const Icon(Icons.add, color: Color(0xFF3AA78E)),
@@ -146,18 +159,24 @@ class _HomePageState extends State<Home> {
         const SizedBox(height: 6),
         const SizedBox(
           width: 64,
-          child: Text('Add Pet', textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
-        )
+          child: Text(
+            'Add Pet',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12),
+          ),
+        ),
       ],
     );
   }
 
   Widget _buildServicesGrid() {
-    final cardRadius = BorderRadius.circular(14.0);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Services', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        const Text(
+          'Services',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
         const SizedBox(height: 12),
         GridView(
           shrinkWrap: true,
@@ -237,7 +256,11 @@ class _HomePageState extends State<Home> {
         color: color,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 6, offset: const Offset(0, 2)),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
       child: ClipRRect(
@@ -245,11 +268,9 @@ class _HomePageState extends State<Home> {
         child: Stack(
           clipBehavior: Clip.none,
           children: [
-            // Main content: badge + texts
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // White circular badge with icon
                 Container(
                   width: 44,
                   height: 44,
@@ -257,7 +278,11 @@ class _HomePageState extends State<Home> {
                     color: Colors.white,
                     shape: BoxShape.circle,
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 6, offset: const Offset(0, 2)),
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
                     ],
                   ),
                   child: Center(
@@ -267,27 +292,37 @@ class _HomePageState extends State<Home> {
                             width: 22,
                             height: 22,
                             fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) => Icon(icon, size: 20, color: const Color(0xFF6B6B6B)),
+                            errorBuilder: (context, error, stackTrace) => Icon(
+                              icon,
+                              size: 20,
+                              color: const Color(0xFF6B6B6B),
+                            ),
                           )
                         : Icon(icon, size: 20, color: const Color(0xFF6B6B6B)),
                   ),
                 ),
                 const SizedBox(width: 12),
-                // Title & subtitle
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         title,
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF4B3B34)),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF4B3B34),
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 6),
                       Text(
                         subtitle,
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF6E6E6E)),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF6E6E6E),
+                        ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -296,8 +331,6 @@ class _HomePageState extends State<Home> {
                 ),
               ],
             ),
-
-            // Decorative illustration at bottom-right
             if (illustrationAsset != null)
               Positioned(
                 right: -6,
@@ -307,7 +340,8 @@ class _HomePageState extends State<Home> {
                   width: 76,
                   height: 76,
                   fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                  errorBuilder: (context, error, stackTrace) =>
+                      const SizedBox.shrink(),
                 ),
               ),
           ],
@@ -330,9 +364,15 @@ class _HomePageState extends State<Home> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Heartworm Medication', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text(
+                'Heartworm Medication',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.8),
                   borderRadius: BorderRadius.circular(20),
@@ -342,9 +382,15 @@ class _HomePageState extends State<Home> {
             ],
           ),
           const SizedBox(height: 10),
-          const Text('Pet: Buddy\nJan 18, 2026 at 8:00 AM', style: TextStyle(color: Color(0xFF5B4A44))),
+          const Text(
+            'Pet: Buddy\nJan 18, 2026 at 8:00 AM',
+            style: TextStyle(color: Color(0xFF5B4A44)),
+          ),
           const SizedBox(height: 8),
-          const Text('Monthly heartworm prevention pill', style: TextStyle(color: Color(0xFF6B635E))),
+          const Text(
+            'Monthly heartworm prevention pill',
+            style: TextStyle(color: Color(0xFF6B635E)),
+          ),
         ],
       ),
     );
@@ -360,10 +406,22 @@ class _HomePageState extends State<Home> {
       onTap: (i) => setState(() => _selectedIndex = i),
       items: const [
         BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
-        BottomNavigationBarItem(icon: Icon(Icons.pets_outlined), label: 'My Pets'),
-        BottomNavigationBarItem(icon: Icon(Icons.message_outlined), label: 'Messages'),
-        BottomNavigationBarItem(icon: Icon(Icons.calendar_today_outlined), label: 'My Bookings'),
-        BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.pets_outlined),
+          label: 'My Pets',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.message_outlined),
+          label: 'Messages',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.calendar_today_outlined),
+          label: 'My Bookings',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.person_outline),
+          label: 'Profile',
+        ),
       ],
     );
   }
