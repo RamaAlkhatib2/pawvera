@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:pawvera/model/pet_model.dart'; // مكتبة الصور
+import 'package:pawvera/model/pet_model.dart';
 
 class AddPetSheet extends StatefulWidget {
   final Function(Pet) onPetAdded;
@@ -98,7 +98,7 @@ class _AddPetSheetState extends State<AddPetSheet> {
                 width: double.infinity,
                 height: 140,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8FBFB), // لون خلفية هادئ
+                  color: const Color(0xFFF8FBFB), 
                   borderRadius: BorderRadius.circular(15),
                   border: Border.all(color: Colors.grey[200]!),
                 ),
@@ -126,7 +126,7 @@ class _AddPetSheetState extends State<AddPetSheet> {
             ),
             const SizedBox(height: 20),
 
-            // الحقول النصية
+           
             _buildTextField("Pet Name", _nameController),
             _buildDropdownField("Type", [
               "Dog",
@@ -158,7 +158,7 @@ class _AddPetSheetState extends State<AddPetSheet> {
 
             const SizedBox(height: 20),
 
-            // زر الإضافة النهائي
+           
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -171,7 +171,7 @@ class _AddPetSheetState extends State<AddPetSheet> {
                       type: selectedType ?? "Unknown",
                       color: _colorController.text,
                       weight: "${_weightController.text}kg",
-                      imagePath: _selectedImage?.path, // تمرير مسار الصورة
+                      imagePath: _selectedImage?.path,
                     );
                     widget.onPetAdded(newPet);
                     Navigator.pop(context);
@@ -180,7 +180,7 @@ class _AddPetSheetState extends State<AddPetSheet> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(
                     0xFF5B9D8E,
-                  ), // اللون الأخضر من التصميم
+                  ),
                   padding: const EdgeInsets.symmetric(vertical: 15),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
@@ -203,7 +203,6 @@ class _AddPetSheetState extends State<AddPetSheet> {
     );
   }
 
-  // الـ Widgets المساعدة (بقت كما هي مع تحسين بسيط في التصميم)
   Widget _buildTextField(
     String label,
     TextEditingController controller, {
