@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:sign_in_fun/pages/home.dart';
+import 'package:pawvera/pages/home.dart';
 import '../components/my_button.dart';
 import '../components/my_textfields.dart';
 import '../components/role_button.dart';
