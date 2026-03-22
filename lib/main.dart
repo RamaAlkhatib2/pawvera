@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'home.dart';
+import 'package:pawvera/pages/sign_in_page.dart';
+import 'pages/home.dart';
 
 void main() {
   runApp(const MainApp());
@@ -18,8 +19,7 @@ class MainApp extends StatelessWidget {
         fontFamily: 'Roboto',
         scaffoldBackgroundColor: const Color(0xFFFBF6EE),
       ),
-      home: const Home(),
+      home: const SignInPage(),
     );
   }
 }
-
