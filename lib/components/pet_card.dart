@@ -85,16 +85,16 @@ class PetCard extends StatelessWidget {
             children: [
               Expanded(
                 child: _actionButton("QR Tag", Icons.qr_code, () {
-                  // يمكنك إضافة أكشن الـ QR هنا لاحقاً
+                 
                 }),
               ),
               const SizedBox(width: 10),
-              // التعديل هنا: ربط زر Edit Info بدالة onEdit
+              
               Expanded(
                 child: _actionButton(
                   "Edit Info",
                   Icons.edit,
-                  onEdit, // تمرير الدالة هنا
+                  onEdit, 
                 ),
               ),
             ],
@@ -113,10 +113,10 @@ class PetCard extends StatelessWidget {
     child: Text(text, style: const TextStyle(fontSize: 12)),
   );
 
-  // تحديث الـ Widget المساعد ليقبل onTap
+  
   Widget _actionButton(String label, IconData icon, VoidCallback onTap) =>
       GestureDetector(
-        onTap: onTap, // إضافة استجابة اللمس
+        onTap: onTap,
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
