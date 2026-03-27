@@ -1,3 +1,4 @@
+import 'profile_view.dart';
 import 'package:flutter/material.dart';
 import 'my_pet_page.dart'; // تأكدي من استيراد الصفحة الجديدة هنا
 
@@ -12,15 +13,17 @@ class _HomePageState extends State<Home> {
   int _selectedIndex = 0;
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      // التعديل الأساسي هنا: فحص الـ Index المختار
-      body: _selectedIndex == 1
-          ? const MyPetPage() // إذا اخترتِ My Pets (index 1) تفتح هذه الصفحة
-          : _buildHomeContent(), // غير ذلك تظهر محتويات الصفحة الرئيسية
-      bottomNavigationBar: _buildBottomNav(),
-    );
-  }
+Widget build(BuildContext context) {
+  return Scaffold(
+    // التعديل هنا ليدعم التنقل بين 3 حالات (Home, My Pets, Profile)
+    body: _selectedIndex == 4
+        ? const ProfileView() // إذا اخترتِ Profile (index 4) تفتح صفحة البروفايل الجديدة
+        : (_selectedIndex == 1 
+            ? const MyPetPage() // إذا اخترتِ My Pets (index 1)
+            : _buildHomeContent()), // الحالة الافتراضية هي محتوى الصفحة الرئيسية
+    bottomNavigationBar: _buildBottomNav(),
+  );
+}
 
   // قمت بنقل محتوى الصفحة الرئيسية لميثود منفصلة ليبقى الكود منظماً
   Widget _buildHomeContent() {
@@ -98,21 +101,17 @@ class _HomePageState extends State<Home> {
       children: [
         const Text(
           'My Pets',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
-        SizedBox(
-          height: 74,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            children: [
-              _petAvatar('B', 'Buddy', Colors.brown.shade300),
-              const SizedBox(width: 12),
-              _petAvatar('W', 'Whiskers', Colors.orange.shade200),
-              const SizedBox(width: 12),
-              _addPetButton(),
-            ],
-          ),
+        Wrap(
+          spacing: 15, 
+          runSpacing: 10, 
+          children: [
+            _petAvatar('B', 'Buddy', Colors.brown.shade300),
+            _petAvatar('W', 'Whiskers', Colors.orange.shade200),
+            _addPetButton(), // هذا الزر اللي عدلناه عشان يفتح صفحة My Pets
+          ],
         ),
       ],
     );
@@ -144,7 +143,13 @@ class _HomePageState extends State<Home> {
   }
 
   Widget _addPetButton() {
-    return Column(
+  return GestureDetector(
+    onTap: () {
+      setState(() {
+        _selectedIndex = 1; // هذا الرقم ينقلك لصفحة My Pets في الـ Navigation Bar
+      });
+    },
+    child: Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Container(
@@ -166,8 +171,9 @@ class _HomePageState extends State<Home> {
           ),
         ),
       ],
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildServicesGrid() {
     return Column(
