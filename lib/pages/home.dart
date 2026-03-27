@@ -1,3 +1,4 @@
+import 'supplies_store.dart';
 import 'profile_view.dart';
 import 'package:flutter/material.dart';
 import 'my_pet_page.dart'; // تأكدي من استيراد الصفحة الجديدة هنا
@@ -184,66 +185,77 @@ Widget build(BuildContext context) {
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 12),
-        GridView(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            mainAxisExtent: 120,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-          ),
-          children: [
-            _serviceCard(
-              title: 'Reminders',
-              subtitle: 'Schedule pet tasks',
-              icon: Icons.calendar_today,
-              color: const Color(0xFFF4CFC6),
-              badgeAsset: 'assets/icons/reminders.icon.png',
-              illustrationAsset: 'assets/icons/reminders.icon.png',
-            ),
-            _serviceCard(
-              title: 'Adoption',
-              subtitle: 'Find new friends',
-              icon: Icons.favorite_border,
-              color: const Color(0xFFDFF6EF),
-              badgeAsset: 'assets/icons/adoption.icon.png',
-              illustrationAsset: 'assets/icons/adoption.icon.png',
-            ),
-            _serviceCard(
-              title: 'Pet Supplies',
-              subtitle: 'Shop Now',
-              icon: Icons.shopping_bag_outlined,
-              color: const Color(0xFFF7EACD),
-              badgeAsset: 'assets/icons/pet_supplies.icon.png',
-              illustrationAsset: 'assets/icons/pet_supplies.icon.png',
-            ),
-            _serviceCard(
-              title: 'Pet Care',
-              subtitle: 'Book Services',
-              icon: Icons.pets_outlined,
-              color: const Color(0xFFFDE0C8),
-              badgeAsset: 'assets/icons/pet_care.icon.png',
-              illustrationAsset: 'assets/icons/pet_care.icon.png',
-            ),
-            _serviceCard(
-              title: 'Doctor Appointments',
-              subtitle: 'Book vet consults',
-              icon: Icons.medical_services_outlined,
-              color: const Color(0xFFD9F1F9),
-              badgeAsset: 'assets/icons/health_records.icon.png',
-              illustrationAsset: 'assets/icons/health_records.icon.png',
-            ),
-            _serviceCard(
-              title: 'Health Records',
-              subtitle: 'Medical history',
-              icon: Icons.receipt_long,
-              color: const Color(0xFFE6F6F0),
-              badgeAsset: 'assets/icons/health_records.icon.png',
-              illustrationAsset: 'assets/icons/health_records.icon.png',
-            ),
-          ],
-        ),
+     GridView(
+  shrinkWrap: true,
+  physics: const NeverScrollableScrollPhysics(),
+  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+    crossAxisCount: 2,
+    mainAxisExtent: 120,
+    crossAxisSpacing: 12,
+    mainAxisSpacing: 12,
+  ),
+  children: [
+    _serviceCard(
+      title: 'Reminders',
+      subtitle: 'Schedule pet tasks',
+      icon: Icons.calendar_today,
+      color: const Color(0xFFF4CFC6),
+      badgeAsset: 'assets/icons/reminders.icon.png',
+      illustrationAsset: 'assets/icons/reminders.icon.png',
+    ),
+    _serviceCard(
+      title: 'Adoption',
+      subtitle: 'Find new friends',
+      icon: Icons.favorite_border,
+      color: const Color(0xFFDFF6EF),
+      badgeAsset: 'assets/icons/adoption.icon.png',
+      illustrationAsset: 'assets/icons/adoption.icon.png',
+    ),
+    
+    // التعديل هنا: أضفنا GestureDetector حول Pet Supplies
+    GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const SuppliesStore()),
+        );
+      },
+      child: _serviceCard(
+        title: 'Pet Supplies',
+        subtitle: 'Shop Now',
+        icon: Icons.shopping_bag_outlined,
+        color: const Color(0xFFF7EACD),
+        badgeAsset: 'assets/icons/pet_supplies.icon.png',
+        illustrationAsset: 'assets/icons/pet_supplies.icon.png',
+      ),
+    ),
+
+    _serviceCard(
+      title: 'Pet Care',
+      subtitle: 'Book Services',
+      icon: Icons.pets_outlined,
+      color: const Color(0xFFFDE0C8),
+      badgeAsset: 'assets/icons/pet_care.icon.png',
+      illustrationAsset: 'assets/icons/pet_care.icon.png',
+    ),
+    _serviceCard(
+      title: 'Doctor Appointments',
+      subtitle: 'Book vet consults',
+      icon: Icons.medical_services_outlined,
+      color: const Color(0xFFD9F1F9),
+      badgeAsset: 'assets/icons/health_records.icon.png',
+      illustrationAsset: 'assets/icons/health_records.icon.png',
+    ),
+    _serviceCard(
+      title: 'Health Records',
+      subtitle: 'Medical history',
+      icon: Icons.receipt_long,
+      color: const Color(0xFFE6F6F0),
+      badgeAsset: 'assets/icons/health_records.icon.png',
+      illustrationAsset: 'assets/icons/health_records.icon.png',
+    ),
+  ],
+),
       ],
     );
   }
