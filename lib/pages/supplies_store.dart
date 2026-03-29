@@ -223,7 +223,7 @@ class SuppliesStore extends StatelessWidget {
         selected: isSelected,
         onSelected: (val) {},
         backgroundColor: Colors.white,
-        selectedColor: const Color(0xFF3AA78E).withOpacity(0.2),
+        selectedColor:const Color(0xFF3AA78E).withOpacity(0.2),
         labelStyle: TextStyle(color: isSelected ? const Color(0xFF3AA78E) : Colors.black),
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
@@ -244,12 +244,22 @@ class SuppliesStore extends StatelessWidget {
     required List<String> tags,
   }) {
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => StoreDetails(storeName: name)),
-        );
-      },
+   onTap: () {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => StoreDetails(
+        storeData: {
+          'name': name.trim(), // بنبعث الاسم "نظيف" بدون فراغات
+          'location': location,
+          'distance': distance,
+          'time': time,
+          'rating': rating,
+        },
+      ),
+    ),
+  );
+},
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         padding: const EdgeInsets.all(12),

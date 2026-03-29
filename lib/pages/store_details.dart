@@ -1,16 +1,49 @@
 import 'package:flutter/material.dart';
 
 class StoreDetails extends StatefulWidget {
-  final String storeName;
-  const StoreDetails({super.key, required this.storeName});
+  final Map<String, dynamic> storeData; 
+
+  const StoreDetails({super.key, required this.storeData});
 
   @override
   State<StoreDetails> createState() => _StoreDetailsState();
 }
 
 class _StoreDetailsState extends State<StoreDetails> {
+  // 1. قاعدة بيانات المنتجات (مفاتيحها هي الأسماء بالظبط)
+  final Map<String, List<Map<String, String>>> allProducts = {
+    'Comfort Paws Store': [
+      {'title': 'Orthopedic Dog Bed', 'desc': 'Premium joint support', 'price': '35.0 JOD', 'offer': 'Best Seller'},
+      {'title': 'Cat Tree House', 'desc': 'Multi-level play area', 'price': '45.0 JOD'},
+      {'title': 'Pet Blanket', 'desc': 'Warm & cozy wool', 'price': '15.0 JOD'},
+      {'title': 'Elevated Feeder', 'desc': 'Healthy eating posture', 'price': '25.0 JOD'},
+    ],
+    'Pet Supplies Plus': [
+      {'title': 'Premium Dog Food', 'desc': 'High protein formula', 'price': '40.0 JOD', 'offer': '10% Off'},
+      {'title': 'Feather Wand Toy', 'desc': 'Interactive cat fun', 'price': '8.0 JOD'},
+      {'title': 'Pet Shampoo', 'desc': 'Natural aloe vera', 'price': '12.0 JOD'},
+      {'title': 'Training Treats', 'desc': 'Grain-free bites', 'price': '10.0 JOD'},
+    ],
+    'Furry Friends Store': [
+      {'title': 'Puzzle Toy', 'desc': 'Mental stimulation', 'price': '20.0 JOD', 'offer': 'New'},
+      {'title': 'Scratching Post', 'desc': 'Durable sisal fiber', 'price': '30.0 JOD'},
+      {'title': 'Pet Carrier', 'desc': 'Breathable travel bag', 'price': '28.0 JOD'},
+      {'title': 'Grooming Brush', 'desc': 'Self-cleaning bristles', 'price': '14.0 JOD'},
+    ],
+    'Healthy Pets Market': [
+      {'title': 'Organic Treats', 'desc': '100% natural ingredients', 'price': '18.0 JOD', 'offer': 'Organic'},
+      {'title': 'Supplement C', 'desc': 'Immune system boost', 'price': '22.0 JOD'},
+      {'title': 'Pet Balm', 'desc': 'For dry paws and nose', 'price': '16.0 JOD'},
+      {'title': 'Ear Cleaner', 'desc': 'Gentle & effective', 'price': '10.0 JOD'},
+    ],
+  };
+
   @override
   Widget build(BuildContext context) {
+    // جلب البيانات من الماب بناءً على الاسم اللي وصل من الصفحة الأولى
+    final String storeName = widget.storeData['name'] ?? "";
+    final storeProducts = allProducts[storeName] ?? [];
+
     return Scaffold(
       backgroundColor: const Color(0xFFF7FBFB),
       appBar: AppBar(
@@ -21,8 +54,10 @@ class _StoreDetailsState extends State<StoreDetails> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(widget.storeName, style: const TextStyle(color: Color(0xFF5A3E2B), fontWeight: FontWeight.bold, fontSize: 18)),
-            const Text('Comfort Paws Bedding Center', style: TextStyle(color: Colors.grey, fontSize: 12)),
+            Text(storeName, 
+                style: const TextStyle(color: Color(0xFF5A3E2B), fontWeight: FontWeight.bold, fontSize: 18)),
+            Text('${widget.storeData['location'] ?? ""} • ${widget.storeData['distance'] ?? ""}', 
+                style: const TextStyle(color: Colors.grey, fontSize: 12)),
           ],
         ),
         actions: [
@@ -34,21 +69,21 @@ class _StoreDetailsState extends State<StoreDetails> {
       ),
       body: Column(
         children: [
-          // 1. Header with Categories (Horizontal Scroll)
+          // 1. Categories
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Row(
               children: [
                 _buildCategoryTab('All', isSelected: true),
-                _buildCategoryTab('Bedding'),
+                _buildCategoryTab('Food'),
                 _buildCategoryTab('Toys'),
-                _buildCategoryTab('Accessories'),
+                _buildCategoryTab('Health'),
               ],
             ),
           ),
 
-          // 2. Search Products Bar
+          // 2. Search Bar
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Row(
@@ -56,7 +91,7 @@ class _StoreDetailsState extends State<StoreDetails> {
                 Expanded(
                   child: TextField(
                     decoration: InputDecoration(
-                      hintText: 'Search within this store...',
+                      hintText: 'Search in $storeName...',
                       prefixIcon: const Icon(Icons.search, color: Colors.grey),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                       filled: true,
@@ -65,56 +100,35 @@ class _StoreDetailsState extends State<StoreDetails> {
                   ),
                 ),
                 const SizedBox(width: 10),
-                _buildCircularButton(Icons.tune), // Filter Icon
+                _buildCircularButton(Icons.tune),
               ],
             ),
           ),
 
-          // 3. Floating Quick Buttons Row (Optional based on design)
-          _buildQuickActions(),
-
-          // 4. Products Grid
+          // 3. Products Grid
           Expanded(
-            child: GridView(
+            child: GridView.builder(
               padding: const EdgeInsets.all(16),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
-                childAspectRatio: 0.70, // Controls product card height
+                childAspectRatio: 0.70,
                 crossAxisSpacing: 16,
                 mainAxisSpacing: 16,
               ),
-              children: [
-                _buildProductCard(
-                  title: 'Classic Gray Pet Bed',
-                  desc: 'Soft & Comfortable bedding',
-                  price: '25.00 JOD',
-                  offer: 'Hot Offer: 10% Off',
-                  icon: Icons.single_bed_outlined,
-                ),
-                _buildProductCard(
-                  title: 'Deluxe Orthopedic Bed',
-                  desc: 'Joint support and extra comfort',
-                  price: '45.00 JOD',
-                  icon: Icons.chair_outlined,
-                ),
-                _buildProductCard(
-                  title: 'Pet Blanket',
-                  desc: 'Warm & cozy for cool nights',
-                  price: '15.00 JOD',
-                  icon: Icons.layers_outlined,
-                ),
-                _buildProductCard(
-                  title: 'Wooden Pet Bed Frame',
-                  desc: 'Sturdy frame for any bed style',
-                  price: '60.00 JOD',
-                  icon: Icons.crop_din,
-                ),
-              ],
+              itemCount: storeProducts.length,
+              itemBuilder: (context, index) {
+                final product = storeProducts[index];
+                return _buildProductCard(
+                  title: product['title']!,
+                  desc: product['desc']!,
+                  price: product['price']!,
+                  offer: product['offer'],
+                );
+              },
             ),
           ),
         ],
       ),
-      // Floating Cart Button
       floatingActionButton: FloatingActionButton(
         onPressed: () {},
         backgroundColor: const Color(0xFF3AA78E),
@@ -123,18 +137,18 @@ class _StoreDetailsState extends State<StoreDetails> {
     );
   }
 
-  // --- Widgets Helpers ---
+  // --- Widgets المساعدة ---
 
   Widget _buildCategoryTab(String label, {bool isSelected = false}) {
     return Container(
-      margin: const EdgeInsets.only(right: 12),
+      margin: const EdgeInsets.only(right: 8),
       child: FilterChip(
         label: Text(label),
         selected: isSelected,
         onSelected: (val) {},
         backgroundColor: Colors.white,
         selectedColor: const Color(0xFF3AA78E).withOpacity(0.2),
-        labelStyle: TextStyle(color: isSelected ? const Color(0xFF3AA78E) : Colors.black, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal),
+        labelStyle: TextStyle(color: isSelected ? const Color(0xFF3AA78E) : Colors.black, fontSize: 12),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10), side: BorderSide(color: Colors.grey.shade200)),
       ),
     );
@@ -142,41 +156,13 @@ class _StoreDetailsState extends State<StoreDetails> {
 
   Widget _buildCircularButton(IconData icon) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: Colors.grey.shade200)),
       child: Icon(icon, size: 20, color: const Color(0xFF5A3E2B)),
     );
   }
 
-  Widget _buildQuickActions() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          _quickActionButton('Filter Products', Icons.tune),
-          _quickActionButton('Best Sellers', Icons.local_offer_outlined),
-          _quickActionButton('In Stock', Icons.check_circle_outline),
-        ],
-      ),
-    );
-  }
-
-  Widget _quickActionButton(String label, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(color: const Color(0xFFE8F4F1), borderRadius: BorderRadius.circular(8)),
-      child: Row(
-        children: [
-          Icon(icon, size: 16, color: const Color(0xFF3AA78E)),
-          const SizedBox(width: 5),
-          Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF5A3E2B))),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProductCard({required String title, required String desc, required String price, String? offer, required IconData icon}) {
+  Widget _buildProductCard({required String title, required String desc, required String price, String? offer}) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -189,35 +175,32 @@ class _StoreDetailsState extends State<StoreDetails> {
           if (offer != null)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: const BoxDecoration(color: Color(0xFF3AA78E), borderRadius: BorderRadius.only(topLeft: Radius.circular(15), bottomRight: Radius.circular(15))),
-              child: Text(offer, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+              decoration: const BoxDecoration(color: Color(0xFF3AA78E), borderRadius: BorderRadius.only(topLeft: Radius.circular(15), bottomRight: Radius.circular(10))),
+              child: Text(offer, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
             ),
           Expanded(
             child: Container(
-              margin: const EdgeInsets.all(12),
+              margin: const EdgeInsets.all(10),
               decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(10)),
-              child: const Icon(Icons.image_outlined, size: 60, color: Colors.grey), // Placeholder for product image
+              child: const Center(child: Icon(Icons.pets, size: 40, color: Colors.grey)),
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                const SizedBox(height: 2),
-                Text(desc, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(desc, style: const TextStyle(color: Colors.grey, fontSize: 11), maxLines: 1),
                 const SizedBox(height: 8),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(left: 12, right: 12, bottom: 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(price, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF3AA78E))),
-                _buildCircularButton(Icons.add_shopping_cart), // Add Button
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(price, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF3AA78E))),
+                    const Icon(Icons.add_circle, color: Color(0xFF5A3E2B), size: 24),
+                  ],
+                ),
+                const SizedBox(height: 10),
               ],
             ),
           ),
