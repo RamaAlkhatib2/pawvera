@@ -2,6 +2,7 @@ import 'supplies_store.dart';
 import 'profile_view.dart';
 import 'package:flutter/material.dart';
 import 'my_pet_page.dart'; // تأكدي من استيراد الصفحة الجديدة هنا
+import 'notifications_page.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -80,15 +81,23 @@ Widget build(BuildContext context) {
           ],
         ),
         const Spacer(),
-        ClipOval(
-          child: Container(
-            width: 38,
-            height: 38,
-            color: const Color(0xFFDDEEEA),
-            child: const Icon(
-              Icons.notifications_none,
-              size: 20,
-              color: Color(0xFF6B6B6B),
+        GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const NotificationsPage()),
+            );
+          },
+          child: ClipOval(
+            child: Container(
+              width: 38,
+              height: 38,
+              color: const Color(0xFFDDEEEA),
+              child: const Icon(
+                Icons.notifications_none,
+                size: 20,
+                color: Color(0xFF6B6B6B),
+              ),
             ),
           ),
         ),
@@ -127,7 +136,7 @@ Widget build(BuildContext context) {
           backgroundColor: color,
           child: Text(
             initial,
-            style: const TextStyle(fontSize: 18, color: Colors.white),
+            style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold),
           ),
         ),
         const SizedBox(height: 6),
@@ -269,101 +278,82 @@ Widget build(BuildContext context) {
     String? illustrationAsset,
   }) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: color,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(16),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        blurRadius: 6,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: badgeAsset != null
-                        ? Image.asset(
-                            badgeAsset,
-                            width: 22,
-                            height: 22,
-                            fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) => Icon(
-                              icon,
-                              size: 20,
-                              color: const Color(0xFF6B6B6B),
-                            ),
-                          )
-                        : Icon(icon, size: 20, color: const Color(0xFF6B6B6B)),
-                  ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF4B3B34),
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        subtitle,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF6E6E6E),
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            if (illustrationAsset != null)
-              Positioned(
-                right: -6,
-                bottom: -6,
-                child: Image.asset(
-                  illustrationAsset,
-                  width: 76,
-                  height: 76,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) =>
-                      const SizedBox.shrink(),
+                child: Center(
+                  child: badgeAsset != null
+                      ? Image.asset(
+                          badgeAsset,
+                          width: 20,
+                          height: 20,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) => Icon(
+                            icon,
+                            size: 18,
+                            color: const Color(0xFF6B6B6B),
+                          ),
+                        )
+                      : Icon(icon, size: 18, color: const Color(0xFF6B6B6B)),
                 ),
               ),
-          ],
-        ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF4B3B34),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: Color(0xFF6E6E6E),
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ],
+          ),
+          if (illustrationAsset != null)
+            Positioned(
+              right: -8,
+              bottom: -8,
+              child: Image.asset(
+                illustrationAsset,
+                width: 70,
+                height: 70,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) =>
+                    const SizedBox.shrink(),
+              ),
+            ),
+        ],
       ),
     );
   }
