@@ -1,6 +1,4 @@
-// lib/componants/pet_card.dart
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:pawvera/model/pet_model.dart';
 
@@ -8,12 +6,14 @@ class PetCard extends StatelessWidget {
   final Pet pet;
   final VoidCallback onDelete;
   final VoidCallback onEdit;
+  final VoidCallback onShowQR;
 
   const PetCard({
     super.key,
     required this.pet,
     required this.onDelete,
     required this.onEdit,
+    required this.onShowQR,
   });
 
   @override
@@ -83,20 +83,9 @@ class PetCard extends StatelessWidget {
           const SizedBox(height: 15),
           Row(
             children: [
-              Expanded(
-                child: _actionButton("QR Tag", Icons.qr_code, () {
-                 
-                }),
-              ),
+              Expanded(child: _actionButton("QR Tag", Icons.qr_code, onShowQR)),
               const SizedBox(width: 10),
-              
-              Expanded(
-                child: _actionButton(
-                  "Edit Info",
-                  Icons.edit,
-                  onEdit, 
-                ),
-              ),
+              Expanded(child: _actionButton("Edit Info", Icons.edit, onEdit)),
             ],
           ),
         ],
@@ -113,7 +102,6 @@ class PetCard extends StatelessWidget {
     child: Text(text, style: const TextStyle(fontSize: 12)),
   );
 
-  
   Widget _actionButton(String label, IconData icon, VoidCallback onTap) =>
       GestureDetector(
         onTap: onTap,
