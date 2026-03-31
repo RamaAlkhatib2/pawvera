@@ -1,3 +1,5 @@
+
+import 'package:flutter/material.dart';
  Widget _buildReminderCard(BuildContext context) {
   return GestureDetector(
     onTap: () => _showNewReminderModal(context), 
