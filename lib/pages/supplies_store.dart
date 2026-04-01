@@ -245,16 +245,45 @@ class SuppliesStore extends StatelessWidget {
   }) {
     return GestureDetector(
    onTap: () {
+  // 1. تحديد الصورة والتفاصيل بناءً على اسم المتجر
+  String storeImage = "";
+  List<String> categories = [];
+  String reviews = "";
+  String hours = "9AM - 8PM"; // قيمة افتراضية
+
+  if (name.contains("Comfort")) {
+    storeImage = 'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7';
+    categories = ['Furniture', 'Bedding', 'Home'];
+    reviews = '(412)';
+  } else if (name.contains("Plus")) {
+    storeImage = 'https://images.unsplash.com/photo-1541599540903-216a46ca1dfa';
+    categories = ['Food', 'Accessories', 'Toys'];
+    reviews = '(250)';
+  } else if (name.contains("Furry")) {
+    storeImage = 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee';
+    categories = ['Grooming', 'Toys', 'Training'];
+    reviews = '(180)';
+  } else {
+    storeImage = 'https://images.unsplash.com/photo-1522276493077-9fe5ad01add6';
+    categories = ['Health', 'Organic', 'Care'];
+    reviews = '(95)';
+  }
+
+  // 2. نبعث الداتا كاملة لصفحة الـ StoreDetails
   Navigator.push(
     context,
     MaterialPageRoute(
       builder: (context) => StoreDetails(
         storeData: {
-          'name': name.trim(), // بنبعث الاسم "نظيف" بدون فراغات
+          'name': name.trim(),
+          'image': storeImage,     // الصورة اللي رح تطلع فوق
           'location': location,
           'distance': distance,
           'time': time,
           'rating': rating,
+          'reviews': reviews,      // عدد المراجعات
+          'hours': hours,          // ساعات العمل
+          'categories': categories, // التصنيفات
         },
       ),
     ),
