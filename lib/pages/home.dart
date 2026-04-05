@@ -3,7 +3,7 @@ import 'supplies_store.dart';
 import 'profile_view.dart';
 import 'my_pet_page.dart';
 import 'notifications_page.dart';
-import 'pet_care_page.dart';
+import 'pet care pages/pet_care_page.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
