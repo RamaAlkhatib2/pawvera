@@ -48,7 +48,7 @@ class _PetCarePageState extends State<PetCarePage> {
       distance: "2.5 km",
       petType: "Dog",
       hasOffer: true,
-      isFavorite: true,
+      isFavorite: false, // تم التعديل هنا ليكون false
       imageUrl:
           "https://images.unsplash.com/photo-1516733725897-1aa73b87c8e8?w=500",
     ),
@@ -105,7 +105,11 @@ class _PetCarePageState extends State<PetCarePage> {
     padding: const EdgeInsets.all(15),
     child: Row(
       children: [
-        const Icon(Icons.arrow_back_ios, size: 18),
+        IconButton(
+          // تم استبدال الأيقونة بـ IconButton للعودة
+          icon: const Icon(Icons.arrow_back_ios, size: 18),
+          onPressed: () => Navigator.pop(context),
+        ),
         const SizedBox(width: 10),
         const Text(
           "Pet Care Services",

@@ -185,7 +185,12 @@ class _LoginViewState extends State<LoginView> {
 
           Center(
             child: TextButton(
-              onPressed: () {},
+              onPressed: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const Home()),
+                );
+              },
               child: const Text(
                 "Continue as Guest",
                 style: TextStyle(
