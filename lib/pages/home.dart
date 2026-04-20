@@ -4,6 +4,7 @@ import 'profile_view.dart';
 import 'my_pet_page.dart';
 import 'notifications_page.dart';
 import 'pet care pages/pet_care_page.dart';
+import 'reminder.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -320,26 +321,34 @@ class _HomePageState extends State<Home> {
   }
 
   Widget _buildUpcomingReminderCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF4CFC6),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Heartworm Medication',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 10),
-          Text(
-            'Pet: Buddy\nJan 18, 2026 at 8:00 AM',
-            style: TextStyle(color: Color(0xFF5B4A44)),
-          ),
-        ],
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ReminderPage()),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF4CFC6),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Heartworm Medication',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 10),
+            Text(
+              'Pet: Buddy\nJan 18, 2026 at 8:00 AM',
+              style: TextStyle(color: Color(0xFF5B4A44)),
+            ),
+          ],
+        ),
       ),
     );
   }
