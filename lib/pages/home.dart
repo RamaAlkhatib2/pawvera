@@ -5,6 +5,7 @@ import 'my_pet_page.dart';
 import 'notifications_page.dart';
 import 'pet care pages/pet_care_page.dart';
 import 'reminder.dart';
+import 'adoption.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -222,11 +223,19 @@ class _HomePageState extends State<Home> {
                 color: const Color(0xFFF4CFC6),
               ),
             ),
-            _serviceCard(
-              title: 'Adoption',
-              subtitle: 'Find new friends',
-              icon: Icons.favorite_border,
-              color: const Color(0xFFDFF6EF),
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AdoptionPage()),
+                );
+              },
+              child: _serviceCard(
+                title: 'Adoption',
+                subtitle: 'Find new friends',
+                icon: Icons.favorite_border,
+                color: const Color(0xFFDFF6EF),
+              ),
             ),
 
             // زر Pet Supplies
