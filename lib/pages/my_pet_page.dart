@@ -93,7 +93,7 @@ class _MyPetPageState extends State<MyPetPage> {
                   Switch(
                     value: true,
                     onChanged: (val) {},
-                    activeColor: primaryGreen,
+                    activeThumbColor: primaryGreen,
                   ),
                 ],
               ),
