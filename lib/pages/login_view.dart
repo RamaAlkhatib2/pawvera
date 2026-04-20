@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pawvera/pages/home.dart';
 import 'package:pawvera/pages/service_provider_dashboard.dart';
+import 'package:pawvera/pages/pet_supplies_store_dashboard.dart';
 import '../components/my_button.dart';
 import '../components/my_textfields.dart';
 import '../components/role_button.dart';
@@ -169,6 +170,13 @@ class _LoginViewState extends State<LoginView> {
                     const SnackBar(
                       content: Text('Please select a provider type'),
                       backgroundColor: Colors.red,
+                    ),
+                  );
+                } else if (selectedProviderType == "Pet Supplies Store") {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PetSuppliesStoreDashboard(),
                     ),
                   );
                 } else {
