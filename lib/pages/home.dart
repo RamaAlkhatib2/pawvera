@@ -208,11 +208,19 @@ class _HomePageState extends State<Home> {
             mainAxisSpacing: 12,
           ),
           children: [
-            _serviceCard(
-              title: 'Reminders',
-              subtitle: 'Schedule pet tasks',
-              icon: Icons.calendar_today,
-              color: const Color(0xFFF4CFC6),
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ReminderPage()),
+                );
+              },
+              child: _serviceCard(
+                title: 'Reminders',
+                subtitle: 'Schedule pet tasks',
+                icon: Icons.calendar_today,
+                color: const Color(0xFFF4CFC6),
+              ),
             ),
             _serviceCard(
               title: 'Adoption',
