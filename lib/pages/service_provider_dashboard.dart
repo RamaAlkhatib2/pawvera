@@ -581,7 +581,6 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
               ),
             ),
           ),
-        ),
       ],
     );
   }
@@ -691,7 +690,6 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
               ),
             ),
           ),
-        ),
       ],
     );
   }
