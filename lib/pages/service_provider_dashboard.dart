@@ -575,9 +575,10 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
                           child: Divider(color: Colors.grey[200]),
                         ),
                     ],
-                  );
+                  ),
                 );
-              },
+                },
+              ),
             ),
           ),
         ),
@@ -684,9 +685,10 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
                           child: Divider(color: Colors.grey[200]),
                         ),
                     ],
-                  );
+                  ),
                 );
-              },
+                },
+              ),
             ),
           ),
         ),
