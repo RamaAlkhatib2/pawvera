@@ -338,35 +338,99 @@ class _HomePageState extends State<Home> {
   }
 
   Widget _buildUpcomingReminderCard() {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const ReminderPage()),
-        );
-      },
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF4CFC6),
-          borderRadius: BorderRadius.circular(12),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Upcoming Reminders',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF5A3E2B),
+          ),
         ),
-        child: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Heartworm Medication',
-              style: TextStyle(fontWeight: FontWeight.bold),
+        const SizedBox(height: 12),
+        GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ReminderPage()),
+            );
+          },
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF4CFC6),
+              borderRadius: BorderRadius.circular(12),
             ),
-            SizedBox(height: 10),
-            Text(
-              'Pet: Buddy\nJan 18, 2026 at 8:00 AM',
-              style: TextStyle(color: Color(0xFF5B4A44)),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Heartworm Medication',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: Color(0xFF5B4A44),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'Pet: Buddy',
+                        style: TextStyle(
+                          color: Color(0xFF5B4A44),
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Jan 18, 2026 at 8:00 AM',
+                        style: TextStyle(
+                          color: Colors.brown[600],
+                          fontSize: 11,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'Monthly heartworm prevention pill',
+                        style: TextStyle(
+                          color: Color(0xFF5B4A44),
+                          fontSize: 11,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text(
+                    'Medication',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF5B4A44),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 
