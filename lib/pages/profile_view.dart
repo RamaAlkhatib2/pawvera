@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pawvera/pages/login_view.dart';
 
 class ProfileView extends StatelessWidget {
   const ProfileView({super.key});
@@ -110,7 +111,13 @@ class ProfileView extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (context) => const LoginView()),
+                      (route) => false,
+                    );
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFD32F2F),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),

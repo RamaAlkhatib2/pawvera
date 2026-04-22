@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:pawvera/pages/sign_in_page.dart';
-import 'package:pawvera/pages/supplies_store.dart'; 
-import 'package:pawvera/pages/store_details.dart';
 void main() {
   runApp(const MainApp());
 }

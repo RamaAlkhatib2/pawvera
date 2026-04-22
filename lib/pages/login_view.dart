@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pawvera/pages/home.dart';
+import 'package:pawvera/pages/service_provider_dashboard.dart';
+import 'package:pawvera/pages/pet_supplies_store_dashboard.dart';
 import '../components/my_button.dart';
 import '../components/my_textfields.dart';
 import '../components/role_button.dart';
@@ -157,10 +159,37 @@ class _LoginViewState extends State<LoginView> {
 
           MyButton(
             onTap: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const Home()),
-              );
+              if (activeRole == "Pet Owner") {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const Home()),
+                );
+              } else if (activeRole == "Provider") {
+                if (selectedProviderType == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please select a provider type'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                } else if (selectedProviderType == "Pet Supplies Store") {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PetSuppliesStoreDashboard(),
+                    ),
+                  );
+                } else {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ServiceProviderDashboard(
+                        providerType: selectedProviderType!,
+                      ),
+                    ),
+                  );
+                }
+              }
             },
             text: "Login",
           ),
@@ -185,7 +214,12 @@ class _LoginViewState extends State<LoginView> {
 
           Center(
             child: TextButton(
-              onPressed: () {},
+              onPressed: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const Home()),
+                );
+              },
               child: const Text(
                 "Continue as Guest",
                 style: TextStyle(
