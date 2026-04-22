@@ -423,21 +423,145 @@ class MyWishlistPage extends StatelessWidget {
           ? const Center(child: Text("Your wishlist is empty!"))
           : GridView.builder(
               padding: const EdgeInsets.all(16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: 0.75, crossAxisSpacing: 16, mainAxisSpacing: 16),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 0.65, // عدلت النسبة لتوفير مساحة للزر داخل الكرت
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+              ),
               itemCount: wishlistItems.length,
-              itemBuilder: (context, index) => _buildStaticCard(wishlistItems[index]),
+              itemBuilder: (context, index) =>
+                  _buildStaticCard(context, wishlistItems[index]),
+            ),
+      
+      // الزر الكبير في أسفل الصفحة
+      bottomNavigationBar: wishlistItems.isEmpty
+          ? null
+          : Container(
+              padding: const EdgeInsets.all(16.0),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, -5))
+                ],
+              ),
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text("All items added to cart!"),
+                        backgroundColor: Color(0xFF5BA092)),
+                  );
+                  Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => MyCartPage(
+                  cartItems: wishlistItems, // تمرير القائمة كاملة
+                  storeData: {
+                    'name': 'Pet Supplies Plus', // بيانات افتراضية للمتجر
+                    'image': 'assets/images/pet_store.png',
+                  },
+                ),
+              ),
+            );
+                },
+                icon: const Icon(Icons.shopping_cart_outlined, color: Colors.white),
+                label: Text("Add All to Cart (${wishlistItems.length})",
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF5BA092),
+                  minimumSize: const Size(double.infinity, 50),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                  elevation: 0,
+                ),
+              ),
             ),
     );
   }
 
-  Widget _buildStaticCard(Map<String, String> product) {
-    return Container(
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 5)]),
+Widget _buildStaticCard(BuildContext context, Map<String, String> product) {   
+   return Container(
+      decoration: BoxDecoration(
+        color: Colors.white, 
+        borderRadius: BorderRadius.circular(15), 
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 5)
+          ]
+        ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(child: ClipRRect(borderRadius: const BorderRadius.vertical(top: Radius.circular(15)), child: Image.network(product['image']!, fit: BoxFit.cover, width: double.infinity))),
-          Padding(padding: const EdgeInsets.all(10), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(product['title']!, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1), Text(product['price']!, style: const TextStyle(color: Color(0xFF5BA092), fontWeight: FontWeight.bold))])),
+          Expanded(
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(15)), 
+              child: Image.network(
+                product['image']!,
+                 fit: BoxFit.cover,
+                  width: double.infinity,
+                  )
+                  )
+                  ),
+          Padding(padding: const EdgeInsets.all(10),
+           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+             children: [
+              Text(product['title']!,
+               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                maxLines: 1),
+                const SizedBox(height: 4),
+                 Text(product['price']!, 
+                 style: const TextStyle(
+                  color: Color(0xFF5BA092), 
+                  fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                  width: double.infinity,
+                  height: 35,
+                  child: ElevatedButton(
+                    onPressed: () {
+  // 1. إظهار رسالة تأكيد للمستخدم
+                       ScaffoldMessenger.of(context).showSnackBar(
+                       SnackBar(
+                       content: Text("${product['title']} added to cart!"),
+                       backgroundColor: const Color(0xFF5BA092),
+                       duration: const Duration(seconds: 1),
+                       ),
+                    );
+
+  // 2. الانتقال لصفحة السلة وتمرير بيانات المنتج
+                   Navigator.push(
+                   context,
+                   MaterialPageRoute(
+                   builder: (context) => MyCartPage(
+                   cartItems: [product], // نمرر المنتج الحالي داخل قائمة
+                   storeData: {
+                  'name': 'Pet Supplies Plus', // يمكنك استبداله ببيانات ديناميكية إذا توفرت
+                  'image': 'assets/images/pet_store.png',
+               },
+             ),
+            ),
+          );
+        },
+          style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF5BA092).withOpacity(0.1),
+                      foregroundColor: const Color(0xFF5BA092),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                      padding: EdgeInsets.zero,
+                    ),
+                    child: const Text("Add to Cart",
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  ),
+                  ),
+          ])),
         ],
       ),
     );
