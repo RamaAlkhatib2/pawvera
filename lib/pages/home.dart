@@ -6,6 +6,7 @@ import 'notifications_page.dart';
 import 'pet care pages/pet_care_page.dart';
 import 'reminder.dart';
 import 'adoption.dart';
+import 'my_bookings_page.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -20,11 +21,25 @@ class _HomePageState extends State<Home> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _selectedIndex == 4
-          ? const ProfileView()
-          : (_selectedIndex == 1 ? const MyPetPage() : _buildHomeContent()),
+      // تعديل منطق عرض الصفحات ليشمل صفحة الحجوزات الجديدة
+      body: _buildBody(),
       bottomNavigationBar: _buildBottomNav(),
     );
+  }
+
+  // دالة لتحديد أي صفحة تظهر بناءً على الاختيار
+  Widget _buildBody() {
+    switch (_selectedIndex) {
+      case 1:
+        return const MyPetPage();
+      case 3:
+        return const MyBookingsPage(); // عرض صفحة الحجوزات عند الضغط على My Bookings
+      case 4:
+        return const ProfileView();
+      case 0:
+      default:
+        return _buildHomeContent();
+    }
   }
 
   Widget _buildHomeContent() {
@@ -237,8 +252,6 @@ class _HomePageState extends State<Home> {
                 color: const Color(0xFFDFF6EF),
               ),
             ),
-
-            // زر Pet Supplies
             GestureDetector(
               onTap: () {
                 Navigator.push(
@@ -255,7 +268,6 @@ class _HomePageState extends State<Home> {
                 color: const Color(0xFFF7EACD),
               ),
             ),
-
             GestureDetector(
               onTap: () {
                 Navigator.push(
@@ -270,7 +282,6 @@ class _HomePageState extends State<Home> {
                 color: const Color(0xFFFDE0C8),
               ),
             ),
-
             _serviceCard(
               title: 'Doctor Appointments',
               subtitle: 'Book vet consults',
