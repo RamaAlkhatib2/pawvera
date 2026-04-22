@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 
 class BookingPage extends StatefulWidget {
   final String serviceName, price, clinicName;
@@ -22,37 +21,35 @@ class _BookingPageState extends State<BookingPage> {
   String? _selectedTime;
   String? _selectedPet;
 
-  // Controllers لجلب البيانات من الحقول
+  // Controllers للتحكم في الحقول والتأكد من تعبئتها
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _specialRequestsController =
       TextEditingController();
 
+  // قائمة الحيوانات (يمكنك تعبئتها من الـ Database لاحقاً)
+  final List<String> _myPets = [
+    "Buddy (Dog)",
+    "Whiskers (Cat)",
+    "Luna (Rabbit)",
+  ];
+
   final Color primaryGreen = const Color(0xFF5B9D8E);
   final Color darkGreen = const Color(0xFF2D5A4F);
   final Color fieldFillColor = const Color(0xFFF8FAF9);
 
-  // دالة لجلب الحيوانات التي سجلها المستخدم من Hive
-  List<String> _getRegisteredPets() {
-    // افترضت أن اسم البوكس هو 'myBox' كما في ملفاتك السابقة أو 'petsBox'
-    // سيقوم بجلب أسماء الحيوانات المسجلة فقط
-    var box = Hive.box('myBox');
-    List<dynamic> petsData = box.get('pets', defaultValue: []);
-    return petsData.map((e) => e.toString()).toList();
-  }
-
+  // دالة إظهار نافذة التوثيق مع تمرير الإيميل المكتوب
   void _showVerificationDialog() {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (BuildContext context) => VerificationDialog(
-        userEmail: _emailController.text, // تمرير الإيميل للنافذة
-      ),
+      builder: (BuildContext context) =>
+          VerificationDialog(userEmail: _emailController.text),
     );
   }
 
-  // التحقق من أن المستخدم أدخل كل البيانات المطلوبة قبل التوثيق
+  // التحقق من أن جميع المعلومات المطلوبة تم إدخالها
   bool _isFormValid() {
     return _selectedDay != null &&
         _selectedTime != null &&
@@ -64,8 +61,6 @@ class _BookingPageState extends State<BookingPage> {
 
   @override
   Widget build(BuildContext context) {
-    List<String> userPets = _getRegisteredPets();
-
     return Scaffold(
       backgroundColor: const Color(0xFFF0F4F3),
       appBar: AppBar(
@@ -117,7 +112,7 @@ class _BookingPageState extends State<BookingPage> {
                       "Contact Information",
                     ),
                     const SizedBox(height: 12),
-                    _buildContactForm(userPets),
+                    _buildContactForm(),
                   ],
                   const SizedBox(height: 30),
                 ],
@@ -159,7 +154,7 @@ class _BookingPageState extends State<BookingPage> {
           Text(
             widget.price,
             style: const TextStyle(
-              color: Color(0xFF9C27B0),
+              color: Colors.purple,
               fontWeight: FontWeight.bold,
               fontSize: 16,
             ),
@@ -199,15 +194,14 @@ class _BookingPageState extends State<BookingPage> {
             _focusedDay = focusedDay;
           });
         },
-        calendarStyle: const CalendarStyle(
-          selectedDecoration: BoxDecoration(
+        calendarStyle: CalendarStyle(
+          selectedDecoration: const BoxDecoration(
             color: Color(0xFFE6A696),
             shape: BoxShape.circle,
           ),
           todayDecoration: BoxDecoration(
-            color: Color(0xFFF0F7F5),
+            color: primaryGreen.withOpacity(0.2),
             shape: BoxShape.circle,
-            textColor: Colors.black,
           ),
         ),
         headerStyle: const HeaderStyle(
@@ -265,7 +259,7 @@ class _BookingPageState extends State<BookingPage> {
     );
   }
 
-  Widget _buildContactForm(List<String> pets) {
+  Widget _buildContactForm() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -313,11 +307,11 @@ class _BookingPageState extends State<BookingPage> {
               child: DropdownButton<String>(
                 isExpanded: true,
                 value: _selectedPet,
-                hint: Text(
-                  pets.isEmpty ? "No pets found" : "Choose a pet...",
-                  style: const TextStyle(color: Colors.grey, fontSize: 14),
+                hint: const Text(
+                  "Choose a pet...",
+                  style: TextStyle(color: Colors.grey, fontSize: 14),
                 ),
-                items: pets
+                items: _myPets
                     .map(
                       (pet) => DropdownMenuItem(value: pet, child: Text(pet)),
                     )
@@ -500,11 +494,8 @@ class _VerificationDialogState extends State<VerificationDialog> {
           const SizedBox(height: 10),
           TextField(
             textAlign: TextAlign.center,
-            keyboardType: TextInputType.number,
-            maxLength: 6,
             decoration: InputDecoration(
               hintText: "000000",
-              counterText: "",
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
