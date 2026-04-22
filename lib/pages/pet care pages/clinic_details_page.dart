@@ -1,6 +1,27 @@
 import 'package:flutter/material.dart';
 import 'booking_page.dart';
 
+// نموذج بيانات الخدمة لتمكين الفلترة الديناميكية
+class PetService {
+  final String title;
+  final String price;
+  final String oldPrice;
+  final String discount;
+  final bool isPopular;
+  final String petType; // النوع: Dogs, Cats, Birds, etc.
+  final bool hasOffer;
+
+  PetService({
+    required this.title,
+    required this.price,
+    this.oldPrice = "",
+    this.discount = "",
+    this.isPopular = false,
+    required this.petType,
+    required this.hasOffer,
+  });
+}
+
 class ClinicDetailsPage extends StatefulWidget {
   final dynamic provider;
   const ClinicDetailsPage({super.key, required this.provider});
@@ -24,8 +45,50 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
     "Other Pets",
   ];
 
+  // قائمة الخدمات المتاحة (يمكنك إضافة المزيد هنا)
+  final List<PetService> _servicesList = [
+    PetService(
+      title: "Daily Dog Walking",
+      price: "21.25 JOD",
+      oldPrice: "25 JOD",
+      discount: "15% OFF",
+      isPopular: true,
+      petType: "Dogs",
+      hasOffer: true,
+    ),
+    PetService(
+      title: "Pet Sitting - Full Day",
+      price: "55 JOD",
+      petType: "Dogs",
+      hasOffer: false,
+    ),
+    PetService(
+      title: "Cat Grooming",
+      price: "30 JOD",
+      petType: "Cats",
+      hasOffer: false,
+    ),
+    PetService(
+      title: "Special Cat Care",
+      price: "15 JOD",
+      oldPrice: "20 JOD",
+      discount: "25% OFF",
+      petType: "Cats",
+      hasOffer: true,
+    ),
+  ];
+
   @override
   Widget build(BuildContext context) {
+    // منطق الفلترة: تصفية القائمة بناءً على المدخلات
+    List<PetService> filteredServices = _servicesList.where((service) {
+      bool matchesType =
+          _selectedPetFilter == "All Pets" ||
+          service.petType == _selectedPetFilter;
+      bool matchesOffer = !_filterByOffers || service.hasOffer;
+      return matchesType && matchesOffer;
+    }).toList();
+
     return Scaffold(
       backgroundColor: const Color(0xFFF0F4F3),
       appBar: AppBar(
@@ -63,7 +126,7 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
             ),
             const SizedBox(height: 20),
 
-            // قسم الفلترة (Screenshot 106)
+            // قسم الفلترة (Dropdown & Offers Toggle)
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -114,7 +177,6 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
                         ),
                       ),
                       const SizedBox(width: 10),
-
                       Expanded(
                         flex: 1,
                         child: GestureDetector(
@@ -155,26 +217,6 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                const SizedBox(width: 5),
-                                Container(
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: BoxDecoration(
-                                    color: _filterByOffers
-                                        ? Colors.white.withOpacity(0.2)
-                                        : Colors.green.shade100,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Text(
-                                    "1",
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: _filterByOffers
-                                          ? Colors.white
-                                          : Colors.green.shade700,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
                               ],
                             ),
                           ),
@@ -185,14 +227,6 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
                 ],
               ),
             ),
-
-            const SizedBox(height: 25),
-            const Text(
-              "Special Offers",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 12),
-            _buildOfferCard(),
 
             const SizedBox(height: 25),
             Row(
@@ -210,74 +244,27 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
             ),
             const SizedBox(height: 15),
 
-            // الخدمات (تظهر بناءً على الفلترة)
-            if (!_filterByOffers || (_filterByOffers))
-              _serviceItem(
-                context,
-                "Daily Dog Walking",
-                "21.25 JOD",
-                "25 JOD",
-                "15% OFF",
-                true,
-              ),
-
-            if (!_filterByOffers)
-              _serviceItem(
-                context,
-                "Pet Sitting - Full Day",
-                "55 JOD",
-                "",
-                "",
-                false,
+            // عرض الخدمات المفلترة ديناميكياً
+            if (filteredServices.isEmpty)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.only(top: 20),
+                  child: Text("No services found for this filter."),
+                ),
+              )
+            else
+              ...filteredServices.map(
+                (service) => _serviceItem(
+                  context,
+                  service.title,
+                  service.price,
+                  service.oldPrice,
+                  service.discount,
+                  service.isPopular,
+                ),
               ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildOfferCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFDFF6F0),
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: const Color(0xFFB2E5D8)),
-      ),
-      child: const Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: Color(0xFF3AA78E),
-            child: Icon(Icons.percent, color: Colors.white, size: 18),
-          ),
-          SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Weekly Walking Package",
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF2D6A5D),
-                  ),
-                ),
-                Text(
-                  "Valid until Mar 15, 2026",
-                  style: TextStyle(fontSize: 11, color: Color(0xFF4A8B7E)),
-                ),
-              ],
-            ),
-          ),
-          Text(
-            "15% OFF",
-            style: TextStyle(
-              color: Colors.green,
-              fontWeight: FontWeight.bold,
-              fontSize: 11,
-            ),
-          ),
-        ],
       ),
     );
   }

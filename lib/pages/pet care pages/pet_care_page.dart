@@ -38,6 +38,16 @@ class _PetCarePageState extends State<PetCarePage> {
   bool _showOffersOnly = false;
   bool _showFavoritesOnly = false;
 
+  // --- الفلاتر الجديدة المستخرجة من الصورة ---
+  final List<String> _categories = [
+    'All',
+    'Grooming',
+    'Walking',
+    'Training',
+    'Daycare',
+  ];
+  String _selectedCategory = 'All';
+
   final List<ServiceProvider> _providers = [
     ServiceProvider(
       id: "1",
@@ -48,7 +58,7 @@ class _PetCarePageState extends State<PetCarePage> {
       distance: "2.5 km",
       petType: "Dog",
       hasOffer: true,
-      isFavorite: false, // تم التعديل هنا ليكون false
+      isFavorite: false,
       imageUrl:
           "https://images.unsplash.com/photo-1516733725897-1aa73b87c8e8?w=500",
     ),
@@ -76,7 +86,16 @@ class _PetCarePageState extends State<PetCarePage> {
       bool matchesFav = !_showFavoritesOnly || p.isFavorite;
       bool matchesPet =
           _selectedPetType == "All Pet Types" || p.petType == _selectedPetType;
-      return matchesSearch && matchesOffer && matchesFav && matchesPet;
+
+      // تصفية إضافية بناءً على التاج (Category) الجديد
+      bool matchesCategory =
+          _selectedCategory == "All" || p.tags.contains(_selectedCategory);
+
+      return matchesSearch &&
+          matchesOffer &&
+          matchesFav &&
+          matchesPet &&
+          matchesCategory;
     }).toList();
 
     return Scaffold(
@@ -86,6 +105,8 @@ class _PetCarePageState extends State<PetCarePage> {
           children: [
             _buildHeader(),
             _buildTopFilters(),
+            const SizedBox(height: 10),
+            _buildCategoryFilter(), // إضافة شريط الفلاتر هنا
             _buildActionButtons(),
             Expanded(
               child: ListView.builder(
@@ -101,12 +122,52 @@ class _PetCarePageState extends State<PetCarePage> {
     );
   }
 
+  // --- ويدجت شريط الفلاتر الأفقي (المطلوب) ---
+  Widget _buildCategoryFilter() {
+    return SizedBox(
+      height: 35,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 15),
+        itemCount: _categories.length,
+        itemBuilder: (context, index) {
+          bool isSelected = _selectedCategory == _categories[index];
+          return GestureDetector(
+            onTap: () => setState(() => _selectedCategory = _categories[index]),
+            child: Container(
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              decoration: BoxDecoration(
+                color: isSelected ? selectedTeal : Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isSelected ? selectedTeal : Colors.grey.shade300,
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  _categories[index],
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : Colors.black87,
+                    fontSize: 12,
+                    fontWeight: isSelected
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildHeader() => Padding(
     padding: const EdgeInsets.all(15),
     child: Row(
       children: [
         IconButton(
-          // تم استبدال الأيقونة بـ IconButton للعودة
           icon: const Icon(Icons.arrow_back_ios, size: 18),
           onPressed: () => Navigator.pop(context),
         ),
