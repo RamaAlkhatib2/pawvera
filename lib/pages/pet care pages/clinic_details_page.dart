@@ -200,7 +200,7 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
                 const Icon(Icons.pets, size: 20, color: Colors.purple),
                 const SizedBox(width: 8),
                 Text(
-                  "All ${_selectedPetFilter} Services",
+                  "All $_selectedPetFilter Services",
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,

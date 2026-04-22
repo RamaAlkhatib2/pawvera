@@ -63,11 +63,7 @@ class _SuppliesStoreState extends State<SuppliesStore> {
       'isFavorite': false,
     },
   ];
-  void _filterStores() {
-    setState(() {
-      // الـ setState هون هي اللي بتخلي الشاشة تتحدث فوراً
-    });
-  }
+ 
   // 3. دالة الفلترة الذكية (تجمع البحث + التصنيف + المفضلات)
  List<Map<String, dynamic>> get filteredStores {
     // 1. أولاً: بنعمل الفلترة (نفس كودك القديم)
@@ -443,7 +439,7 @@ if (name.contains("Comfort")) {
 } 
 else if (name.contains("Healthy")) { // تعديل لمتجر Healthy Pets Market
   // الصورة الجديدة لطعام الكلاب (WebP)
-  currentStoreImage = 'https://www.intelmarketresearch.com/assets/blog-images/Nutritious_Dog_Food_Market.webp';
+  currentStoreImage = 'https://images.unsplash.com/photo-1534361960057-19889db9621e?q=80&w=2070&auto=format&fit=crop';
   
 }
 else {
@@ -468,7 +464,7 @@ else {
           categories = ['Grooming', 'Toys', 'Training'];
           reviews = '(180)';
         } else {
-          storeImage = 'https://www.intelmarketresearch.com/assets/blog-images/Nutritious_Dog_Food_Market.webp';
+          storeImage = 'https://images.unsplash.com/photo-1534361960057-19889db9621e?q=80&w=2070&auto=format&fit=crop';
           categories = ['Health', 'Organic', 'Care'];
           reviews = '(95)';
         }
@@ -631,18 +627,47 @@ class MyWishlistPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF7FBFB),
       appBar: AppBar(
-        title: const Text("My Wishlist", style: TextStyle(color: Color(0xFF5A3E2B), fontWeight: FontWeight.bold)),
+        title: const Text("My Wishlist", 
+          style: TextStyle(color: Color(0xFF5A3E2B), fontWeight: FontWeight.bold)),
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.black), onPressed: () => Navigator.pop(context)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black), 
+          onPressed: () => Navigator.pop(context)
+        ),
       ),
-      body: const Center(
+      body: Center( // أزلت الـ const من هنا لحل الإيرور
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.favorite_border, size: 80, color: Colors.grey),
-            SizedBox(height: 16),
-            Text("Your wishlist is empty", style: TextStyle(color: Colors.grey, fontSize: 16)),
+            const Icon(Icons.favorite_border, size: 80, color: Colors.grey),
+            const SizedBox(height: 16),
+            const Text("Your wishlist is empty", 
+              style: TextStyle(color: Colors.grey, fontSize: 16)),
+            const SizedBox(height: 24),
+            
+            // إضافة الزر هنا
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context); // يعود بك إلى صفحة المتاجر
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF5BA092), // نفس اللون الأخضر في تطبيقك
+                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
+              child: const Text(
+                "Start Shopping",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -651,29 +676,437 @@ class MyWishlistPage extends StatelessWidget {
 }
 
 // --- صفحة الطلبات ---
+
+
 class MyOrdersPage extends StatelessWidget {
   const MyOrdersPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // بيانات تجريبية لمحاكاة الصورة التي أرسلتها
+    final List<Map<String, dynamic>> orders = [
+      {
+        'id': 'ORD001',
+        'status': 'Delivered',
+        'statusColor': Colors.green,
+        'price': '107.40 JOD',
+        'date': 'Jan 1, 2026',
+        'store': 'Pet Supplies Plus',
+        'itemsCount': 2,
+        'products': '• Premium Dog Food 10kg x2\n• Interactive Dog Ball Toy x1',
+      },
+      {
+        'id': 'ORD002',
+        'status': 'Out for Delivery',
+        'statusColor': Colors.blueAccent,
+        'price': '70.00 JOD',
+        'date': 'Jan 3, 2026',
+        'store': 'Comfort Paws Store',
+        'itemsCount': 1,
+        'products': '• Premium Cat Food 3kg x1',
+        'eta': 'Estimated delivery: Today, 5:00 PM',
+      },
+    ];
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF7FBFB),
+      backgroundColor: const Color(0xFFF0F7F8), // لون خلفية مريح
       appBar: AppBar(
-        title: const Text("My Orders", style: TextStyle(color: Color(0xFF5A3E2B), fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.black), onPressed: () => Navigator.pop(context)),
-      ),
-      body: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        leading: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: CircleAvatar(
+            backgroundColor: Colors.white,
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Color(0xFF5A3E2B), size: 20),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
+        ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.shopping_bag_outlined, size: 80, color: Colors.grey),
-            SizedBox(height: 16),
-            Text("No orders yet", style: TextStyle(color: Colors.grey, fontSize: 16)),
+            const Text("My Orders", style: TextStyle(color: Color(0xFF5A3E2B), fontWeight: FontWeight.bold, fontSize: 18)),
+            Text("${orders.length} total orders", style: const TextStyle(color: Colors.grey, fontSize: 12)),
           ],
         ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      body: Column(
+        children: [
+          // شريط البحث الخاص بالطلبات
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'Search by order ID, store, status...',
+                prefixIcon: const Icon(Icons.search),
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              ),
+            ),
+          ),
+          
+          // قائمة الطلبات
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: orders.length,
+              itemBuilder: (context, index) {
+                final order = orders[index];
+                return _buildOrderCard(context,order);
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
+
+  Widget _buildOrderCard(BuildContext context, Map<String, dynamic> order) {
+  return Container(
+    margin: const EdgeInsets.only(bottom: 16),
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(15),
+      border: Border.all(color: Colors.grey.shade200),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Text("Order #${order['id']}",
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Color(0xFF5A3E2B))),
+                const SizedBox(width: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                      color: order['statusColor'].withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8)),
+                  child: Text(order['status'],
+                      style: TextStyle(
+                          color: order['statusColor'],
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12)),
+                ),
+              ],
+            ),
+            Text(order['price'],
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green,
+                    fontSize: 16)),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(order['date'],
+            style: const TextStyle(color: Colors.grey, fontSize: 13)),
+        const SizedBox(height: 12),
+        Text.rich(TextSpan(children: [
+          const TextSpan(text: "Store: ", style: TextStyle(color: Colors.grey)),
+          TextSpan(
+              text: order['store'],
+              style: const TextStyle(
+                  color: Color(0xFF5A3E2B), fontWeight: FontWeight.bold)),
+        ])),
+        const SizedBox(height: 4),
+        Text("Items: ${order['itemsCount']} product(s)",
+            style: const TextStyle(color: Colors.grey)),
+        if (order.containsKey('eta')) ...[
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              const Icon(Icons.delivery_dining, size: 18, color: Colors.blue),
+              const SizedBox(width: 6),
+              Text(order['eta'],
+                  style: const TextStyle(
+                      color: Colors.blue,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 13)),
+            ],
+          ),
+        ],
+        const SizedBox(height: 12),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(8)),
+          child: Text(order['products'],
+              style: const TextStyle(
+                  fontSize: 13, color: Colors.black87, height: 1.5)),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () {
+                 _showReorderSheet(context, order);
+                },
+                icon: const Icon(Icons.refresh, size: 18),
+                label: const Text("Order Again"),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF5BA092),
+                  side: const BorderSide(color: Color(0xFF5BA092)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ),
+            if (order['status'] == 'Delivered') ...[
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    // --- التعديل هنا: استدعاء نافذة التقييم ---
+                    _showRatingSheet(context, order);
+                  },
+                  icon: const Icon(Icons.star_border, size: 18),
+                  label: const Text("Rate Order"),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF5BA092),
+                    side: const BorderSide(color: Color(0xFF5BA092)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ],
+    ),
+  );
 }
+// 1. دالة نافذة التقييم (Rating Sheet) - النسخة المحسنة والمؤمنة
+  void _showRatingSheet(BuildContext context, Map<String, dynamic> order) {
+    String productsText = order['products']?.toString() ?? "";
+    List<String> productList = productsText
+        .split('\n')
+        .where((item) => item.trim().isNotEmpty)
+        .toList();
+
+    if (productList.isEmpty) {
+      productList = ["General Order Rating"];
+    }
+
+    Map<int, int> ratings = {for (int i = 0; i < productList.length; i++) i: 0};
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                top: 20, left: 20, right: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Center(child: Text("Rate Your Order", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF5A3E2B)))),
+                    const SizedBox(height: 5),
+                    Center(child: Text("Order #${order['id']} - ${order['store']}", style: const TextStyle(color: Colors.grey, fontSize: 14))),
+                    const Divider(height: 30),
+                    
+                    ...List.generate(productList.length, (index) {
+                      String productName = productList[index].replaceAll('• ', '').trim();
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 15),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF9FDFD), 
+                          borderRadius: BorderRadius.circular(15), 
+                          border: Border.all(color: Colors.cyan.shade50)
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(productName, style: const TextStyle(fontWeight: FontWeight.w600)),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: List.generate(5, (starIndex) => GestureDetector(
+                                onTap: () => setModalState(() => ratings[index] = starIndex + 1),
+                                child: Icon(
+                                  starIndex < (ratings[index] ?? 0) ? Icons.star : Icons.star_border, 
+                                  color: Colors.amber, 
+                                  size: 30
+                                ),
+                              )),
+                            ),
+                            const SizedBox(height: 10),
+                            TextField(
+                              decoration: InputDecoration(
+                                hintText: "Review this product...",
+                                hintStyle: const TextStyle(fontSize: 12),
+                                filled: true,
+                                fillColor: Colors.white,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("Thank you for your feedback!"), backgroundColor: Color(0xFF5BA092)),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF5BA092),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text("Submit Reviews", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // 2. دالة نافذة إعادة الطلب (Reorder Sheet) - تظهر قبل الـ Checkout
+  void _showReorderSheet(BuildContext context, Map<String, dynamic> order) {
+    String productsText = order['products']?.toString() ?? "";
+    List<String> productList = productsText
+        .split('\n')
+        .where((item) => item.trim().isNotEmpty)
+        .toList();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Center(child: Text("Reorder Items", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF5A3E2B)))),
+              const SizedBox(height: 5),
+              Center(child: Text("From ${order['store']}", style: const TextStyle(color: Colors.grey, fontSize: 14))),
+              const Divider(height: 30),
+              
+              const Text("Items to be added to cart:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: 15),
+
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: productList.length,
+                  itemBuilder: (context, index) {
+                    String productName = productList[index].replaceAll('• ', '').trim();
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.check_circle_outline, size: 20, color: Color(0xFF5BA092)),
+                          const SizedBox(width: 12),
+                          Expanded(child: Text(productName, style: const TextStyle(fontSize: 15))),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              const SizedBox(height: 25),
+              const Divider(),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text("Total Price", style: TextStyle(color: Colors.grey, fontSize: 16)),
+                    Text(order['price'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.green)),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                height: 55,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context); // إغلاق الـ BottomSheet
+
+                     // 1. استخراج القيمة الرقمية للـ subtotal من الطلب
+                    double subtotalValue = double.tryParse(order['price'].replaceAll(' JOD', '')) ?? 0.0;
+  
+                     // 2. تحديد رسوم التوصيل
+                     double deliveryValue = 5.0;
+
+                     // 3. الحساب المنطقي للمجموع النهائي
+                     double totalValue = subtotalValue + deliveryValue;
+             Map<String, dynamic> selectedStore = {
+    'name': order['store'],
+    'image': 'assets/images/pet_store.png', // حطي مسار صورة افتراضي أو من بيانات الطلب
+    'rating': 4.8,
+    'distance': '2.5 km',
+  };
+                     // 4. الانتقال وتمرير جميع القيم المطلوبة
+                     Navigator.push(
+                     context,
+                     MaterialPageRoute(
+                     builder: (context) => CheckoutPage(
+                      storeData: selectedStore,
+                     subtotal: subtotalValue,
+                     deliveryFee: deliveryValue,
+                     total: totalValue, // تمرير المجموع المحسوب
+        ),
+      ),
+    );
+  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF5BA092),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                    elevation: 0,
+                  ),
+                  child: const Text("Proceed to Checkout", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
+        );
+      },
+    );
+  }}

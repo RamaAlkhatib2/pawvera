@@ -1863,7 +1863,7 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
           ),
           const SizedBox(height: 12),
           Text(
-            'Product Rating: ' + '⭐ ' * review['productRating'],
+            'Product Rating: ${'⭐ ' * review['productRating']}',
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
@@ -1880,7 +1880,7 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
           ),
           const SizedBox(height: 12),
           Text(
-            'Store Rating: ' + '⭐ ' * review['storeRating'],
+            'Store Rating: ${'⭐ ' * review['storeRating']}',
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
