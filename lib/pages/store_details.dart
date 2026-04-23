@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'supplies_store.dart'; // مسار صفحة المتاجر (تأكدي من الاسم)ٍ
 
 class StoreDetails extends StatefulWidget {
   final Map<String, dynamic> storeData;
@@ -1250,10 +1251,59 @@ class SuccessPage extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 40),
-              SizedBox(width: double.infinity, child: ElevatedButton.icon(onPressed: () {}, icon: const Icon(Icons.history), label: const Text("View My Orders"), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF5BA092), padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))))),
+            const SizedBox(height: 40),
+
+              // 1. زر عرض الطلبات (View My Orders)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    // ملاحظة: إذا ظل هناك خط أحمر، اضغطي Ctrl + . على MyOrdersPage 
+                    // واختاري الـ import الصحيح الذي يقترحه VS Code
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const MyOrdersPage()),
+                    );
+                  },
+                  icon: const Icon(Icons.history, color: Colors.white),
+                  label: const Text(
+                    "View My Orders",
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF5BA092),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+
               const SizedBox(height: 12),
-              SizedBox(width: double.infinity, child: OutlinedButton(onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst), style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text("Continue Shopping"))),
+
+              // 2. زر العودة للمتاجر (Continue Shopping)
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const SuppliesStore()),
+                    );
+                  },
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFF5BA092)),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text(
+                    "Continue Shopping",
+                    style: TextStyle(
+                      color: Color(0xFF5BA092),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -1261,11 +1311,16 @@ class SuccessPage extends StatelessWidget {
     );
   }
 
+  // دالة الـ Row Detail المعدلة لتناسب التصميم
   Widget _rowDetail(String label, String value, {bool isGreen = false}) => Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    children: [
-      Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13)),
-      Text(value, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isGreen ? const Color(0xFF3AA78E) : Colors.black)),
-    ],
-  );
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+          Text(value,
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: isGreen ? const Color(0xFF5BA092) : Colors.black)),
+        ],
+      );
 }

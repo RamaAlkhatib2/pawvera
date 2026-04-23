@@ -717,7 +717,14 @@ class MyOrdersPage extends StatelessWidget {
             backgroundColor: Colors.white,
             child: IconButton(
               icon: const Icon(Icons.arrow_back, color: Color(0xFF5A3E2B), size: 20),
-              onPressed: () => Navigator.pop(context),
+              onPressed: () {
+      // بدلاً من pop العادي، سنستخدم push للانتقال لصفحة المتاجر
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const SuppliesStore()),
+        (route) => false, // هذا السطر يحذف كل الصفحات السابقة (بما فيها صفحة النجاح) من الذاكرة
+      );
+    },
             ),
           ),
         ),
