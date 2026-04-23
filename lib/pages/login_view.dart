@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pawvera/pages/home.dart';
 import 'package:pawvera/pages/service_provider_dashboard.dart';
 import 'package:pawvera/pages/pet_supplies_store_dashboard.dart';
-import '../components/my_button.dart';
-import '../components/my_textfields.dart';
-import '../components/role_button.dart';
+import '../components/role_button.dart'; // تأكد أن هذا الملف لا يزال موجوداً
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -34,6 +32,62 @@ class _LoginViewState extends State<LoginView> {
     super.dispose();
   }
 
+  // --- Widget بديل لـ MyTextfields المحذوف ---
+  Widget buildTextField({
+    required TextEditingController controller,
+    required String hintText,
+    required bool obscureText,
+  }) {
+    return TextField(
+      controller: controller,
+      obscureText: obscureText,
+      decoration: InputDecoration(
+        hintText: hintText,
+        hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey[300]!),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFF5B9D8E), width: 2),
+        ),
+      ),
+    );
+  }
+
+  // --- Widget بديل لـ MyButton المحذوف ---
+  Widget buildLoginButton({required VoidCallback onTap, required String text}) {
+    return SizedBox(
+      width: double.infinity,
+      height: 55,
+      child: ElevatedButton(
+        onPressed: onTap,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF5B9D8E), // اللون الأخضر حسب Figma
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 0,
+        ),
+        child: Text(
+          text,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -58,9 +112,9 @@ class _LoginViewState extends State<LoginView> {
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
           ),
           const SizedBox(height: 8),
-          MyTextfields(
+          buildTextField(
             controller: userEmailController,
-            hitnText: "your@email.com",
+            hintText: "your@email.com",
             obscureText: false,
           ),
 
@@ -72,9 +126,9 @@ class _LoginViewState extends State<LoginView> {
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
           ),
           const SizedBox(height: 8),
-          MyTextfields(
+          buildTextField(
             controller: passwordController,
-            hitnText: '********',
+            hintText: '********',
             obscureText: true,
           ),
 
@@ -157,7 +211,8 @@ class _LoginViewState extends State<LoginView> {
 
           const SizedBox(height: 25),
 
-          MyButton(
+          buildLoginButton(
+            text: "Login",
             onTap: () {
               if (activeRole == "Pet Owner") {
                 Navigator.pushReplacement(
@@ -191,7 +246,6 @@ class _LoginViewState extends State<LoginView> {
                 }
               }
             },
-            text: "Login",
           ),
 
           const SizedBox(height: 20),
