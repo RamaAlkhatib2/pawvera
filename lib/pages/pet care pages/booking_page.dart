@@ -1,12 +1,17 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 class BookingPage extends StatefulWidget {
-  final String serviceName, price, clinicName;
+  final String serviceName;
+  final String providerName;
+  final String price;
+  final String clinicName;
+
   const BookingPage({
     super.key,
     required this.serviceName,
+    required this.providerName,
     required this.price,
     required this.clinicName,
   });
@@ -16,121 +21,250 @@ class BookingPage extends StatefulWidget {
 }
 
 class _BookingPageState extends State<BookingPage> {
-  DateTime _focusedDay = DateTime(2026, 4, 22);
+  final Color primaryGreen = const Color(0xFF5B9D8E);
+  final Color bgCream = const Color(0xFFFBF6EE);
+
+  // Controllers لجمع بيانات اليوزر
+  final _nameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _specialRequestsController = TextEditingController();
+
+  DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   String? _selectedTime;
   String? _selectedPet;
 
-  // Controllers للتحكم في الحقول والتأكد من تعبئتها
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _specialRequestsController =
-      TextEditingController();
-
-  // قائمة الحيوانات (يمكنك تعبئتها من الـ Database لاحقاً)
-  final List<String> _myPets = [
-    "Buddy (Dog)",
-    "Whiskers (Cat)",
-    "Luna (Rabbit)",
+  final List<String> _timeSlots = [
+    "9:00 AM",
+    "9:30 AM",
+    "10:00 AM",
+    "10:30 AM",
+    "11:00 AM",
+    "11:30 AM",
+    "12:00 PM",
+    "12:30 PM",
+    "1:00 PM",
+    "1:30 PM",
+    "2:00 PM",
+    "2:30 PM",
+    "3:00 PM",
+    "3:30 PM",
+    "4:00 PM",
+    "4:30 PM",
+    "5:00 PM",
+    "5:30 PM",
+    "6:00 PM",
   ];
 
-  final Color primaryGreen = const Color(0xFF5B9D8E);
-  final Color darkGreen = const Color(0xFF2D5A4F);
-  final Color fieldFillColor = const Color(0xFFF8FAF9);
+  // دالة لإظهار نافذة التحقق
+  void _showVerificationDialog(BuildContext context, String email) {
+    final TextEditingController codeController = TextEditingController();
 
-  // دالة إظهار نافذة التوثيق مع تمرير الإيميل المكتوب
-  void _showVerificationDialog() {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (BuildContext context) =>
-          VerificationDialog(userEmail: _emailController.text),
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        contentPadding: const EdgeInsets.all(20),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Row(
+                  children: [
+                    Icon(
+                      Icons.email_outlined,
+                      color: Color(0xFF634732),
+                      size: 20,
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      "Verify Email",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close, size: 20),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              "Enter the 6-digit code sent to your email to verify your booking",
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                "We've sent a code to:\n$email",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.blue.shade800,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            _buildInputField(
+              label: "Verification Code",
+              hint: "000000",
+              controller: codeController,
+              keyboardType: TextInputType.number,
+            ),
+            TextButton(
+              onPressed: () {},
+              child: const Text(
+                "Resend in 45s",
+                style: TextStyle(color: Colors.blue, fontSize: 12),
+              ),
+            ),
+            const SizedBox(height: 15),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text("Cancel"),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      // منطق التأكيد النهائي هنا
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryGreen,
+                    ),
+                    child: const Text(
+                      "Verify",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
-  }
-
-  // التحقق من أن جميع المعلومات المطلوبة تم إدخالها
-  bool _isFormValid() {
-    return _selectedDay != null &&
-        _selectedTime != null &&
-        _nameController.text.isNotEmpty &&
-        _phoneController.text.isNotEmpty &&
-        _emailController.text.contains('@') &&
-        _selectedPet != null;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F4F3),
+      backgroundColor: bgCream,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          "Book Service",
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        centerTitle: true,
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildServiceSummaryCard(),
-                  const SizedBox(height: 20),
-
-                  _buildSectionHeader(
-                    Icons.calendar_today_outlined,
-                    "Select Date",
-                  ),
-                  const SizedBox(height: 12),
-                  _buildCalendarCard(),
-
-                  if (_selectedDay != null) ...[
-                    const SizedBox(height: 25),
-                    _buildSectionHeader(Icons.access_time, "Select Time"),
-                    const SizedBox(height: 12),
-                    _buildTimePickerGrid(),
-                  ],
-
-                  if (_selectedTime != null) ...[
-                    const SizedBox(height: 25),
-                    _buildSectionHeader(
-                      Icons.person_outline,
-                      "Contact Information",
-                    ),
-                    const SizedBox(height: 12),
-                    _buildContactForm(),
-                  ],
-                  const SizedBox(height: 30),
-                ],
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Book Service",
+              style: TextStyle(
+                color: Color(0xFF634732),
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
               ),
             ),
-          ),
-          _buildBottomActionButton(),
-        ],
+            Text(
+              widget.serviceName,
+              style: const TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildServiceDetailCard(),
+            const SizedBox(height: 20),
+            _buildSectionTitle("Select Date", Icons.calendar_today),
+            _buildCalendar(),
+            const SizedBox(height: 20),
+            _buildSectionTitle("Select Time", Icons.access_time),
+            _buildTimeGrid(),
+            const SizedBox(height: 25),
+            _buildContactInformation(),
+            const SizedBox(height: 30),
+            SizedBox(
+              width: double.infinity,
+              height: 55,
+              child: ElevatedButton(
+                onPressed:
+                    (_selectedDay != null &&
+                        _selectedTime != null &&
+                        _selectedPet != null)
+                    ? () {
+                        if (_emailController.text.isNotEmpty) {
+                          _showVerificationDialog(
+                            context,
+                            _emailController.text,
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Please enter your email"),
+                            ),
+                          );
+                        }
+                      }
+                    : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryGreen,
+                  disabledBackgroundColor: Colors.grey.shade300,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                ),
+                child: const Text(
+                  "Continue to Verification",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildServiceSummaryCard() {
+  // --- المكونات الداخلية ---
+
+  Widget _buildServiceDetailCard() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: primaryGreen.withOpacity(0.2)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -142,21 +276,22 @@ class _BookingPageState extends State<BookingPage> {
                 widget.serviceName,
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
-                  fontSize: 14,
+                  fontSize: 15,
+                  color: Color(0xFF634732),
                 ),
               ),
               Text(
-                widget.clinicName,
+                widget.providerName,
                 style: const TextStyle(color: Colors.grey, fontSize: 12),
               ),
             ],
           ),
           Text(
             widget.price,
-            style: const TextStyle(
-              color: Colors.purple,
+            style: TextStyle(
+              color: primaryGreen,
               fontWeight: FontWeight.bold,
-              fontSize: 16,
+              fontSize: 18,
             ),
           ),
         ],
@@ -164,28 +299,35 @@ class _BookingPageState extends State<BookingPage> {
     );
   }
 
-  Widget _buildSectionHeader(IconData icon, String title) {
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: Colors.black87),
-        const SizedBox(width: 8),
-        Text(
-          title,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-        ),
-      ],
+  Widget _buildSectionTitle(String title, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: const Color(0xFF634732)),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF634732),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildCalendarCard() {
+  Widget _buildCalendar() {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: TableCalendar(
         firstDay: DateTime.now(),
-        lastDay: DateTime.utc(2030, 12, 31),
+        lastDay: DateTime.now().add(const Duration(days: 60)),
         focusedDay: _focusedDay,
         selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
         onDaySelected: (selectedDay, focusedDay) {
@@ -195,8 +337,8 @@ class _BookingPageState extends State<BookingPage> {
           });
         },
         calendarStyle: CalendarStyle(
-          selectedDecoration: const BoxDecoration(
-            color: Color(0xFFE6A696),
+          selectedDecoration: BoxDecoration(
+            color: primaryGreen,
             shape: BoxShape.circle,
           ),
           todayDecoration: BoxDecoration(
@@ -208,48 +350,38 @@ class _BookingPageState extends State<BookingPage> {
           formatButtonVisible: false,
           titleCentered: true,
         ),
-        rowHeight: 40,
       ),
     );
   }
 
-  Widget _buildTimePickerGrid() {
-    final List<String> times = [
-      "9:00 AM",
-      "9:30 AM",
-      "10:00 AM",
-      "10:30 AM",
-      "11:00 AM",
-      "11:30 AM",
-      "12:00 PM",
-    ];
+  Widget _buildTimeGrid() {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
+      itemCount: _timeSlots.length,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
-        childAspectRatio: 2.5,
-        crossAxisSpacing: 10,
+        childAspectRatio: 2.4,
         mainAxisSpacing: 10,
+        crossAxisSpacing: 10,
       ),
-      itemCount: times.length,
       itemBuilder: (context, index) {
-        bool isSelected = _selectedTime == times[index];
+        bool isSelected = _selectedTime == _timeSlots[index];
         return GestureDetector(
-          onTap: () => setState(() => _selectedTime = times[index]),
+          onTap: () => setState(() => _selectedTime = _timeSlots[index]),
           child: Container(
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: isSelected ? primaryGreen : Colors.white,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: isSelected ? primaryGreen : Colors.grey.shade200,
               ),
             ),
             child: Text(
-              times[index],
+              _timeSlots[index],
               style: TextStyle(
-                color: isSelected ? Colors.white : Colors.black87,
+                color: isSelected ? Colors.white : Colors.black,
                 fontSize: 12,
               ),
             ),
@@ -259,73 +391,82 @@ class _BookingPageState extends State<BookingPage> {
     );
   }
 
-  Widget _buildContactForm() {
+  Widget _buildContactInformation() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade100),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildFieldLabel("Your Name"),
-          _buildTextField(_nameController, "John Doe"),
-          const SizedBox(height: 15),
-
-          _buildFieldLabel("Phone Number"),
+          _buildSectionTitle("Contact Information", Icons.person_outline),
+          _buildInputField(
+            label: "Your Name",
+            hint: "Full Name",
+            controller: _nameController,
+          ),
+          const Text(
+            "Phone Number",
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
           Row(
             children: [
               Container(
-                width: 70,
-                height: 50,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: fieldFillColor,
-                  borderRadius: BorderRadius.circular(10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 14,
                 ),
-                child: const Text("+962", style: TextStyle(color: Colors.grey)),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFBFBFB),
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text(
+                  "+962",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
               ),
               const SizedBox(width: 10),
-              Expanded(child: _buildTextField(_phoneController, "7XXXXXXXX")),
+              Expanded(
+                child: _buildInputField(
+                  label: "",
+                  hint: "7XXXXXXXX",
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 15),
-
-          _buildFieldLabel("Email Address"),
-          _buildTextField(_emailController, "user@example.com"),
-          const SizedBox(height: 15),
-
-          _buildFieldLabel("Select Your Pet"),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              color: fieldFillColor,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                isExpanded: true,
-                value: _selectedPet,
-                hint: const Text(
-                  "Choose a pet...",
-                  style: TextStyle(color: Colors.grey, fontSize: 14),
-                ),
-                items: _myPets
-                    .map(
-                      (pet) => DropdownMenuItem(value: pet, child: Text(pet)),
-                    )
-                    .toList(),
-                onChanged: (val) => setState(() => _selectedPet = val),
-              ),
+          _buildInputField(
+            label: "Email Address",
+            hint: "example@mail.com",
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+          ),
+          const Divider(height: 30),
+          const Text(
+            "Select Your Pet",
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey,
+              fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 15),
-
-          _buildFieldLabel("Special Requests (Optional)"),
-          _buildTextField(
-            _specialRequestsController,
-            "Any special instructions...",
+          const SizedBox(height: 8),
+          _buildPetSelector(),
+          const SizedBox(height: 20),
+          _buildInputField(
+            label: "Special Requests",
+            hint: "Optional notes...",
+            controller: _specialRequestsController,
             maxLines: 3,
           ),
         ],
@@ -333,200 +474,89 @@ class _BookingPageState extends State<BookingPage> {
     );
   }
 
-  Widget _buildFieldLabel(String label) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Text(
-        label,
-        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-      ),
+  Widget _buildPetSelector() {
+    return ValueListenableBuilder(
+      valueListenable: Hive.box('myBox').listenable(),
+      builder: (context, Box box, _) {
+        final List petsData = box.get('pets', defaultValue: []);
+        if (petsData.isEmpty)
+          return const Text(
+            "No pets found.",
+            style: TextStyle(color: Colors.red, fontSize: 12),
+          );
+
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 15),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFBFBFB),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.shade300),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: _selectedPet,
+              hint: const Text("Choose pet", style: TextStyle(fontSize: 13)),
+              isExpanded: true,
+              items: petsData
+                  .map(
+                    (pet) => DropdownMenuItem<String>(
+                      value: pet['name'].toString(),
+                      child: Text(pet['name'].toString()),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (val) => setState(() => _selectedPet = val),
+            ),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildTextField(
-    TextEditingController controller,
-    String hint, {
+  Widget _buildInputField({
+    required String label,
+    required String hint,
+    required TextEditingController controller,
+    TextInputType keyboardType = TextInputType.text,
     int maxLines = 1,
   }) {
-    return TextField(
-      controller: controller,
-      maxLines: maxLines,
-      onChanged: (_) => setState(() {}),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
-        filled: true,
-        fillColor: fieldFillColor,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide.none,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomActionButton() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      color: Colors.white,
-      child: SizedBox(
-        width: double.infinity,
-        height: 50,
-        child: ElevatedButton(
-          onPressed: _isFormValid() ? _showVerificationDialog : null,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: darkGreen,
-            disabledBackgroundColor: Colors.grey.shade300,
-            shape: RoundedRectangleBorder(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (label.isNotEmpty)
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Colors.grey,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        if (label.isNotEmpty) const SizedBox(height: 8),
+        TextField(
+          controller: controller,
+          keyboardType: keyboardType,
+          maxLines: maxLines,
+          decoration: InputDecoration(
+            hintText: hint,
+            filled: true,
+            fillColor: const Color(0xFFFBFBFB),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 15,
+              vertical: 15,
+            ),
+            enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey.shade300),
             ),
-          ),
-          child: const Text(
-            "Continue to Verification",
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: primaryGreen),
+            ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-// --- نافذة التوثيق (Verification Dialog) ---
-
-class VerificationDialog extends StatefulWidget {
-  final String userEmail;
-  const VerificationDialog({super.key, required this.userEmail});
-
-  @override
-  State<VerificationDialog> createState() => _VerificationDialogState();
-}
-
-class _VerificationDialogState extends State<VerificationDialog> {
-  int _seconds = 42;
-  Timer? _timer;
-
-  @override
-  void initState() {
-    super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_seconds > 0)
-        setState(() => _seconds--);
-      else
-        _timer?.cancel();
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Row(
-                children: [
-                  Icon(Icons.email_outlined, color: Color(0xFF8B5E3C)),
-                  SizedBox(width: 8),
-                  Text(
-                    "Verify Email Address",
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-              IconButton(
-                icon: const Icon(Icons.close, size: 20),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          const Text(
-            "Enter the 6 digit code sent to your email to verify your booking",
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12, color: Colors.grey),
-          ),
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.all(12),
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF0F7F5),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Column(
-              children: [
-                const Text(
-                  "We've sent a 6-digit verification code to:",
-                  style: TextStyle(fontSize: 11, color: Colors.grey),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  widget.userEmail.isEmpty ? "your email" : widget.userEmail,
-                  style: const TextStyle(
-                    color: Color(0xFF2D6A5D),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 15),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.timer_outlined, size: 14, color: Colors.grey),
-              const SizedBox(width: 4),
-              Text(
-                "00:${_seconds.toString().padLeft(2, '0')}",
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          TextField(
-            textAlign: TextAlign.center,
-            decoration: InputDecoration(
-              hintText: "000000",
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text("Cancel"),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF5B9D8E),
-                  ),
-                  child: const Text(
-                    "Verify",
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+        const SizedBox(height: 15),
+      ],
     );
   }
 }
