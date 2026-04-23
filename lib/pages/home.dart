@@ -23,6 +23,7 @@ class _HomePageState extends State<Home> {
     return Scaffold(
       // تعديل منطق عرض الصفحات ليشمل صفحة الحجوزات الجديدة
       body: _buildBody(),
+
       bottomNavigationBar: _buildBottomNav(),
     );
   }
