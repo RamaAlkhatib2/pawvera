@@ -2,49 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:image_picker/image_picker.dart';
-
-// --- 1. الموديل (Pet Model) ---
-class Pet {
-  String name, type, breed, gender, age, weight, color;
-  String? imagePath;
-
-  Pet({
-    required this.name,
-    required this.type,
-    required this.breed,
-    required this.gender,
-    required this.age,
-    required this.weight,
-    required this.color,
-    this.imagePath,
-  });
-
-  Map<String, dynamic> toMap() {
-    return {
-      'name': name,
-      'type': type,
-      'breed': breed,
-      'gender': gender,
-      'age': age,
-      'weight': weight,
-      'color': color,
-      'imagePath': imagePath,
-    };
-  }
-
-  factory Pet.fromMap(Map<String, dynamic> map) {
-    return Pet(
-      name: map['name'] ?? '',
-      type: map['type'] ?? '',
-      breed: map['breed'] ?? '',
-      gender: map['gender'] ?? '',
-      age: map['age'] ?? '',
-      weight: map['weight'] ?? '',
-      color: map['color'] ?? '',
-      imagePath: map['imagePath'],
-    );
-  }
-}
+import 'package:qr_flutter/qr_flutter.dart';
 
 class MyPetPage extends StatefulWidget {
   const MyPetPage({super.key});
@@ -56,57 +14,15 @@ class MyPetPage extends StatefulWidget {
 class _MyPetPageState extends State<MyPetPage> {
   final Color primaryGreen = const Color(0xFF5B9D8E);
   final Color bgCream = const Color(0xFFF9F8F4);
+  final String boxName = 'myBox';
 
-  List<Pet> myPets = [];
-  bool _isLoading = true;
-  Box? myBox; // جعلناه Nullable للحماية
-
-  @override
-  void initState() {
-    super.initState();
-    _initHive();
-  }
-
-  Future<void> _initHive() async {
-    try {
-      // التأكد من فتح الصندوق بشكل صحيح
-      myBox = await Hive.openBox('myBox');
-      final List<dynamic>? storedData = myBox?.get('pets');
-
-      if (storedData != null) {
-        setState(() {
-          try {
-            myPets = storedData
-                .map((item) => Pet.fromMap(Map<String, dynamic>.from(item)))
-                .toList();
-          } catch (e) {
-            debugPrint("خطأ في تنسيق البيانات القديمة: $e");
-            myPets = [];
-          }
-          _isLoading = false;
-        });
-      } else {
-        setState(() => _isLoading = false);
-      }
-    } catch (e) {
-      debugPrint("فشل فتح Hive: $e");
-      setState(() => _isLoading = false); // إيقاف التحميل حتى لو فشل Hive
-    }
-  }
-
-  void _savePets() {
-    if (myBox != null && myBox!.isOpen) {
-      final data = myPets.map((p) => p.toMap()).toList();
-      myBox!.put('pets', data);
-    }
-  }
-
+  // --- 1. ميثود الإضافة (Add Pet) - رجعت تشتغل كاملة ---
   void _showAddPetSheet() {
-    final nameController = TextEditingController();
-    final breedController = TextEditingController();
-    final ageController = TextEditingController();
-    final weightController = TextEditingController();
-    final colorController = TextEditingController();
+    final nameCtrl = TextEditingController();
+    final breedCtrl = TextEditingController();
+    final ageCtrl = TextEditingController();
+    final weightCtrl = TextEditingController();
+    final colorCtrl = TextEditingController();
     String selectedType = 'Dog';
     String selectedGender = 'Male';
     String? imagePath;
@@ -130,40 +46,53 @@ class _MyPetPageState extends State<MyPetPage> {
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  "Add New Pet",
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF634732),
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 20),
-                _buildInputLabel("Pet Name"),
-                _buildTextField(nameController, "Name"),
-                _buildInputLabel("Type"),
+                const SizedBox(height: 15),
+                const Center(
+                  child: Text(
+                    "Add New Pet",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF634732),
+                    ),
+                  ),
+                ),
+
+                _buildLabel("Pet Name"),
+                _buildTextField(nameCtrl, "Name"),
+                _buildLabel("Type"),
                 _buildDropdown(
-                  ['Dog', 'Cat', 'Bird'],
+                  ['Dog', 'Cat', 'Bird', 'Rabbit'],
                   selectedType,
-                  (val) => setSheetState(() => selectedType = val!),
+                  (v) => setSheetState(() => selectedType = v!),
                 ),
-                _buildInputLabel("Breed"),
-                _buildTextField(breedController, "Breed"),
-                _buildInputLabel("Gender"),
-                _buildDropdown(
-                  ['Male', 'Female'],
-                  selectedGender,
-                  (val) => setSheetState(() => selectedGender = val!),
-                ),
+                _buildLabel("Breed"),
+                _buildTextField(breedCtrl, "Breed"),
+
                 Row(
                   children: [
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildInputLabel("Age"),
-                          _buildTextField(ageController, "0"),
+                          _buildLabel("Gender"),
+                          _buildDropdown(
+                            ['Male', 'Female'],
+                            selectedGender,
+                            (v) => setSheetState(() => selectedGender = v!),
+                          ),
                         ],
                       ),
                     ),
@@ -172,54 +101,60 @@ class _MyPetPageState extends State<MyPetPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildInputLabel("Weight (kg)"),
-                          _buildTextField(weightController, "0"),
+                          _buildLabel("Weight (kg)"),
+                          _buildTextField(weightCtrl, "0"),
                         ],
                       ),
                     ),
                   ],
                 ),
-                _buildInputLabel("Color"),
-                _buildTextField(colorController, "Color"),
-                const SizedBox(height: 20),
-                ElevatedButton.icon(
-                  onPressed: () async {
-                    final img = await ImagePicker().pickImage(
-                      source: ImageSource.gallery,
-                    );
-                    if (img != null) setSheetState(() => imagePath = img.path);
-                  },
-                  icon: const Icon(Icons.upload, color: Colors.white),
-                  label: const Text(
-                    "Upload Photo",
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryGreen,
+
+                _buildLabel("Age"),
+                _buildTextField(ageCtrl, "Age"),
+                _buildLabel("Color"),
+                _buildTextField(colorCtrl, "Color"),
+
+                const SizedBox(height: 15),
+                Center(
+                  child: TextButton.icon(
+                    onPressed: () async {
+                      final img = await ImagePicker().pickImage(
+                        source: ImageSource.gallery,
+                      );
+                      if (img != null)
+                        setSheetState(() => imagePath = img.path);
+                    },
+                    icon: Icon(Icons.image, color: primaryGreen),
+                    label: Text(
+                      imagePath == null ? "Add Photo" : "Photo Added ✅",
+                    ),
                   ),
                 ),
-                const SizedBox(height: 20),
+
+                const SizedBox(height: 10),
                 SizedBox(
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton(
-                    onPressed: () {
-                      if (nameController.text.isNotEmpty) {
-                        setState(() {
-                          myPets.add(
-                            Pet(
-                              name: nameController.text,
-                              type: selectedType,
-                              breed: breedController.text,
-                              gender: selectedGender,
-                              age: ageController.text,
-                              weight: weightController.text,
-                              color: colorController.text,
-                              imagePath: imagePath,
-                            ),
-                          );
-                          _savePets();
-                        });
+                    onPressed: () async {
+                      if (nameCtrl.text.isNotEmpty) {
+                        final newPet = {
+                          'name': nameCtrl.text,
+                          'type': selectedType,
+                          'breed': breedCtrl.text,
+                          'gender': selectedGender,
+                          'age': ageCtrl.text,
+                          'weight': weightCtrl.text,
+                          'color': colorCtrl.text,
+                          'imagePath': imagePath,
+                        };
+
+                        var box = Hive.box(boxName);
+                        List currentList = List.from(
+                          box.get('pets', defaultValue: []),
+                        );
+                        currentList.add(newPet);
+                        await box.put('pets', currentList);
                         Navigator.pop(context);
                       }
                     },
@@ -246,6 +181,297 @@ class _MyPetPageState extends State<MyPetPage> {
     );
   }
 
+  // --- 2. نافذة QR حسب تصميم Figma الجديد ---
+  void _showQRCodeDialog(Map pet) {
+    bool isCodeActive = true;
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const SizedBox(width: 20),
+                    const Text(
+                      "Pet QR Tag",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 17,
+                        color: Color(0xFF634732),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: const Icon(Icons.close, color: Colors.grey),
+                    ),
+                  ],
+                ),
+                const Text(
+                  "Scan or edit your pet's QR tag information",
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "QR Code Status",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: Color(0xFF634732),
+                              ),
+                            ),
+                            Text(
+                              isCodeActive
+                                  ? "Active - Code can be scanned"
+                                  : "Inactive",
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Colors.green,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Switch(
+                        value: isCodeActive,
+                        onChanged: (v) =>
+                            setDialogState(() => isCodeActive = v),
+                        activeColor: primaryGreen,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 15),
+                QrImageView(
+                  data: "Pet: ${pet['name']}, Info: ${pet['breed']}",
+                  size: 180,
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  "Scan this QR code to view your pet's information",
+                  style: TextStyle(fontSize: 11, color: Colors.grey),
+                ),
+                const Divider(height: 30),
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    "Owner Contact:\nNot set • No phone",
+                    style: TextStyle(fontSize: 11, color: Colors.grey),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {},
+                        child: const Text(
+                          "Edit Info",
+                          style: TextStyle(fontSize: 12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {},
+                        child: const Text(
+                          "Print QR",
+                          style: TextStyle(fontSize: 12),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // --- 3. نافذة Edit حسب تصميم Figma الجديد ---
+  void _showEditPetDialog(Map pet, int index, List allPets) {
+    final nameCtrl = TextEditingController(text: pet['name']);
+    final breedCtrl = TextEditingController(text: pet['breed']);
+    final ageCtrl = TextEditingController(text: pet['age']);
+    final weightCtrl = TextEditingController(text: pet['weight']);
+    final colorCtrl = TextEditingController(text: pet['color']);
+    String? newImg = pet['imagePath'];
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const SizedBox(width: 20),
+                    const Text(
+                      "Edit Pet Information",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 17,
+                        color: Color(0xFF634732),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: const Icon(Icons.close),
+                    ),
+                  ],
+                ),
+                const Center(
+                  child: Text(
+                    "Make changes to your pet's details.",
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Center(
+                  child: Column(
+                    children: [
+                      const Text(
+                        "Pet Photo",
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF634732),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      GestureDetector(
+                        onTap: () async {
+                          final img = await ImagePicker().pickImage(
+                            source: ImageSource.gallery,
+                          );
+                          if (img != null)
+                            setDialogState(() => newImg = img.path);
+                        },
+                        child: Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey[300]!),
+                            shape: BoxShape.circle,
+                          ),
+                          child: newImg != null
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(40),
+                                  child: Image.file(
+                                    File(newImg!),
+                                    fit: BoxFit.cover,
+                                  ),
+                                )
+                              : const Icon(Icons.upload, color: Colors.grey),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                _buildLabel("Pet Name"),
+                _buildEditField(nameCtrl),
+                _buildLabel("Breed"),
+                _buildEditField(breedCtrl),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildLabel("Age"),
+                          _buildEditField(ageCtrl),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildLabel("Weight"),
+                          _buildEditField(weightCtrl),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                _buildLabel("Color"),
+                _buildEditField(colorCtrl),
+                const SizedBox(height: 25),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text("Cancel"),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          List newList = List.from(allPets);
+                          newList[index] = {
+                            ...pet,
+                            'name': nameCtrl.text,
+                            'breed': breedCtrl.text,
+                            'age': ageCtrl.text,
+                            'weight': weightCtrl.text,
+                            'color': colorCtrl.text,
+                            'imagePath': newImg,
+                          };
+                          Hive.box(boxName).put('pets', newList);
+                          Navigator.pop(context);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primaryGreen,
+                        ),
+                        child: const Text(
+                          "Save Changes",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -253,89 +479,88 @@ class _MyPetPageState extends State<MyPetPage> {
       appBar: AppBar(
         title: const Text(
           "My Pets",
-          style: TextStyle(
-            color: Color(0xFF634732),
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 10,
-                  ),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton.icon(
-                      onPressed: _showAddPetSheet,
-                      icon: const Icon(Icons.add, color: Colors.white),
-                      label: const Text(
-                        "Add Pet",
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryGreen,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton.icon(
+                onPressed: _showAddPetSheet,
+                icon: const Icon(Icons.add, color: Colors.white),
+                label: const Text(
+                  "Add Pet",
+                  style: TextStyle(color: Colors.white),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryGreen,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                Expanded(
-                  child: myPets.isEmpty
-                      ? const Center(
-                          child: Text(
-                            "No pets found. Click 'Add Pet' to start!",
-                          ),
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          itemCount: myPets.length,
-                          itemBuilder: (context, index) =>
-                              _buildPetCard(myPets[index], index),
-                        ),
-                ),
-              ],
+              ),
             ),
+          ),
+          Expanded(
+            child: ValueListenableBuilder(
+              valueListenable: Hive.box(boxName).listenable(),
+              builder: (context, Box box, _) {
+                final List pets = box.get('pets', defaultValue: []);
+                if (pets.isEmpty)
+                  return const Center(child: Text("No pets yet."));
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  itemCount: pets.length,
+                  itemBuilder: (context, index) => _buildPetCard(
+                    Map<String, dynamic>.from(pets[index]),
+                    index,
+                    pets,
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildPetCard(Pet pet, int index) {
+  Widget _buildPetCard(Map pet, int index, List allPets) {
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: primaryGreen.withOpacity(0.2)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
+        ],
       ),
       child: Column(
         children: [
           Row(
             children: [
               ClipRRect(
-                borderRadius: BorderRadius.circular(15),
-                child: pet.imagePath != null
+                borderRadius: BorderRadius.circular(12),
+                child: pet['imagePath'] != null
                     ? Image.file(
-                        File(pet.imagePath!),
-                        width: 70,
-                        height: 70,
+                        File(pet['imagePath']),
+                        width: 65,
+                        height: 65,
                         fit: BoxFit.cover,
                       )
                     : Container(
-                        width: 70,
-                        height: 70,
+                        width: 65,
+                        height: 65,
                         color: Colors.grey[200],
-                        child: const Icon(Icons.pets, color: Colors.grey),
+                        child: const Icon(Icons.pets),
                       ),
               ),
               const SizedBox(width: 15),
@@ -343,56 +568,46 @@ class _MyPetPageState extends State<MyPetPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          pet.name,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () => setState(() {
-                            myPets.removeAt(index);
-                            _savePets();
-                          }),
-                          icon: const Icon(
-                            Icons.close,
-                            color: Colors.red,
-                            size: 18,
-                          ),
-                        ),
-                      ],
+                    Text(
+                      pet['name'] ?? '',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
                     Text(
-                      pet.breed,
-                      style: const TextStyle(color: Colors.grey, fontSize: 13),
+                      pet['breed'] ?? '',
+                      style: const TextStyle(color: Colors.grey, fontSize: 12),
                     ),
                     const SizedBox(height: 5),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: [
-                          _buildTag("${pet.age} Years"),
-                          _buildTag(pet.type),
-                          _buildTag(pet.color),
-                          _buildTag("${pet.weight} kg"),
-                        ],
-                      ),
+                    Wrap(
+                      spacing: 5,
+                      children: [
+                        _buildTag("${pet['age']} yrs"),
+                        _buildTag(pet['type']),
+                        _buildTag(pet['color']),
+                        _buildTag("${pet['weight']}kg"),
+                      ],
                     ),
                   ],
                 ),
               ),
+              IconButton(
+                onPressed: () {
+                  List newList = List.from(allPets);
+                  newList.removeAt(index);
+                  Hive.box(boxName).put('pets', newList);
+                },
+                icon: const Icon(Icons.close, color: Colors.red, size: 20),
+              ),
             ],
           ),
-          const Divider(),
+          const SizedBox(height: 15),
           Row(
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () {},
+                  onPressed: () => _showQRCodeDialog(pet),
                   icon: const Icon(Icons.qr_code, size: 16),
                   label: const Text("QR Tag"),
                   style: OutlinedButton.styleFrom(
@@ -403,9 +618,9 @@ class _MyPetPageState extends State<MyPetPage> {
               const SizedBox(width: 10),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.edit_note, size: 16),
-                  label: const Text("Edit"),
+                  onPressed: () => _showEditPetDialog(pet, index, allPets),
+                  icon: const Icon(Icons.edit, size: 16),
+                  label: const Text("Edit Info"),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: primaryGreen,
                   ),
@@ -418,61 +633,66 @@ class _MyPetPageState extends State<MyPetPage> {
     );
   }
 
-  Widget _buildTag(String label) => Container(
-    margin: const EdgeInsets.only(right: 5),
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-    decoration: BoxDecoration(
-      color: const Color(0xFFF0F4F3),
-      borderRadius: BorderRadius.circular(8),
-    ),
+  // Helpers
+  Widget _buildLabel(String l) => Padding(
+    padding: const EdgeInsets.only(top: 10, bottom: 5),
     child: Text(
-      label,
+      l,
       style: const TextStyle(
-        fontSize: 10,
-        color: Color(0xFF5B9D8E),
+        fontSize: 13,
         fontWeight: FontWeight.bold,
+        color: Color(0xFF5B9D8E),
       ),
     ),
   );
-
-  Widget _buildInputLabel(String label) => Padding(
-    padding: const EdgeInsets.only(top: 10, bottom: 5),
-    child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+  Widget _buildTextField(TextEditingController c, String h) => TextField(
+    controller: c,
+    decoration: InputDecoration(
+      hintText: h,
+      filled: true,
+      fillColor: const Color(0xFFF0F4F3),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
+      ),
+      isDense: true,
+    ),
   );
-
-  Widget _buildTextField(TextEditingController controller, String hint) =>
-      TextField(
-        controller: controller,
-        decoration: InputDecoration(
-          hintText: hint,
-          filled: true,
-          fillColor: const Color(0xFFF0F4F3),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide.none,
-          ),
-        ),
-      );
-
+  Widget _buildEditField(TextEditingController c) => TextField(
+    controller: c,
+    decoration: InputDecoration(
+      isDense: true,
+      contentPadding: const EdgeInsets.all(10),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+    ),
+  );
   Widget _buildDropdown(
     List<String> items,
-    String value,
-    Function(String?) onChanged,
+    String val,
+    Function(String?) onCh,
   ) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 12),
     decoration: BoxDecoration(
       color: const Color(0xFFF0F4F3),
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(12),
     ),
     child: DropdownButtonHideUnderline(
       child: DropdownButton<String>(
-        value: value,
+        value: val,
         isExpanded: true,
         items: items
             .map((e) => DropdownMenuItem(value: e, child: Text(e)))
             .toList(),
-        onChanged: onChanged,
+        onChanged: onCh,
       ),
     ),
+  );
+  Widget _buildTag(String t) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+    decoration: BoxDecoration(
+      color: Colors.grey[100],
+      borderRadius: BorderRadius.circular(5),
+    ),
+    child: Text(t, style: const TextStyle(fontSize: 10, color: Colors.grey)),
   );
 }

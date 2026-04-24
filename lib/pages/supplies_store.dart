@@ -431,11 +431,11 @@ const SizedBox(height: 16),
     String currentStoreImage = "";
 
 if (name.contains("Comfort")) {
-  currentStoreImage = 'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7';
+  currentStoreImage = 'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?q=80&w=1000&auto=format&fit=crop';
 } else if (name.contains("Plus")) {
   currentStoreImage = 'https://www.broadreachretail.com/wp-content/uploads/2019/06/Pet-Supplies-Plus.jpg';
 } else if (name.contains("Furry")) {
-  currentStoreImage = 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee';
+  currentStoreImage = 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?q=80&w=1000&auto=format&fit=crop';
 } 
 else if (name.contains("Healthy")) { // تعديل لمتجر Healthy Pets Market
   // الصورة الجديدة لطعام الكلاب (WebP)
@@ -443,7 +443,7 @@ else if (name.contains("Healthy")) { // تعديل لمتجر Healthy Pets Marke
   
 }
 else {
-  currentStoreImage = 'https://images.unsplash.com/photo-1522276493077-9fe5ad01add6';
+  currentStoreImage = 'https://images.unsplash.com/photo-1522276493077-9fe5ad01add6?q=80&w=1000&auto=format&fit=crop';
 }
     return GestureDetector(
       onTap: () {
@@ -452,7 +452,7 @@ else {
         String reviews = "";
 
         if (name.contains("Comfort")) {
-          storeImage = 'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7';
+          storeImage = 'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?q=80&w=1000&auto=format&fit=crop';
           categories = ['Furniture', 'Bedding', 'Home'];
           reviews = '(412)';
         } else if (name.contains("Plus")) {
@@ -460,7 +460,7 @@ else {
           categories = ['Food', 'Accessories', 'Toys'];
           reviews = '(250)';
         } else if (name.contains("Furry")) {
-          storeImage = 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee';
+          storeImage = 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?q=80&w=1000&auto=format&fit=crop';
           categories = ['Grooming', 'Toys', 'Training'];
           reviews = '(180)';
         } else {

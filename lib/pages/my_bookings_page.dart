@@ -1,107 +1,129 @@
 import 'package:flutter/material.dart';
-import 'pet care pages/pet_care_page.dart'; // تأكدي من صحة المسار هنا
+import 'package:hive_flutter/hive_flutter.dart';
 
 class MyBookingsPage extends StatelessWidget {
   const MyBookingsPage({super.key});
 
-  final Color primaryGreen = const Color(0xFF5B9D8E);
-  final Color backgroundColor = const Color(0xFFF0F4F3);
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: backgroundColor,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // العنوان العلوي
-              const Text(
-                "My Bookings",
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-              ),
-              const Text(
-                "0 total bookings",
-                style: TextStyle(color: Colors.grey, fontSize: 14),
-              ),
-              const SizedBox(height: 60),
-
-              // حاوية "لا توجد حجوزات"
-              Expanded(
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 30,
-                      vertical: 40,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // أيقونة الصندوق
-                        Icon(
-                          Icons.inventory_2_outlined,
-                          size: 60,
-                          color: Colors.grey[300],
-                        ),
-                        const SizedBox(height: 15),
-                        Text(
-                          "No bookings yet",
-                          style: TextStyle(
-                            color: Colors.grey[500],
-                            fontSize: 16,
-                          ),
-                        ),
-                        const SizedBox(height: 30),
-
-                        // الزر الوحيد المطلوب: Book a Service
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: () {
-                              // الانتقال لصفحة Pet Care
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const PetCarePage(),
-                                ),
-                              );
-                            },
-                            icon: const Icon(
-                              Icons.cleaning_services_outlined,
-                              color: Colors.white,
-                              size: 20,
-                            ),
-                            label: const Text(
-                              "Book a Service",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: primaryGreen,
-                              padding: const EdgeInsets.symmetric(vertical: 15),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 100),
-            ],
+      backgroundColor: const Color(0xFFFBF6EE),
+      appBar: AppBar(
+        title: const Text(
+          "My Bookings",
+          style: TextStyle(
+            color: Color(0xFF634732),
+            fontWeight: FontWeight.bold,
           ),
         ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+      ),
+      body: ValueListenableBuilder(
+        valueListenable: Hive.box('myBox').listenable(),
+        builder: (context, Box box, _) {
+          // جلب الحجوزات من Hive
+          List allBookings = box.get('all_bookings', defaultValue: []);
+
+          if (allBookings.isEmpty) {
+            return const Center(child: Text("No bookings yet."));
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(15),
+            itemCount: allBookings.length,
+            itemBuilder: (context, index) {
+              final booking = allBookings[index];
+              return Card(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                margin: const EdgeInsets.only(bottom: 15),
+                child: Padding(
+                  padding: const EdgeInsets.all(15),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            booking['service'],
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const Icon(Icons.more_vert),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.calendar_today,
+                            size: 14,
+                            color: Colors.grey,
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            "${booking['date']} at ${booking['time']}",
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 5),
+                      Row(
+                        children: [
+                          const Icon(Icons.pets, size: 14, color: Colors.grey),
+                          const SizedBox(width: 5),
+                          Text(
+                            "Pet: ${booking['pet']}",
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Divider(height: 25),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () {},
+                              child: const Text(
+                                "Reschedule",
+                                style: TextStyle(fontSize: 12),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () {},
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.red,
+                              ),
+                              child: const Text(
+                                "Cancel",
+                                style: TextStyle(fontSize: 12),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }

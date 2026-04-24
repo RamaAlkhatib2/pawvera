@@ -928,7 +928,7 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
         'stock': '150',
         'discount': '20%',
         'hasSale': true,
-        'image': 'assets/images/dog_food.jpg',
+        'image': 'https://images.unsplash.com/photo-1589924691106-073b19f5538d?q=80&w=1000&auto=format&fit=crop',
       },
       {
         'name': 'Cat Litter Premium 5kg',
@@ -938,7 +938,7 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
         'stock': '85',
         'discount': '',
         'hasSale': false,
-        'image': 'assets/images/cat_litter.jpg',
+        'image': 'https://images.unsplash.com/photo-1572365992253-3cb3e56dd362?q=80&w=1000&auto=format&fit=crop',
       },
       {
         'name': 'Interactive Dog Toy',
@@ -948,7 +948,7 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
         'stock': '42',
         'discount': '20%',
         'hasSale': true,
-        'image': 'assets/images/dog_toy.jpg',
+        'image': 'https://images.unsplash.com/photo-1513284411132-47685382e39c?q=80&w=1000&auto=format&fit=crop',
       },
       {
         'name': 'Pet Multivitamin Tablets',
@@ -958,7 +958,7 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
         'stock': '5',
         'discount': '',
         'hasSale': false,
-        'image': 'assets/images/vitamins.jpg',
+        'image': 'https://images.unsplash.com/photo-1584399579527-02b89e2c85ef?q=80&w=1000&auto=format&fit=crop',
       },
     ];
 
