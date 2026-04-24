@@ -14,6 +14,7 @@ class ServiceProviderDashboard extends StatefulWidget {
 class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
   int _selectedTabIndex = 0;
   bool _isShopOpen = true;
+  String selectedFilter = 'All'; // الفلتر الافتراضي
 
   @override
   Widget build(BuildContext context) {
@@ -66,10 +67,7 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
             const SizedBox(height: 4),
             Text(
               widget.providerType,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.grey,
-              ),
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ],
         ),
@@ -121,7 +119,14 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
   }
 
   Widget _buildTabBar() {
-    final tabs = ['Overview', 'Bookings', 'Services', 'Shop Info', 'Offers', 'Audit'];
+    final tabs = [
+      'Overview',
+      'Bookings',
+      'Services',
+      'Shop Info',
+      'Offers',
+      'Audit',
+    ];
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -353,7 +358,10 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: _isShopOpen ? const Color(0xFF4CAF50) : Colors.red,
                   borderRadius: BorderRadius.circular(20),
@@ -404,51 +412,51 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
           ),
           const SizedBox(height: 16),
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              // زر Open Shop
               Expanded(
                 child: OutlinedButton(
                   onPressed: () {
                     setState(() {
-                      _isShopOpen = false;
+                      _isShopOpen = true; // تحديث الحالة لفتح المتجر
                     });
                   },
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    side: const BorderSide(color: Color(0xFF5B9D8E)),
+                    side: BorderSide(color: Colors.grey.shade300),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(15),
                     ),
+                    backgroundColor: _isShopOpen
+                        ? Colors.grey.shade100
+                        : Colors.white,
                   ),
                   child: const Text(
                     'Open Shop',
-                    style: TextStyle(
-                      color: Color(0xFF5B9D8E),
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(color: Colors.black),
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
+              // زر Close Shop
               Expanded(
                 child: ElevatedButton(
                   onPressed: () {
                     setState(() {
-                      _isShopOpen = true;
+                      _isShopOpen = false; // تحديث الحالة لإغلاق المتجر
                     });
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF5B9D8E),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    backgroundColor: _isShopOpen
+                        ? const Color(0xFF3D8361)
+                        : Colors.red.shade700,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(15),
                     ),
                   ),
                   child: const Text(
                     'Close Shop',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(color: Colors.white),
                   ),
                 ),
               ),
@@ -518,77 +526,74 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
             border: Border.all(color: Colors.grey[200]!),
           ),
           child: Column(
-            children: List.generate(
-              bookings.length,
-              (index) {
-                final booking = bookings[index];
-                final isConfirmed = booking['status'] == 'confirmed';
-                return Padding(
-                  padding: EdgeInsets.only(
-                    bottom: index < bookings.length - 1 ? 12 : 0,
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  booking['service']!,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF634732),
-                                  ),
+            children: List.generate(bookings.length, (index) {
+              final booking = bookings[index];
+              final isConfirmed = booking['status'] == 'confirmed';
+              return Padding(
+                padding: EdgeInsets.only(
+                  bottom: index < bookings.length - 1 ? 12 : 0,
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                booking['service']!,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF634732),
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  booking['client']!,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isConfirmed
-                                  ? const Color(0xFF4CAF50)
-                                  : Colors.orange,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              isConfirmed ? 'confirmed' : 'pending',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
                               ),
+                              const SizedBox(height: 4),
+                              Text(
+                                booking['client']!,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isConfirmed
+                                ? const Color(0xFF4CAF50)
+                                : Colors.orange,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            isConfirmed ? 'confirmed' : 'pending',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                        ],
-                      ),
-                      if (index < bookings.length - 1)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 12),
-                          child: Divider(color: Colors.grey[200]),
                         ),
-                    ],
-                  ),
-                );
-                },
-              ),
-            ),
+                      ],
+                    ),
+                    if (index < bookings.length - 1)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: Divider(color: Colors.grey[200]),
+                      ),
+                  ],
+                ),
+              );
+            }),
           ),
+        ),
       ],
     );
   }
@@ -640,64 +645,61 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
             border: Border.all(color: Colors.grey[200]!),
           ),
           child: Column(
-            children: List.generate(
-              services.length,
-              (index) {
-                final service = services[index];
-                return Padding(
-                  padding: EdgeInsets.only(
-                    bottom: index < services.length - 1 ? 12 : 0,
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  service['name']!,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF634732),
-                                  ),
+            children: List.generate(services.length, (index) {
+              final service = services[index];
+              return Padding(
+                padding: EdgeInsets.only(
+                  bottom: index < services.length - 1 ? 12 : 0,
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                service['name']!,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF634732),
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  service['duration']!,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey,
-                                  ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                service['duration']!,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
-                          Text(
-                            service['price']!,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF4CAF50),
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (index < services.length - 1)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 12),
-                          child: Divider(color: Colors.grey[200]),
                         ),
-                    ],
-                  ),
-                );
-                },
-              ),
-            ),
+                        Text(
+                          service['price']!,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF4CAF50),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (index < services.length - 1)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: Divider(color: Colors.grey[200]),
+                      ),
+                  ],
+                ),
+              );
+            }),
           ),
+        ),
       ],
     );
   }
@@ -746,6 +748,95 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
       },
     ];
 
+    final filteredBookings = bookings.where((booking) {
+      if (selectedFilter == 'All') return true;
+
+      // نقوم بتحويل كلا الطرفين لحروف صغيرة لضمان المطابقة
+      return booking['status'].toString().toLowerCase() ==
+          selectedFilter.toLowerCase();
+    }).toList();
+    @override
+    Widget build(BuildContext context) {
+      print("Debug: First status is -> '${bookings[0]['status']}'");
+      // 1. أضف جزء الحساب (Filtering Logic) هنا قبل الـ return
+      final filteredBookings = bookings.where((booking) {
+        if (selectedFilter == 'All') return true;
+
+        // ملاحظة: تأكد أن كلمة 'status' في بياناتك تبدأ بحرف كبير أو صغير
+        // وجرب طباعة (print) للبيانات إذا استمر ظهور الرقم صفر
+        return booking['status'] == selectedFilter;
+      }).toList();
+
+      // 2. الآن ابدأ الـ return واستخدم القائمة filteredBookings
+      return Column(
+        children: [
+          // Filter Buttons
+          // Filter Buttons
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                // All دائماً صحيح لأنه يأخذ طول القائمة كاملة
+                _buildFilterButton(
+                  'Pending',
+                  bookings
+                      .where(
+                        (b) =>
+                            b['status'].toString().trim().toLowerCase() ==
+                            'pending',
+                      )
+                      .length,
+                  selectedFilter == 'Pending',
+                ),
+                const SizedBox(width: 8),
+
+                _buildFilterButton(
+                  'Confirmed',
+                  bookings
+                      .where(
+                        (b) =>
+                            b['status'].toString().trim().toLowerCase() ==
+                            'confirmed',
+                      )
+                      .length,
+                  selectedFilter == 'Confirmed',
+                ),
+                const SizedBox(width: 8),
+
+                _buildFilterButton(
+                  'Completed',
+                  bookings
+                      .where(
+                        (b) =>
+                            b['status'].toString().trim().toLowerCase() ==
+                            'completed',
+                      )
+                      .length,
+                  selectedFilter == 'Completed',
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          // Booking Cards القائمة التي تظهر للمستخدم
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: filteredBookings.length, // نستخدم القائمة المفلترة هنا
+            itemBuilder: (context, index) {
+              final booking = filteredBookings[index];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _buildBookingCard(booking),
+              );
+            },
+          ),
+        ],
+      );
+    }
+
     return Column(
       children: [
         // Filter Buttons
@@ -753,62 +844,45 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
           scrollDirection: Axis.horizontal,
           child: Row(
             children: [
-              _buildFilterButton('All', 4, true),
+              _buildFilterButton(
+                'All',
+                bookings.length,
+                selectedFilter == 'All',
+              ),
               const SizedBox(width: 8),
-              _buildFilterButton('Pending', 1, false),
+              _buildFilterButton(
+                'Pending',
+                bookings.where((b) => b['status'] == 'Pending').length,
+                selectedFilter == 'Pending',
+              ),
               const SizedBox(width: 8),
-              _buildFilterButton('Confirmed', 2, false),
+              _buildFilterButton(
+                'Confirmed',
+                bookings.where((b) => b['status'] == 'Confirmed').length,
+                selectedFilter == 'Confirmed',
+              ),
               const SizedBox(width: 8),
-              _buildFilterButton('Completed', 1, false),
+              _buildFilterButton(
+                'Completed',
+                bookings.where((b) => b['status'] == 'Completed').length,
+                selectedFilter == 'Completed',
+              ),
             ],
           ),
         ),
         const SizedBox(height: 16),
 
-        // Search and Date Filter
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                decoration: InputDecoration(
-                  hintText: 'Search by owner, pet, service',
-                  hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
-                  prefixIcon: Icon(Icons.search, color: Colors.grey[400], size: 20),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey[300]!),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey[200]!),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey[200]!),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                'mm/dd/yyyy',
-                style: TextStyle(color: Colors.grey[500], fontSize: 13),
-              ),
-            ),
-          ],
-        ),
+        // ... (جزء الـ Search TextField يبقى كما هو) ...
         const SizedBox(height: 20),
 
-        // Booking Cards
+        // Booking Cards - عرض القائمة المفلترة فقط
         ListView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: bookings.length,
+          itemCount: filteredBookings.length, // نستخدم الطول الجديد
           itemBuilder: (context, index) {
-            final booking = bookings[index];
+            final booking =
+                filteredBookings[index]; // نأخذ العنصر من القائمة المفلترة
             return Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: _buildBookingCard(booking),
@@ -820,42 +894,52 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
   }
 
   Widget _buildFilterButton(String label, int count, bool isSelected) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: isSelected ? const Color(0xFF5B9D8E) : Colors.white,
-        border: Border.all(
-          color: isSelected ? const Color(0xFF5B9D8E) : Colors.grey[200]!,
-        ),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              color: isSelected ? Colors.white : Colors.grey[600],
-              fontWeight: FontWeight.w500,
-              fontSize: 12,
-            ),
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          selectedFilter = label; // تحديث المتجر بالحالة الجديدة عند الضغط
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF5B9D8E) : Colors.white,
+          border: Border.all(
+            color: isSelected ? const Color(0xFF5B9D8E) : Colors.grey[200]!,
           ),
-          const SizedBox(width: 6),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: isSelected ? Colors.white : Colors.grey[200],
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              count.toString(),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min, // لجعل الزر يأخذ مساحة محتواه فقط
+          children: [
+            Text(
+              label,
               style: TextStyle(
-                color: isSelected ? const Color(0xFF5B9D8E) : Colors.grey[600],
-                fontWeight: FontWeight.w600,
-                fontSize: 11,
+                color: isSelected ? Colors.white : Colors.grey[600],
+                fontWeight: FontWeight.w500,
+                fontSize: 12,
               ),
             ),
-          ),
-        ],
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: isSelected ? Colors.white : Colors.grey[200],
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                count.toString(),
+                style: TextStyle(
+                  color: isSelected
+                      ? const Color(0xFF5B9D8E)
+                      : Colors.grey[600],
+                  fontWeight: FontWeight.w600,
+                  fontSize: 11,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -903,15 +987,15 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
                   const SizedBox(height: 2),
                   Text(
                     'Pet: ${booking['pet']}',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
-                    ),
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: statusColor,
                   borderRadius: BorderRadius.circular(12),
@@ -937,10 +1021,7 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
               Expanded(
                 child: Text(
                   booking['service'],
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey[700],
-                  ),
+                  style: TextStyle(fontSize: 13, color: Colors.grey[700]),
                 ),
               ),
             ],
@@ -954,10 +1035,7 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
               const SizedBox(width: 8),
               Text(
                 '${booking['date']} at ${booking['time']}',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey[700],
-                ),
+                style: TextStyle(fontSize: 13, color: Colors.grey[700]),
               ),
             ],
           ),
@@ -970,10 +1048,7 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
               const SizedBox(width: 8),
               Text(
                 booking['phone'],
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey[700],
-                ),
+                style: TextStyle(fontSize: 13, color: Colors.grey[700]),
               ),
             ],
           ),
@@ -1072,7 +1147,10 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
           else if (booking['status'] == 'completed')
             Center(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFF4CAF50).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
@@ -1141,7 +1219,10 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF5B9D8E),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -1165,7 +1246,10 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(color: Colors.grey[200]!),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 12,
+            ),
           ),
         ),
         const SizedBox(height: 20),
@@ -1199,188 +1283,198 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-          // Image with Discount Badge
-          Stack(
-            children: [
-              Container(
-                height: 160,
-                width: double.infinity,
-                color: Colors.grey[200],
-                child: const Icon(Icons.image, size: 60, color: Colors.grey),
-              ),
-              Positioned(
-                top: 12,
-                right: 12,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFD32F2F),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    '${service['discount']} OFF',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          // Content
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            // Image with Discount Badge
+            Stack(
               children: [
-                // Title and Status
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        service['name'],
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF634732),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF5B9D8E).withOpacity(0.1),
-                        border: Border.all(color: const Color(0xFF5B9D8E)),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Text(
-                        'Active',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF5B9D8E),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-
-                // Description
-                Text(
-                  service['description'],
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                const SizedBox(height: 8),
-
-                // Price and Duration Row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          service['originalPrice'],
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[400],
-                            decoration: TextDecoration.lineThrough,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          service['discountedPrice'],
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF4CAF50),
-                          ),
-                        ),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        Icon(Icons.schedule, size: 14, color: Colors.grey[600]),
-                        const SizedBox(width: 4),
-                        Text(
-                          service['duration'],
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-
-                // Discount Text
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF4CAF50).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    service['discountText'],
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: Color(0xFF4CAF50),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  height: 160,
+                  width: double.infinity,
+                  color: Colors.grey[200],
+                  child: const Icon(Icons.image, size: 60, color: Colors.grey),
                 ),
-                const SizedBox(height: 12),
-
-                // Action Buttons
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () {},
-                        icon: const Icon(Icons.edit, size: 16),
-                        label: const Text('Edit'),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Colors.grey),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                        ),
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD32F2F),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      '${service['discount']} OFF',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () {},
-                        icon: const Icon(Icons.power_settings_new, size: 16),
-                        label: const Text('Deactivate'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF634732),
-                          side: const BorderSide(color: Colors.grey),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ],
             ),
-          ),
-        ],
-      ),
+
+            // Content
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Title and Status
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          service['name'],
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF634732),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF5B9D8E).withOpacity(0.1),
+                          border: Border.all(color: const Color(0xFF5B9D8E)),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Text(
+                          'Active',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF5B9D8E),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+
+                  // Description
+                  Text(
+                    service['description'],
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Price and Duration Row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            service['originalPrice'],
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[400],
+                              decoration: TextDecoration.lineThrough,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            service['discountedPrice'],
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF4CAF50),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.schedule,
+                            size: 14,
+                            color: Colors.grey[600],
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            service['duration'],
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Discount Text
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF4CAF50).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      service['discountText'],
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF4CAF50),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Action Buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {},
+                          icon: const Icon(Icons.edit, size: 16),
+                          label: const Text('Edit'),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.grey),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {},
+                          icon: const Icon(Icons.power_settings_new, size: 16),
+                          label: const Text('Deactivate'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF634732),
+                            side: const BorderSide(color: Colors.grey),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1422,7 +1516,10 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFF4CAF50),
                       borderRadius: BorderRadius.circular(12),
@@ -1550,10 +1647,7 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
           Expanded(
             child: Text(
               text,
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.grey[700],
-              ),
+              style: TextStyle(fontSize: 13, color: Colors.grey[700]),
             ),
           ),
         ],
@@ -1572,7 +1666,8 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
       },
       {
         'title': '30% Off on Bookings Above \$50',
-        'description': 'Get 30% discount on all services when you book above \$50',
+        'description':
+            'Get 30% discount on all services when you book above \$50',
         'discount': '30% OFF',
         'validUntil': 'Valid until Mar 15, 2026',
         'status': 'Inactive',
@@ -1628,7 +1723,10 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide(color: Colors.grey[200]!),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 12,
+              ),
             ),
           ),
           const SizedBox(height: 20),
@@ -1662,10 +1760,7 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
                           SizedBox(height: 4),
                           Text(
                             'Apply discount to all services in your shop',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
-                            ),
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
                           ),
                         ],
                       ),
@@ -1706,7 +1801,11 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.miscellaneous_services, size: 24, color: const Color(0xFF1976D2)),
+                    Icon(
+                      Icons.miscellaneous_services,
+                      size: 24,
+                      color: const Color(0xFF1976D2),
+                    ),
                     const SizedBox(width: 12),
                     const Expanded(
                       child: Column(
@@ -1723,10 +1822,7 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
                           SizedBox(height: 4),
                           Text(
                             'Create discount for specific services',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
-                            ),
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
                           ),
                         ],
                       ),
@@ -1765,10 +1861,12 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
             ),
           ),
           const SizedBox(height: 12),
-          ...shopWideOffers.map((offer) => Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _buildOfferCard(offer, 'shop'),
-          )),
+          ...shopWideOffers.map(
+            (offer) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _buildOfferCard(offer, 'shop'),
+            ),
+          ),
 
           const SizedBox(height: 24),
 
@@ -1782,17 +1880,21 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
             ),
           ),
           const SizedBox(height: 12),
-          ...serviceOffers.map((offer) => Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _buildOfferCard(offer, 'service'),
-          )),
+          ...serviceOffers.map(
+            (offer) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _buildOfferCard(offer, 'service'),
+            ),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildOfferCard(Map<String, String> offer, String type) {
-    Color statusColor = offer['status'] == 'Active' ? const Color(0xFFFF6B35) : Colors.grey;
+    Color statusColor = offer['status'] == 'Active'
+        ? const Color(0xFFFF6B35)
+        : Colors.grey;
     Color backgroundColor = offer['status'] == 'Active'
         ? const Color(0xFFFFF3E0)
         : const Color(0xFFF5F5F5);
@@ -1846,19 +1948,13 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
           const SizedBox(height: 8),
           Text(
             offer['description']!,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
-            ),
+            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
           ),
           const SizedBox(height: 8),
           if (type == 'service') ...[
             Text(
               offer['originalPrice']!,
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.grey[500],
-              ),
+              style: TextStyle(fontSize: 11, color: Colors.grey[500]),
             ),
             Text(
               offer['salePrice']!,
@@ -1887,10 +1983,7 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
               const SizedBox(width: 6),
               Text(
                 offer['validUntil']!,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 11, color: Colors.grey[600]),
               ),
             ],
           ),
@@ -1906,7 +1999,10 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
                     backgroundColor: Colors.white,
                     foregroundColor: Colors.grey[700],
                     side: const BorderSide(color: Colors.grey),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(6),
                     ),
@@ -1920,7 +2016,10 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF5B9D8E),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(6),
                     ),
@@ -1931,7 +2030,10 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
                 onPressed: () {},
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: Colors.grey),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(6),
                   ),
@@ -1966,7 +2068,11 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
                 decoration: InputDecoration(
                   hintText: 'Search audit logs by action',
                   hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
-                  prefixIcon: Icon(Icons.search, color: Colors.grey[400], size: 20),
+                  prefixIcon: Icon(
+                    Icons.search,
+                    color: Colors.grey[400],
+                    size: 20,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: BorderSide(color: Colors.grey[300]!),
@@ -1975,7 +2081,10 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
                     borderRadius: BorderRadius.circular(8),
                     borderSide: BorderSide(color: Colors.grey[200]!),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
                 ),
               ),
             ),
@@ -2085,10 +2194,7 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
                     const SizedBox(height: 4),
                     Text(
                       log['description'],
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
                   ],
                 ),
@@ -2102,10 +2208,7 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
               const SizedBox(width: 6),
               Text(
                 log['timestamp'],
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[500],
-                ),
+                style: TextStyle(fontSize: 12, color: Colors.grey[500]),
               ),
             ],
           ),
