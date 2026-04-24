@@ -409,7 +409,7 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
                 child: OutlinedButton(
                   onPressed: () {
                     setState(() {
-                      _isShopOpen = false;
+                      _isShopOpen = true;
                     });
                   },
                   style: OutlinedButton.styleFrom(
@@ -433,7 +433,7 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
                 child: ElevatedButton(
                   onPressed: () {
                     setState(() {
-                      _isShopOpen = true;
+                      _isShopOpen = false;
                     });
                   },
                   style: ElevatedButton.styleFrom(

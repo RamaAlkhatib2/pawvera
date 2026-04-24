@@ -112,7 +112,7 @@ class _StoreDetailsState extends State<StoreDetails> {
         'desc': 'Healthy eating posture',
         'price': '25.0 JOD',
         'category': 'Feeding',
-        'image': 'https://images.unsplash.com/photo-1597855212624-940dd4adf2b5?q=80&w=1000&auto=format&fit=crop',
+        'image': 'https://images.unsplash.com/photo-1524230570005-20e7a2c03de0?q=80&w=1000&auto=format&fit=crop',
       },
     ],
     'Pet Supplies Plus': [

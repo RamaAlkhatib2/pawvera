@@ -11,7 +11,1872 @@ class PetSuppliesStoreDashboard extends StatefulWidget {
 
 class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
   int _selectedTabIndex = 0;
-  bool _showProfileModal = false;
+  bool _isStoreOpen = true;
+  String _selectedOrdersFilter = 'All';
+  String _orderSearchQuery = '';
+  String _productSearchQuery = '';
+  String _offerSearchQuery = '';
+  String _auditSearchQuery = '';
+  DateTime? _selectedOrderDate;
+  DateTime? _selectedAuditDate;
+
+  final TextEditingController _profileNameController = TextEditingController(
+    text: 'John Anderson',
+  );
+  final TextEditingController _profileEmailController = TextEditingController(
+    text: 'hhh@gmail.com',
+  );
+  final TextEditingController _profilePhoneController = TextEditingController(
+    text: '+1 (555) 444-5555',
+  );
+  final TextEditingController _profileBusinessNameController =
+      TextEditingController(text: 'Pet Supplies Plus');
+
+  final TextEditingController _currentPasswordController =
+      TextEditingController();
+  final TextEditingController _newPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
+
+  final List<Map<String, dynamic>> _storeWideOffers = [
+    {
+      'title': '20% Off on Orders Above 50 JOD',
+      'description':
+          'Get 20% discount on all products when you order above 50 JOD',
+      'discount': '20% OFF',
+      'type': 'Store-Wide',
+      'validUntil': 'Valid until: Feb 15, 2026',
+      'minOrder': 'Min order: 50',
+      'status': 'Active',
+    },
+  ];
+
+  final List<Map<String, dynamic>> _productSales = [
+    {
+      'title': '15% Off Premium Dog Food',
+      'description': 'Special discount on Premium Dog Food 20kg',
+      'discount': '15% OFF',
+      'type': 'Product Sale',
+      'validUntil': 'Valid until: Feb 28, 2026',
+      'status': 'Active',
+    },
+  ];
+
+  final List<Map<String, dynamic>> _orders = [
+    {
+      'id': 'ORD001',
+      'customer': 'Sarah Johnson',
+      'email': 'sarah@email.com',
+      'date': 'Jan 05, 2026 at 10:30 AM',
+      'payment': 'Credit Card',
+      'items': '2 item(s)',
+      'total': '107.40 JOD',
+      'phone': '+1 (555) 123-4567',
+      'address': 'Building 15, King Fahd Road, Riyadh',
+      'addressLine1': 'Building 15, King Fahd Road',
+      'addressLine2': 'Riyadh',
+      'floor': '3',
+      'apartment': '302',
+      'status': 'Pending',
+      'orderItems': [
+        {'name': 'Premium Dog Food 10kg', 'quantity': 2, 'price': '110.00 JOD'},
+        {'name': 'Interactive Dog Toy', 'quantity': 1, 'price': '18.00 JOD'},
+      ],
+      'subtotal': '128.00 JOD',
+      'discount': '-25.60 JOD',
+      'deliveryFee': '5.00 JOD',
+    },
+    {
+      'id': 'ORD002',
+      'customer': 'Mike Brown',
+      'email': 'mike@email.com',
+      'date': 'Jan 06, 2026 at 02:15 PM',
+      'payment': 'Cash on Delivery',
+      'items': '1 item(s)',
+      'total': '71.00 JOD',
+      'phone': '+1 (555) 987-6543',
+      'address': 'Tower 23, Al-Olaya Street, Riyadh',
+      'addressLine1': 'Tower 23, Al-Olaya Street',
+      'addressLine2': 'Riyadh',
+      'floor': '5',
+      'apartment': '110',
+      'status': 'Confirmed',
+      'orderItems': [
+        {'name': 'Cat Litter Premium 5kg', 'quantity': 1, 'price': '71.00 JOD'},
+      ],
+      'subtotal': '71.00 JOD',
+      'discount': '-0.00 JOD',
+      'deliveryFee': '0.00 JOD',
+    },
+    {
+      'id': 'ORD003',
+      'customer': 'Emily Davis',
+      'email': 'emily@email.com',
+      'date': 'Jan 07, 2026 at 11:00 AM',
+      'payment': 'Apple Pay',
+      'items': '1 item(s)',
+      'total': '33.00 JOD',
+      'phone': '+1 (555) 456-7890',
+      'address': 'Building 8, Prince Mohammad Street, Riyadh',
+      'addressLine1': 'Building 8, Prince Mohammad Street',
+      'addressLine2': 'Riyadh',
+      'floor': '1',
+      'apartment': '204',
+      'status': 'Out for Delivery',
+      'orderItems': [
+        {'name': 'Interactive Dog Toy', 'quantity': 1, 'price': '33.00 JOD'},
+      ],
+      'subtotal': '33.00 JOD',
+      'discount': '-0.00 JOD',
+      'deliveryFee': '0.00 JOD',
+    },
+  ];
+
+  final List<Map<String, dynamic>> _products = [
+    {
+      'name': 'Premium Dog Food 10kg',
+      'brand': 'NutraPet',
+      'category': 'Food',
+      'price': '44.00 JOD',
+      'originalPrice': '55.00 JOD',
+      'stock': '150',
+      'discount': '20%',
+      'hasSale': true,
+      'isActive': true,
+      'image':
+          'https://images.unsplash.com/photo-1589924691106-073b19f5538d?q=80&w=1000&auto=format&fit=crop',
+    },
+    {
+      'name': 'Cat Litter Premium 5kg',
+      'brand': 'CleanPaws',
+      'category': 'Accessories',
+      'price': '22.00 JOD',
+      'stock': '85',
+      'discount': '',
+      'hasSale': false,
+      'isActive': true,
+      'image':
+          'https://images.unsplash.com/photo-1572365992253-3cb3e56dd362?q=80&w=1000&auto=format&fit=crop',
+    },
+    {
+      'name': 'Interactive Dog Toy',
+      'brand': 'PlayPaws',
+      'category': 'Toys',
+      'price': '18.00 JOD',
+      'stock': '42',
+      'discount': '20%',
+      'hasSale': true,
+      'isActive': true,
+      'image':
+          'https://images.unsplash.com/photo-1513284411132-47685382e39c?q=80&w=1000&auto=format&fit=crop',
+    },
+    {
+      'name': 'Pet Multivitamin Tablets',
+      'brand': 'VitaPet',
+      'category': 'Health',
+      'price': '28.00 JOD',
+      'stock': '5',
+      'discount': '',
+      'hasSale': false,
+      'isActive': true,
+      'image':
+          'https://images.unsplash.com/photo-1584399579527-02b89e2c85ef?q=80&w=1000&auto=format&fit=crop',
+    },
+  ];
+
+  void _updateOrderStatus(String orderId, String newStatus) {
+    setState(() {
+      final index = _orders.indexWhere((order) => order['id'] == orderId);
+      if (index != -1) {
+        _orders[index] = Map<String, dynamic>.from(_orders[index]);
+        _orders[index]['status'] = newStatus;
+      }
+    });
+  }
+
+  void _addStoreWideOffer(Map<String, dynamic> offer) {
+    setState(() {
+      _storeWideOffers.insert(0, offer);
+    });
+  }
+
+  void _addProductSale(Map<String, dynamic> offer) {
+    setState(() {
+      _productSales.insert(0, offer);
+    });
+  }
+
+  void _updateStoreWideOffer(int index, Map<String, dynamic> offer) {
+    setState(() {
+      _storeWideOffers[index] = offer;
+    });
+  }
+
+  void _updateProductSale(int index, Map<String, dynamic> offer) {
+    setState(() {
+      _productSales[index] = offer;
+    });
+  }
+
+  void _toggleOfferActive(int index, bool isStoreWide) {
+    setState(() {
+      if (isStoreWide) {
+        _storeWideOffers[index] = Map<String, dynamic>.from(
+          _storeWideOffers[index],
+        );
+        _storeWideOffers[index]['status'] =
+            _storeWideOffers[index]['status'] == 'Active'
+            ? 'Inactive'
+            : 'Active';
+      } else {
+        _productSales[index] = Map<String, dynamic>.from(_productSales[index]);
+        _productSales[index]['status'] =
+            _productSales[index]['status'] == 'Active' ? 'Inactive' : 'Active';
+      }
+    });
+  }
+
+  void _removeOffer(int index, bool isStoreWide) {
+    setState(() {
+      if (isStoreWide) {
+        _storeWideOffers.removeAt(index);
+      } else {
+        _productSales.removeAt(index);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _profileNameController.dispose();
+    _profileEmailController.dispose();
+    _profilePhoneController.dispose();
+    _profileBusinessNameController.dispose();
+    _currentPasswordController.dispose();
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  void _showStoreWideOfferDialog({Map<String, dynamic>? offer, int? index}) {
+    final discountButtons = ['10', '15', '20', '25', '30', '50'];
+    String selectedDiscount = '20';
+    final titleController = TextEditingController(
+      text: offer != null
+          ? offer['title'] as String
+          : '20% Off on Orders Above 50 JOD',
+    );
+    final descriptionController = TextEditingController(
+      text: offer != null
+          ? offer['description'] as String
+          : 'Get 20% discount on all products when you order above 50 JOD',
+    );
+    final discountController = TextEditingController(
+      text: offer != null
+          ? (offer['discount'] as String).replaceAll('% OFF', '').trim()
+          : '20',
+    );
+    final minOrderController = TextEditingController(
+      text:
+          offer != null &&
+              offer['minOrder'] != null &&
+              (offer['minOrder'] as String).isNotEmpty
+          ? (offer['minOrder'] as String).replaceAll(RegExp('[^0-9]'), '')
+          : '50',
+    );
+    final minPriceController = TextEditingController(
+      text: offer != null ? offer['minPrice'] as String? ?? '' : '',
+    );
+    final maxPriceController = TextEditingController(
+      text: offer != null ? offer['maxPrice'] as String? ?? '' : '',
+    );
+    DateTime? selectedDate;
+    String selectedDateText = 'mm/dd/yyyy';
+    bool applyPriceRange =
+        offer != null &&
+        (offer['minPrice'] as String? ?? '').isNotEmpty &&
+        (offer['maxPrice'] as String? ?? '').isNotEmpty;
+    bool requireMinOrder =
+        offer != null &&
+        offer['minOrder'] != null &&
+        (offer['minOrder'] as String).isNotEmpty;
+
+    if (offer != null) {
+      final raw = offer['discount'] as String;
+      selectedDiscount = raw.replaceAll('% OFF', '').trim();
+      discountController.text = selectedDiscount;
+      final validText = offer['validUntil'] as String? ?? '';
+      if (validText.isNotEmpty) {
+        selectedDateText = validText.replaceFirst('Valid until: ', '');
+        selectedDate = _parseFormattedDate(selectedDateText);
+      }
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return Dialog(
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 24,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: StatefulBuilder(
+            builder: (context, innerSetState) {
+              final previewText = '${selectedDiscount}% Off Store-Wide';
+              final isEdit = offer != null;
+              return SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                isEdit
+                                    ? 'Edit Offer'
+                                    : 'Create Store-Wide Offer',
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF634732),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                'Update offer details and settings',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                          IconButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            icon: const Icon(Icons.close, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      InputDecorator(
+                        decoration: InputDecoration(
+                          labelText: 'Offer Type',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(color: Colors.grey[300]!),
+                          ),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: 'Store-Wide Offer',
+                            items: const [
+                              DropdownMenuItem(
+                                value: 'Store-Wide Offer',
+                                child: Text('Store-Wide Offer'),
+                              ),
+                            ],
+                            onChanged: null,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: titleController,
+                        decoration: InputDecoration(
+                          labelText: 'Offer Title',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(color: Colors.grey[300]!),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: descriptionController,
+                        maxLines: 3,
+                        decoration: InputDecoration(
+                          labelText: 'Description',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(color: Colors.grey[300]!),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: discountController,
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(
+                                labelText: 'Discount (%)',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                  borderSide: BorderSide(
+                                    color: Colors.grey[300]!,
+                                  ),
+                                ),
+                              ),
+                              onChanged: (value) {
+                                innerSetState(() {
+                                  selectedDiscount = value.isEmpty
+                                      ? '0'
+                                      : value;
+                                });
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextField(
+                              controller: minOrderController,
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(
+                                labelText: 'Min Order Amount (JOD)',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                  borderSide: BorderSide(
+                                    color: Colors.grey[300]!,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: minPriceController,
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(
+                                labelText: 'Min Price (JOD)',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                  borderSide: BorderSide(
+                                    color: Colors.grey[300]!,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextField(
+                              controller: maxPriceController,
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(
+                                labelText: 'Max Price (JOD)',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                  borderSide: BorderSide(
+                                    color: Colors.grey[300]!,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      GestureDetector(
+                        onTap: () async {
+                          final now = DateTime.now();
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: selectedDate ?? now,
+                            firstDate: now,
+                            lastDate: DateTime(now.year + 2),
+                          );
+                          if (picked != null) {
+                            innerSetState(() {
+                              selectedDate = picked;
+                              selectedDateText = _formatSelectedDate(picked);
+                            });
+                          }
+                        },
+                        child: InputDecorator(
+                          decoration: InputDecoration(
+                            labelText: 'Valid Until',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                selectedDateText,
+                                style: TextStyle(
+                                  color: selectedDate == null
+                                      ? Colors.grey[500]
+                                      : Colors.black,
+                                ),
+                              ),
+                              const Icon(
+                                Icons.calendar_today,
+                                size: 18,
+                                color: Colors.grey,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              style: OutlinedButton.styleFrom(
+                                side: BorderSide(color: Colors.grey[300]!),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                              ),
+                              child: const Text('Cancel'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () {
+                                final validUntilText = selectedDate == null
+                                    ? ''
+                                    : 'Valid until: ${_formatSelectedDate(selectedDate!)}';
+                                final newOffer = {
+                                  'title': titleController.text.trim(),
+                                  'description': descriptionController.text
+                                      .trim(),
+                                  'discount':
+                                      '${discountController.text.trim()}% OFF',
+                                  'type': 'Store-Wide',
+                                  'validUntil': validUntilText,
+                                  'minOrder':
+                                      minOrderController.text.trim().isEmpty
+                                      ? ''
+                                      : 'Min order: ${minOrderController.text.trim()}',
+                                  'minPrice': minPriceController.text.trim(),
+                                  'maxPrice': maxPriceController.text.trim(),
+                                  'status': 'Active',
+                                };
+                                if (index != null) {
+                                  _updateStoreWideOffer(index, newOffer);
+                                } else {
+                                  _addStoreWideOffer(newOffer);
+                                }
+                                Navigator.of(context).pop();
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF5B9D8E),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                              ),
+                              child: Text(
+                                isEdit ? 'Update Offer' : 'Create Offer',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  void _showProductSaleDialog({Map<String, dynamic>? offer, int? index}) {
+    final discountButtons = ['10', '15', '20', '25', '30', '50'];
+    String selectedDiscount = '15';
+    String selectedProduct = _products.first['name'] as String;
+    final titleController = TextEditingController(
+      text: offer != null
+          ? offer['title'] as String
+          : '$selectedDiscount% Off ${selectedProduct}',
+    );
+    final descriptionController = TextEditingController(
+      text: offer != null
+          ? offer['description'] as String
+          : 'Create a special sale offer for a specific product',
+    );
+    final discountController = TextEditingController(
+      text: offer != null
+          ? (offer['discount'] as String).replaceAll('% OFF', '').trim()
+          : '15',
+    );
+    DateTime? selectedDate;
+    String selectedDateText = 'mm/dd/yyyy';
+
+    if (offer != null) {
+      selectedProduct = offer['product'] as String? ?? selectedProduct;
+      final raw = offer['discount'] as String;
+      selectedDiscount = raw.replaceAll('% OFF', '').trim();
+      discountController.text = selectedDiscount;
+      titleController.text = offer['title'] as String;
+      descriptionController.text = offer['description'] as String;
+      final validText = offer['validUntil'] as String? ?? '';
+      if (validText.isNotEmpty) {
+        selectedDateText = validText.replaceFirst('Valid until: ', '');
+        selectedDate = _parseFormattedDate(selectedDateText);
+      }
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return Dialog(
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 24,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: StatefulBuilder(
+            builder: (context, innerSetState) {
+              final previewText = '$selectedDiscount% Off $selectedProduct';
+              final isEdit = offer != null;
+              return SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                isEdit ? 'Edit Offer' : 'Create Product Sale',
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF634732),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                'Update offer details and settings',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                          IconButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            icon: const Icon(Icons.close, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      InputDecorator(
+                        decoration: InputDecoration(
+                          labelText: 'Offer Type',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(color: Colors.grey[300]!),
+                          ),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: 'Product Sale',
+                            items: const [
+                              DropdownMenuItem(
+                                value: 'Product Sale',
+                                child: Text('Product Sale'),
+                              ),
+                            ],
+                            onChanged: null,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      InputDecorator(
+                        decoration: InputDecoration(
+                          labelText: 'Select Product *',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(color: Colors.grey[300]!),
+                          ),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: selectedProduct,
+                            isExpanded: true,
+                            items: _products.map((product) {
+                              return DropdownMenuItem<String>(
+                                value: product['name'] as String,
+                                child: Text(product['name'] as String),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              if (value != null) {
+                                innerSetState(() {
+                                  selectedProduct = value;
+                                  titleController.text =
+                                      '$selectedDiscount% Off $selectedProduct';
+                                });
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: titleController,
+                        decoration: InputDecoration(
+                          labelText: 'Offer Title',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(color: Colors.grey[300]!),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: descriptionController,
+                        maxLines: 3,
+                        decoration: InputDecoration(
+                          labelText: 'Description',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(color: Colors.grey[300]!),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: discountController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'Discount (%)',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(color: Colors.grey[300]!),
+                          ),
+                        ),
+                        onChanged: (value) {
+                          innerSetState(() {
+                            selectedDiscount = value.isEmpty ? '0' : value;
+                            titleController.text =
+                                '$selectedDiscount% Off $selectedProduct';
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      GestureDetector(
+                        onTap: () async {
+                          final now = DateTime.now();
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: selectedDate ?? now,
+                            firstDate: now,
+                            lastDate: DateTime(now.year + 2),
+                          );
+                          if (picked != null) {
+                            innerSetState(() {
+                              selectedDate = picked;
+                              selectedDateText = _formatSelectedDate(picked);
+                            });
+                          }
+                        },
+                        child: InputDecorator(
+                          decoration: InputDecoration(
+                            labelText: 'Valid Until',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                selectedDateText,
+                                style: TextStyle(
+                                  color: selectedDate == null
+                                      ? Colors.grey[500]
+                                      : Colors.black,
+                                ),
+                              ),
+                              const Icon(
+                                Icons.calendar_today,
+                                size: 18,
+                                color: Colors.grey,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE3F2FD),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          'Preview: $previewText',
+                          style: const TextStyle(color: Color(0xFF0D47A1)),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              style: OutlinedButton.styleFrom(
+                                side: BorderSide(color: Colors.grey[300]!),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                              ),
+                              child: const Text('Cancel'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () {
+                                final validUntilText = selectedDate == null
+                                    ? ''
+                                    : 'Valid until: ${_formatSelectedDate(selectedDate!)}';
+                                final newOffer = {
+                                  'title': titleController.text.trim(),
+                                  'description': descriptionController.text
+                                      .trim(),
+                                  'discount':
+                                      '${discountController.text.trim()}% OFF',
+                                  'type': 'Product Sale',
+                                  'validUntil': validUntilText,
+                                  'status': 'Active',
+                                  'product': selectedProduct,
+                                };
+                                if (index != null) {
+                                  _updateProductSale(index, newOffer);
+                                } else {
+                                  _addProductSale(newOffer);
+                                }
+                                Navigator.of(context).pop();
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF1976D2),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                              ),
+                              child: Text(
+                                isEdit ? 'Update Sale' : 'Create Sale',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  void _showOrderDetails(Map<String, dynamic> order) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return Dialog(
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 24,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            'Order Details',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF634732),
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'View complete order information and customer details',
+                            style: TextStyle(fontSize: 13, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.close, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF6F4EE),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        RichText(
+                          text: TextSpan(
+                            children: [
+                              const TextSpan(
+                                text: 'Order ID: ',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF634732),
+                                ),
+                              ),
+                              TextSpan(
+                                text: order['id'] as String,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF634732),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Date: ${order['date']}',
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Payment: ${order['payment']}',
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 22),
+                  const Text(
+                    'Customer Information',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF634732),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    order['customer'] as String,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    order['email'] as String,
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    order['phone'] as String,
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Delivery Address',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF634732),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    order['customer'] as String,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    order['addressLine1'] as String,
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    order['addressLine2'] as String,
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Floor: ${order['floor']}',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Apartment: ${order['apartment']}',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Order Items',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF634732),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Column(
+                    children: List<Widget>.from(
+                      (order['orderItems'] as List<Map<String, dynamic>>).map(
+                        (item) => Container(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  '${item['name']} x ${item['quantity']}',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                item['price'] as String,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const Divider(height: 36, thickness: 1.0),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Subtotal',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                        Text(
+                          order['subtotal'] as String,
+                          style: const TextStyle(color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Discount',
+                          style: TextStyle(color: Color(0xFF2E7D32)),
+                        ),
+                        Text(
+                          order['discount'] as String,
+                          style: const TextStyle(color: Color(0xFF2E7D32)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Delivery Fee',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                        Text(
+                          order['deliveryFee'] as String,
+                          style: const TextStyle(color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Total Amount',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF634732),
+                        ),
+                      ),
+                      Text(
+                        order['total'] as String,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF634732),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF5B9D8E),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: const Text('Close'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _addProduct(Map<String, dynamic> product) {
+    setState(() {
+      _products.insert(0, product);
+    });
+  }
+
+  void _toggleProductSaleAtIndex(int index) {
+    _showManageSaleDialog(context, index);
+  }
+
+  void _showManageSaleDialog(BuildContext context, int index) {
+    final product = Map<String, dynamic>.from(_products[index]);
+    final originalPrice =
+        product['originalPrice'] as String? ?? product['price'] as String;
+    final discountController = TextEditingController(
+      text: (product['discount'] as String).replaceAll('%', '').trim().isEmpty
+          ? '20'
+          : (product['discount'] as String).replaceAll('%', ''),
+    );
+    DateTime? selectedDate;
+    String selectedDateText = 'mm/dd/yyyy';
+    if (product['saleValidUntil'] != null &&
+        (product['saleValidUntil'] as String).isNotEmpty) {
+      selectedDate = _parseFormattedDate(product['saleValidUntil'] as String);
+      selectedDateText = product['saleValidUntil'] as String;
+    }
+    String saleTypeValue = 'Discount Percentage';
+
+    String parsePrice(String priceText) {
+      final cleaned = priceText.replaceAll('JOD', '').replaceAll(' ', '');
+      return cleaned.isEmpty ? '0' : cleaned;
+    }
+
+    double calculateSalePrice() {
+      final discount = int.tryParse(discountController.text.trim()) ?? 0;
+      final basePrice = double.tryParse(parsePrice(originalPrice)) ?? 0.0;
+      final salePrice = basePrice * (1 - discount / 100);
+      return salePrice < 0 ? 0 : salePrice;
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return Dialog(
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 24,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: StatefulBuilder(
+            builder: (context, innerSetState) {
+              return SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: const [
+                              Text(
+                                'Manage Sale',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF634732),
+                                ),
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                'Set discount percentage and sale duration for this product',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                          IconButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            icon: const Icon(Icons.close, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        product['name'] as String,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF634732),
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Original Price: $originalPrice',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      InputDecorator(
+                        decoration: InputDecoration(
+                          labelText: 'Sale Type',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(color: Colors.grey[300]!),
+                          ),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: saleTypeValue,
+                            isExpanded: true,
+                            items: const [
+                              DropdownMenuItem(
+                                value: 'Discount Percentage',
+                                child: Text('Discount Percentage'),
+                              ),
+                            ],
+                            onChanged: (value) {
+                              if (value != null) {
+                                innerSetState(() {
+                                  saleTypeValue = value;
+                                });
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: discountController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'Discount Percentage (%)',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(color: Colors.grey[300]!),
+                          ),
+                        ),
+                        onChanged: (_) {
+                          innerSetState(() {});
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Sale Price: ${calculateSalePrice().toStringAsFixed(2)} JOD',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      GestureDetector(
+                        onTap: () async {
+                          final now = DateTime.now();
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: selectedDate ?? now,
+                            firstDate: now,
+                            lastDate: DateTime(now.year + 2),
+                          );
+                          if (picked != null) {
+                            innerSetState(() {
+                              selectedDate = picked;
+                              selectedDateText = _formatSelectedDate(picked);
+                            });
+                          }
+                        },
+                        child: InputDecorator(
+                          decoration: InputDecoration(
+                            labelText: 'Sale Valid Until (Optional)',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                selectedDateText,
+                                style: TextStyle(
+                                  color: selectedDate == null
+                                      ? Colors.grey[500]
+                                      : Colors.black,
+                                ),
+                              ),
+                              const Icon(
+                                Icons.calendar_today,
+                                size: 18,
+                                color: Colors.grey,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () {
+                                setState(() {
+                                  _products[index] = Map<String, dynamic>.from(
+                                    product,
+                                  );
+                                  _products[index]['hasSale'] = false;
+                                  _products[index]['discount'] = '';
+                                  _products[index]['price'] = originalPrice;
+                                  _products[index]['saleValidUntil'] = '';
+                                });
+                                Navigator.of(context).pop();
+                              },
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Colors.grey),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                              ),
+                              child: const Text('Remove Sale'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () {
+                                final discountValue =
+                                    int.tryParse(
+                                      discountController.text.trim(),
+                                    ) ??
+                                    0;
+                                setState(() {
+                                  _products[index] = Map<String, dynamic>.from(
+                                    product,
+                                  );
+                                  _products[index]['hasSale'] = true;
+                                  _products[index]['discount'] =
+                                      '$discountValue%';
+                                  _products[index]['originalPrice'] =
+                                      originalPrice;
+                                  _products[index]['price'] =
+                                      '${calculateSalePrice().toStringAsFixed(2)} JOD';
+                                  _products[index]['saleValidUntil'] =
+                                      selectedDate == null
+                                      ? ''
+                                      : _formatSelectedDate(selectedDate!);
+                                });
+                                Navigator.of(context).pop();
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFD32F2F),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                              ),
+                              child: const Text('Update Sale'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  void _deactivateProductAtIndex(int index) {
+    setState(() {
+      _products[index] = Map<String, dynamic>.from(_products[index]);
+      _products[index]['isActive'] = false;
+    });
+  }
+
+  void _removeProductAtIndex(int index) {
+    setState(() {
+      _products.removeAt(index);
+    });
+  }
+
+  void _activateProductAtIndex(int index) {
+    setState(() {
+      _products[index] = Map<String, dynamic>.from(_products[index]);
+      _products[index]['isActive'] = true;
+    });
+  }
+
+  Widget _buildInactiveProductCard(Map<String, dynamic> product, int index) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      product['name'] as String,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF2D5F5A),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      product['brand'] as String,
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                product['price'] as String,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2D5F5A),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              OutlinedButton(
+                onPressed: () {
+                  _activateProductAtIndex(index);
+                },
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  side: const BorderSide(color: Color(0xFF5B9D8E)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: const Text(
+                  'Activate',
+                  style: TextStyle(color: Color(0xFF5B9D8E)),
+                ),
+              ),
+              OutlinedButton(
+                onPressed: () {
+                  _removeProductAtIndex(index);
+                },
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  side: const BorderSide(color: Color(0xFFD32F2F)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: const Text(
+                  'Delete',
+                  style: TextStyle(color: Color(0xFFD32F2F)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _editProductAtIndex(BuildContext context, int index) {
+    final product = _products[index];
+    final nameController = TextEditingController(
+      text: product['name'] as String,
+    );
+    final brandController = TextEditingController(
+      text: product['brand'] as String,
+    );
+    final priceController = TextEditingController(
+      text: (product['price'] as String).replaceAll(' JOD', ''),
+    );
+    final stockController = TextEditingController(
+      text: product['stock'] as String,
+    );
+    final imageUrlController = TextEditingController(
+      text: product['image'] as String,
+    );
+    final descriptionController = TextEditingController(
+      text: product['description'] as String? ?? '',
+    );
+    String categoryValue = product['category'] as String;
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return Dialog(
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 24,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            'Edit Product',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF634732),
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'Update your product details',
+                            style: TextStyle(fontSize: 13, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.close, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: nameController,
+                    decoration: InputDecoration(
+                      labelText: 'Product Name *',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: brandController,
+                    decoration: InputDecoration(
+                      labelText: 'Brand *',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  InputDecorator(
+                    decoration: InputDecoration(
+                      labelText: 'Category *',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                    ),
+                    child: StatefulBuilder(
+                      builder: (context, setState) {
+                        return DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: categoryValue,
+                            isExpanded: true,
+                            items: const [
+                              DropdownMenuItem(
+                                value: 'Food',
+                                child: Text('Food'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'Accessories',
+                                child: Text('Accessories'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'Toys',
+                                child: Text('Toys'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'Health',
+                                child: Text('Health'),
+                              ),
+                            ],
+                            onChanged: (value) {
+                              if (value != null) {
+                                setState(() {
+                                  categoryValue = value;
+                                });
+                              }
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: priceController,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            labelText: 'Price (JOD) *',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: stockController,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            labelText: 'Stock Quantity *',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: imageUrlController,
+                    decoration: InputDecoration(
+                      labelText: 'Image URL',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Optional: Add a product image URL',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: descriptionController,
+                    maxLines: 4,
+                    decoration: InputDecoration(
+                      labelText: 'Description',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: Colors.grey[300]!),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: const Text('Cancel'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              _products[index] = {
+                                'name': nameController.text.trim(),
+                                'brand': brandController.text.trim(),
+                                'category': categoryValue,
+                                'price': '${priceController.text.trim()} JOD',
+                                'originalPrice':
+                                    '${priceController.text.trim()} JOD',
+                                'stock': stockController.text.trim(),
+                                'discount': product['discount'],
+                                'hasSale': product['hasSale'],
+                                'isActive': product['isActive'],
+                                'image': imageUrlController.text.trim().isEmpty
+                                    ? 'https://via.placeholder.com/100'
+                                    : imageUrlController.text.trim(),
+                                'description': descriptionController.text
+                                    .trim(),
+                              };
+                            });
+                            Navigator.of(context).pop();
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF5B9D8E),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: const Text('Save Changes'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -64,10 +1929,7 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
             const SizedBox(height: 4),
             const Text(
               'Pet Supplies Plus',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey,
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ],
         ),
@@ -119,7 +1981,15 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
   }
 
   Widget _buildTabBar() {
-    final tabs = ['Overview', 'Orders', 'Products', 'Offers', 'Reviews', 'Store', 'Audit'];
+    final tabs = [
+      'Overview',
+      'Orders',
+      'Products',
+      'Offers',
+      'Reviews',
+      'Store',
+      'Audit',
+    ];
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -272,7 +2142,11 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
           ),
           child: Row(
             children: [
-              Icon(Icons.warning_rounded, color: const Color(0xFFFF6B35), size: 24),
+              Icon(
+                Icons.warning_rounded,
+                color: const Color(0xFFFF6B35),
+                size: 24,
+              ),
               const SizedBox(width: 12),
               const Expanded(
                 child: Column(
@@ -289,10 +2163,7 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                     SizedBox(height: 4),
                     Text(
                       '1 product(s) running low on stock. Review your inventory.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                   ],
                 ),
@@ -325,14 +2196,19 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF4CAF50),
+                      color: _isStoreOpen
+                          ? const Color(0xFF4CAF50)
+                          : const Color(0xFFFF6B6B),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Text(
-                      'OPEN',
-                      style: TextStyle(
+                    child: Text(
+                      _isStoreOpen ? 'OPEN' : 'CLOSED',
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
@@ -367,26 +2243,55 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
               ),
               const SizedBox(height: 16),
               Row(
+                textDirection: TextDirection.ltr,
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () {},
+                      onPressed: !_isStoreOpen
+                          ? () {
+                              setState(() {
+                                _isStoreOpen = true;
+                              });
+                            }
+                          : null,
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 10),
-                        side: const BorderSide(color: Colors.grey),
+                        side: BorderSide(
+                          color: !_isStoreOpen
+                              ? const Color(0xFF4CAF50)
+                              : Colors.grey.shade300,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
+                        foregroundColor: !_isStoreOpen
+                            ? const Color(0xFF4CAF50)
+                            : Colors.grey,
                       ),
-                      child: const Text('Open Store'),
+                      child: Text(
+                        'Open Store',
+                        style: TextStyle(
+                          color: !_isStoreOpen
+                              ? const Color(0xFF4CAF50)
+                              : Colors.grey,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () {},
+                      onPressed: _isStoreOpen
+                          ? () {
+                              setState(() {
+                                _isStoreOpen = false;
+                              });
+                            }
+                          : null,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF5B9D8E),
+                        backgroundColor: _isStoreOpen
+                            ? const Color(0xFFFF6B6B)
+                            : Colors.grey.shade400,
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -416,33 +2321,13 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Recent Orders',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF634732),
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _selectedTabIndex = 1;
-                      });
-                    },
-                    child: const Text(
-                      'View All Orders',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF5B9D8E),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
+              const Text(
+                'Recent Orders',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF634732),
+                ),
               ),
               const SizedBox(height: 16),
               _buildRecentOrderItem('ORD001', 'Sarah Johnson', 'Pending'),
@@ -453,7 +2338,35 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
               const SizedBox(height: 8),
               Divider(color: Colors.grey[200]),
               const SizedBox(height: 8),
-              _buildRecentOrderItem('ORD003', 'Emily Davis', 'Out for Delivery'),
+              _buildRecentOrderItem(
+                'ORD003',
+                'Emily Davis',
+                'Out for Delivery',
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () {
+                    setState(() {
+                      _selectedTabIndex = 1;
+                    });
+                  },
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE8F5EE),
+                    foregroundColor: const Color(0xFF5B9D8E),
+                    side: BorderSide(color: Colors.grey[300]!),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: const Text(
+                    'View All Orders',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -513,7 +2426,11 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
     );
   }
 
-  Widget _buildRecentOrderItem(String orderId, String customerName, String status) {
+  Widget _buildRecentOrderItem(
+    String orderId,
+    String customerName,
+    String status,
+  ) {
     Color statusColor = Colors.grey;
     if (status == 'Pending') statusColor = const Color(0xFFFFA500);
     if (status == 'Confirmed') statusColor = const Color(0xFF2196F3);
@@ -536,10 +2453,7 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
             const SizedBox(height: 4),
             Text(
               customerName,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
             ),
           ],
         ),
@@ -563,35 +2477,28 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
   }
 
   Widget _buildOrdersTab() {
-    final orders = [
-      {
-        'id': 'ORD001',
-        'customer': 'Sarah Johnson',
-        'items': '2 item(s)',
-        'total': '107.40 JOD',
-        'phone': '+1 (555) 123-4567',
-        'address': 'Building 15, King Fahd Road, Riyadh',
-        'status': 'Pending',
-      },
-      {
-        'id': 'ORD002',
-        'customer': 'Mike Brown',
-        'items': '1 item(s)',
-        'total': '71.00 JOD',
-        'phone': '+1 (555) 987-6543',
-        'address': 'Tower 23, Al-Olaya Street, Riyadh',
-        'status': 'Confirmed',
-      },
-      {
-        'id': 'ORD003',
-        'customer': 'Emily Davis',
-        'items': '1 item(s)',
-        'total': '33.00 JOD',
-        'phone': '+1 (555) 456-7890',
-        'address': 'Building 8, Prince Mohammad Street, Riyadh',
-        'status': 'Out for Delivery',
-      },
-    ];
+    final query = _orderSearchQuery.trim().toLowerCase();
+    final showAll = _selectedOrdersFilter == 'All';
+    final showPastOrders = _selectedOrdersFilter == 'Past Orders';
+
+    final activeOrders = _orders.where((order) {
+      if (order['status'] == 'Delivered') return false;
+      if (!showAll &&
+          !showPastOrders &&
+          order['status'] != _selectedOrdersFilter)
+        return false;
+      if (showPastOrders) return false;
+      if (query.isEmpty) return true;
+      return order['id']!.toLowerCase().contains(query) ||
+          order['customer']!.toLowerCase().contains(query);
+    }).toList();
+
+    final completedOrders = _orders.where((order) {
+      if (order['status'] != 'Delivered') return false;
+      if (query.isEmpty) return true;
+      return order['id']!.toLowerCase().contains(query) ||
+          order['customer']!.toLowerCase().contains(query);
+    }).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -601,10 +2508,19 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
           children: [
             Expanded(
               child: TextField(
+                onChanged: (value) {
+                  setState(() {
+                    _orderSearchQuery = value;
+                  });
+                },
                 decoration: InputDecoration(
                   hintText: 'Search by order ID, customer',
                   hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
-                  prefixIcon: Icon(Icons.search, color: Colors.grey[400], size: 20),
+                  prefixIcon: Icon(
+                    Icons.search,
+                    color: Colors.grey[400],
+                    size: 20,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: BorderSide(color: Colors.grey[300]!),
@@ -613,20 +2529,54 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                     borderRadius: BorderRadius.circular(8),
                     borderSide: BorderSide(color: Colors.grey[200]!),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
                 ),
               ),
             ),
             const SizedBox(width: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey[200]!),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                'mm/dd/yyyy',
-                style: TextStyle(color: Colors.grey[500], fontSize: 13),
+            GestureDetector(
+              onTap: () async {
+                final selectedDate = await showDatePicker(
+                  context: context,
+                  initialDate: _selectedOrderDate ?? DateTime.now(),
+                  firstDate: DateTime(2000),
+                  lastDate: DateTime(2100),
+                );
+                if (selectedDate != null) {
+                  setState(() {
+                    _selectedOrderDate = selectedDate;
+                  });
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey[200]!),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.calendar_today,
+                      size: 18,
+                      color: Colors.grey[500],
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      _selectedOrderDate == null
+                          ? 'mm/dd/yyyy'
+                          : _formatSelectedDate(_selectedOrderDate!),
+                      style: TextStyle(color: Colors.grey[500], fontSize: 13),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -638,15 +2588,24 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
           scrollDirection: Axis.horizontal,
           child: Row(
             children: [
-              _buildFilterChip('All', 3, true),
+              _buildFilterChip('All', _selectedOrdersFilter == 'All'),
               const SizedBox(width: 8),
-              _buildFilterChip('Pending', 1, false),
+              _buildFilterChip('Pending', _selectedOrdersFilter == 'Pending'),
               const SizedBox(width: 8),
-              _buildFilterChip('Confirmed', 1, false),
+              _buildFilterChip(
+                'Confirmed',
+                _selectedOrdersFilter == 'Confirmed',
+              ),
               const SizedBox(width: 8),
-              _buildFilterChip('Out for Delivery', 1, false),
+              _buildFilterChip(
+                'Out for Delivery',
+                _selectedOrdersFilter == 'Out for Delivery',
+              ),
               const SizedBox(width: 8),
-              _buildFilterChip('Past Orders', 0, false),
+              _buildFilterChip(
+                'Past Orders',
+                _selectedOrdersFilter == 'Past Orders',
+              ),
             ],
           ),
         ),
@@ -654,7 +2613,7 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
 
         // All Orders
         Text(
-          'All Orders',
+          showPastOrders ? 'Completed Orders' : 'All Orders',
           style: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
@@ -663,49 +2622,143 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
         ),
         const SizedBox(height: 12),
 
-        // Order Cards
-        ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: orders.length,
-          itemBuilder: (context, index) {
-            final order = orders[index];
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _buildOrderCard(order),
-            );
-          },
-        ),
+        // Active Orders
+        if (!showPastOrders)
+          if (activeOrders.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey[200]!),
+              ),
+              child: const Text(
+                'No orders found.',
+                style: TextStyle(color: Colors.grey, fontSize: 13),
+              ),
+            )
+          else
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: activeOrders.length,
+              itemBuilder: (context, index) {
+                final order = activeOrders[index];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _buildOrderCard(order),
+                );
+              },
+            )
+        else if (completedOrders.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[200]!),
+            ),
+            child: const Text(
+              'No completed orders found.',
+              style: TextStyle(color: Colors.grey, fontSize: 13),
+            ),
+          )
+        else
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: completedOrders.length,
+            itemBuilder: (context, index) {
+              final order = completedOrders[index];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _buildOrderCard(order),
+              );
+            },
+          ),
+
+        if (!showPastOrders && completedOrders.isNotEmpty) ...[
+          const SizedBox(height: 24),
+          const Text(
+            'Completed Orders',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF634732),
+            ),
+          ),
+          const SizedBox(height: 12),
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: completedOrders.length,
+            itemBuilder: (context, index) {
+              final order = completedOrders[index];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _buildOrderCard(order),
+              );
+            },
+          ),
+        ],
       ],
     );
   }
 
-  Widget _buildFilterChip(String label, int count, bool isSelected) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: isSelected ? const Color(0xFF5B9D8E) : Colors.white,
-        border: Border.all(
-          color: isSelected ? const Color(0xFF5B9D8E) : Colors.grey[200]!,
+  Widget _buildFilterChip(String label, bool isSelected) {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedOrdersFilter = label;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF5B9D8E) : Colors.white,
+          border: Border.all(
+            color: isSelected ? const Color(0xFF5B9D8E) : Colors.grey[200]!,
+          ),
+          borderRadius: BorderRadius.circular(20),
         ),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: isSelected ? Colors.white : Colors.grey[600],
-          fontWeight: FontWeight.w500,
-          fontSize: 12,
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : Colors.grey[600],
+            fontWeight: FontWeight.w500,
+            fontSize: 12,
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildOrderCard(Map<String, String> order) {
+  String _formatSelectedDate(DateTime date) {
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    final year = date.year.toString();
+    return '$month/$day/$year';
+  }
+
+  DateTime? _parseFormattedDate(String dateText) {
+    final parts = dateText.split('/');
+    if (parts.length != 3) return null;
+    final month = int.tryParse(parts[0]);
+    final day = int.tryParse(parts[1]);
+    final year = int.tryParse(parts[2]);
+    if (month == null || day == null || year == null) return null;
+    return DateTime(year, month, day);
+  }
+
+  Widget _buildOrderCard(Map<String, dynamic> order) {
     Color statusColor = Colors.grey;
     if (order['status'] == 'Pending') statusColor = const Color(0xFFFFA500);
     if (order['status'] == 'Confirmed') statusColor = const Color(0xFF2196F3);
-    if (order['status'] == 'Out for Delivery') statusColor = const Color(0xFF9C27B0);
+    if (order['status'] == 'Out for Delivery')
+      statusColor = const Color(0xFF9C27B0);
+    if (order['status'] == 'Delivered') statusColor = const Color(0xFF4CAF50);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -735,15 +2788,15 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                   const SizedBox(height: 4),
                   Text(
                     order['customer']!,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: statusColor,
                   borderRadius: BorderRadius.circular(12),
@@ -768,10 +2821,7 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
               const SizedBox(width: 8),
               Text(
                 order['items']!,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
               ),
             ],
           ),
@@ -782,10 +2832,7 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
               const SizedBox(width: 8),
               Text(
                 order['total']!,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
               ),
             ],
           ),
@@ -797,10 +2844,7 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
               Expanded(
                 child: Text(
                   order['phone']!,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                 ),
               ),
             ],
@@ -813,10 +2857,7 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
               Expanded(
                 child: Text(
                   order['address']!,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                 ),
               ),
             ],
@@ -826,12 +2867,17 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
           // View Details Button
           Center(
             child: OutlinedButton.icon(
-              onPressed: () {},
+              onPressed: () {
+                _showOrderDetails(order);
+              },
               icon: const Icon(Icons.visibility, size: 16),
               label: const Text('View Details'),
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: Color(0xFF5B9D8E)),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 8,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -846,7 +2892,9 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
               if (order['status'] == 'Pending')
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () {},
+                    onPressed: () {
+                      _updateOrderStatus(order['id']!, 'Confirmed');
+                    },
                     icon: const Icon(Icons.check, size: 16),
                     label: const Text('Accept Order'),
                     style: ElevatedButton.styleFrom(
@@ -862,7 +2910,9 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
               else if (order['status'] == 'Confirmed')
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () {},
+                    onPressed: () {
+                      _updateOrderStatus(order['id']!, 'Out for Delivery');
+                    },
                     icon: const Icon(Icons.shopping_bag, size: 16),
                     label: const Text('Start Preparing'),
                     style: ElevatedButton.styleFrom(
@@ -878,7 +2928,9 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
               else if (order['status'] == 'Out for Delivery')
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () {},
+                    onPressed: () {
+                      _updateOrderStatus(order['id']!, 'Delivered');
+                    },
                     icon: const Icon(Icons.check_circle, size: 16),
                     label: const Text('Mark as Delivered'),
                     style: ElevatedButton.styleFrom(
@@ -890,7 +2942,25 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                       ),
                     ),
                   ),
-                ),
+                )
+              else if (order['status'] == 'Delivered')
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: null,
+                    icon: const Icon(Icons.check_circle, size: 16),
+                    label: const Text('Delivered'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green.shade200,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                )
+              else
+                const Expanded(child: SizedBox()),
               if (order['status'] == 'Pending') ...[
                 const SizedBox(width: 12),
                 Expanded(
@@ -918,49 +2988,34 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
   }
 
   Widget _buildProductsTab() {
-    final products = [
-      {
-        'name': 'Premium Dog Food 10kg',
-        'brand': 'NutraPet',
-        'category': 'Food',
-        'price': '44.00 JOD',
-        'originalPrice': '55.00 JOD',
-        'stock': '150',
-        'discount': '20%',
-        'hasSale': true,
-        'image': 'https://images.unsplash.com/photo-1589924691106-073b19f5538d?q=80&w=1000&auto=format&fit=crop',
-      },
-      {
-        'name': 'Cat Litter Premium 5kg',
-        'brand': 'CleanPaws',
-        'category': 'Accessories',
-        'price': '22.00 JOD',
-        'stock': '85',
-        'discount': '',
-        'hasSale': false,
-        'image': 'https://images.unsplash.com/photo-1572365992253-3cb3e56dd362?q=80&w=1000&auto=format&fit=crop',
-      },
-      {
-        'name': 'Interactive Dog Toy',
-        'brand': 'PlayPaws',
-        'category': 'Toys',
-        'price': '18.00 JOD',
-        'stock': '42',
-        'discount': '20%',
-        'hasSale': true,
-        'image': 'https://images.unsplash.com/photo-1513284411132-47685382e39c?q=80&w=1000&auto=format&fit=crop',
-      },
-      {
-        'name': 'Pet Multivitamin Tablets',
-        'brand': 'VitaPet',
-        'category': 'Health',
-        'price': '28.00 JOD',
-        'stock': '5',
-        'discount': '',
-        'hasSale': false,
-        'image': 'https://images.unsplash.com/photo-1584399579527-02b89e2c85ef?q=80&w=1000&auto=format&fit=crop',
-      },
-    ];
+    final query = _productSearchQuery.trim().toLowerCase();
+    final filteredActiveProductIndices = _products
+        .asMap()
+        .entries
+        .where((entry) {
+          final product = entry.value;
+          if (product['isActive'] != true) return false;
+          if (query.isEmpty) return true;
+          return (product['name'] as String).toLowerCase().contains(query) ||
+              (product['brand'] as String).toLowerCase().contains(query) ||
+              (product['category'] as String).toLowerCase().contains(query);
+        })
+        .map((entry) => entry.key)
+        .toList();
+
+    final filteredInactiveProductIndices = _products
+        .asMap()
+        .entries
+        .where((entry) {
+          final product = entry.value;
+          if (product['isActive'] == true) return false;
+          if (query.isEmpty) return true;
+          return (product['name'] as String).toLowerCase().contains(query) ||
+              (product['brand'] as String).toLowerCase().contains(query) ||
+              (product['category'] as String).toLowerCase().contains(query);
+        })
+        .map((entry) => entry.key)
+        .toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -978,13 +3033,18 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
               ),
             ),
             ElevatedButton.icon(
-              onPressed: () {},
+              onPressed: () {
+                _showAddProductDialog(context);
+              },
               icon: const Icon(Icons.add, size: 18),
               label: const Text('Add Product'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF5B9D8E),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -996,6 +3056,11 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
 
         // Search Products
         TextField(
+          onChanged: (value) {
+            setState(() {
+              _productSearchQuery = value;
+            });
+          },
           decoration: InputDecoration(
             hintText: 'Search products by name, brand, or category...',
             hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
@@ -1008,7 +3073,10 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(color: Colors.grey[200]!),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 12,
+            ),
           ),
         ),
         const SizedBox(height: 20),
@@ -1023,7 +3091,11 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
           ),
           child: Row(
             children: [
-              Icon(Icons.warning_rounded, color: const Color(0xFFFF6B35), size: 20),
+              Icon(
+                Icons.warning_rounded,
+                color: const Color(0xFFFF6B35),
+                size: 20,
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -1040,10 +3112,7 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                     const SizedBox(height: 2),
                     Text(
                       '• Pet Multivitamin Tablets - Only 5 left',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                     ),
                   ],
                 ),
@@ -1058,7 +3127,7 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Active Products (${products.length})',
+              'Active Products (${filteredActiveProductIndices.length})',
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -1070,23 +3139,331 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
         const SizedBox(height: 16),
 
         // Product Cards
-        ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: products.length,
-          itemBuilder: (context, index) {
-            final product = products[index];
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _buildProductCard(product),
-            );
-          },
-        ),
+        if (filteredActiveProductIndices.isEmpty &&
+            filteredInactiveProductIndices.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[200]!),
+            ),
+            child: const Text(
+              'No products found.',
+              style: TextStyle(color: Colors.grey, fontSize: 13),
+            ),
+          )
+        else ...[
+          if (filteredActiveProductIndices.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey[200]!),
+              ),
+              child: const Text(
+                'No active products found.',
+                style: TextStyle(color: Colors.grey, fontSize: 13),
+              ),
+            )
+          else
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: filteredActiveProductIndices.length,
+              itemBuilder: (context, index) {
+                final productIndex = filteredActiveProductIndices[index];
+                final product = _products[productIndex];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _buildProductCard(product, productIndex),
+                );
+              },
+            ),
+
+          if (filteredInactiveProductIndices.isNotEmpty) ...[
+            const SizedBox(height: 24),
+            Text(
+              'Inactive Products (${filteredInactiveProductIndices.length})',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF634732),
+              ),
+            ),
+            const SizedBox(height: 12),
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: filteredInactiveProductIndices.length,
+              itemBuilder: (context, index) {
+                final productIndex = filteredInactiveProductIndices[index];
+                final product = _products[productIndex];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _buildInactiveProductCard(product, productIndex),
+                );
+              },
+            ),
+          ],
+        ],
       ],
     );
   }
 
-  Widget _buildProductCard(Map<String, dynamic> product) {
+  void _showAddProductDialog(BuildContext context) {
+    final nameController = TextEditingController();
+    final brandController = TextEditingController();
+    final priceController = TextEditingController(text: '0');
+    final stockController = TextEditingController(text: '0');
+    final imageUrlController = TextEditingController();
+    final descriptionController = TextEditingController();
+    String categoryValue = 'Food';
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return Dialog(
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 24,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            'Add New Product',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF634732),
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'Create a new product listing for your store',
+                            style: TextStyle(fontSize: 13, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.close, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: nameController,
+                    decoration: InputDecoration(
+                      labelText: 'Product Name *',
+                      hintText: 'e.g., Premium Dog Food',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: brandController,
+                    decoration: InputDecoration(
+                      labelText: 'Brand *',
+                      hintText: 'e.g., NutriPet',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  InputDecorator(
+                    decoration: InputDecoration(
+                      labelText: 'Category *',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                    ),
+                    child: StatefulBuilder(
+                      builder: (context, setState) {
+                        return DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: categoryValue,
+                            isExpanded: true,
+                            items: const [
+                              DropdownMenuItem(
+                                value: 'Food',
+                                child: Text('Food'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'Accessories',
+                                child: Text('Accessories'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'Toys',
+                                child: Text('Toys'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'Health',
+                                child: Text('Health'),
+                              ),
+                            ],
+                            onChanged: (value) {
+                              if (value != null) {
+                                setState(() {
+                                  categoryValue = value;
+                                });
+                              }
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: priceController,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            labelText: 'Price (JOD) *',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: stockController,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            labelText: 'Stock Quantity *',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: imageUrlController,
+                    decoration: InputDecoration(
+                      labelText: 'Image URL',
+                      hintText: 'https://example.com/image.jpg',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Optional: Add a product image URL',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: descriptionController,
+                    maxLines: 4,
+                    decoration: InputDecoration(
+                      labelText: 'Description',
+                      hintText: 'Product description...',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: Colors.grey[300]!),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: const Text('Cancel'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            if (nameController.text.trim().isEmpty ||
+                                brandController.text.trim().isEmpty) {
+                              return;
+                            }
+                            _addProduct({
+                              'name': nameController.text.trim(),
+                              'brand': brandController.text.trim(),
+                              'category': categoryValue,
+                              'price': '${priceController.text.trim()} JOD',
+                              'originalPrice':
+                                  '${priceController.text.trim()} JOD',
+                              'stock': stockController.text.trim(),
+                              'discount': '',
+                              'hasSale': false,
+                              'isActive': true,
+                              'image': imageUrlController.text.trim().isEmpty
+                                  ? 'https://via.placeholder.com/100'
+                                  : imageUrlController.text.trim(),
+                              'description': descriptionController.text.trim(),
+                            });
+                            Navigator.of(context).pop();
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF5B9D8E),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: const Text('Add Product'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildProductCard(Map<String, dynamic> product, int index) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -1144,7 +3521,9 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        if (product['originalPrice'] != null)
+                        if (product['hasSale'] == true &&
+                            product['originalPrice'] != null &&
+                            product['originalPrice'] != product['price'])
                           Text(
                             product['originalPrice'],
                             style: TextStyle(
@@ -1161,6 +3540,16 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                             color: Color(0xFF634732),
                           ),
                         ),
+                        if (product['hasSale'] == true &&
+                            product['saleValidUntil'] != null &&
+                            (product['saleValidUntil'] as String).isNotEmpty)
+                          Text(
+                            'Valid until ${product['saleValidUntil']}',
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: Colors.grey,
+                            ),
+                          ),
                       ],
                     ),
                   ],
@@ -1172,25 +3561,22 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.grey[100],
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
                         product['category'],
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.grey[600],
-                        ),
+                        style: TextStyle(fontSize: 10, color: Colors.grey[600]),
                       ),
                     ),
                     Text(
                       'Stock: ${product['stock']}',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 10, color: Colors.grey[600]),
                     ),
                   ],
                 ),
@@ -1203,19 +3589,26 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                   children: [
                     if (product['hasSale'])
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFD32F2F),
                           borderRadius: BorderRadius.circular(4),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.local_offer, size: 12, color: Colors.white),
-                            SizedBox(width: 4),
+                            const Icon(
+                              Icons.local_offer,
+                              size: 12,
+                              color: Colors.white,
+                            ),
+                            const SizedBox(width: 4),
                             Text(
-                              'SALE-20%',
-                              style: TextStyle(
+                              'SALE-${product['discount']}',
+                              style: const TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
@@ -1224,31 +3617,20 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                           ],
                         ),
                       ),
-                    if (!product['hasSale'])
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.orange,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: const Text(
-                          'Offer -20%',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
                     if (product['hasSale'])
                       ElevatedButton.icon(
-                        onPressed: () {},
+                        onPressed: () {
+                          _showManageSaleDialog(context, index);
+                        },
                         icon: const Icon(Icons.local_offer, size: 12),
                         label: const Text('Manage Sale'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFD32F2F),
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(4),
                           ),
@@ -1257,51 +3639,75 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                       )
                     else
                       OutlinedButton.icon(
-                        onPressed: () {},
+                        onPressed: () {
+                          _showManageSaleDialog(context, index);
+                        },
                         icon: const Icon(Icons.local_offer, size: 12),
                         label: const Text('Put on Sale'),
                         style: OutlinedButton.styleFrom(
                           side: const BorderSide(color: Colors.grey),
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(4),
                           ),
                         ),
                       ),
                     OutlinedButton.icon(
-                      onPressed: () {},
+                      onPressed: () {
+                        _editProductAtIndex(context, index);
+                      },
                       icon: const Icon(Icons.edit, size: 12),
                       label: const Text('Edit'),
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: Colors.grey),
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
                     ),
                     OutlinedButton.icon(
-                      onPressed: () {},
+                      onPressed: () {
+                        _deactivateProductAtIndex(index);
+                      },
                       icon: const Icon(Icons.delete, size: 12),
                       label: const Text('Deactivate'),
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: Colors.grey),
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
                     ),
                     OutlinedButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        _removeProductAtIndex(index);
+                      },
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: Colors.grey),
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
-                      child: const Icon(Icons.close, size: 12, color: Colors.grey),
+                      child: const Icon(
+                        Icons.close,
+                        size: 12,
+                        color: Colors.grey,
+                      ),
                     ),
                   ],
                 ),
@@ -1314,28 +3720,62 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
   }
 
   Widget _buildOffersTab() {
-    final storeWideOffers = [
-      {
-        'title': '20% Off on Orders Above 50 JOD',
-        'description': 'Get 20% discount on all products when you order above 50 JOD',
-        'discount': '20% OFF',
-        'type': 'Store-Wide',
-        'validUntil': 'Valid until: Feb 15, 2026',
-        'minOrder': 'Min order: 50',
-        'status': 'Active',
-      },
-    ];
+    final query = _offerSearchQuery.trim().toLowerCase();
+    final filteredActiveStoreWideOffers = _storeWideOffers
+        .asMap()
+        .entries
+        .where((entry) {
+          final offer = entry.value;
+          if (offer['status'] != 'Active') return false;
+          if (query.isEmpty) return true;
+          return (offer['title'] as String).toLowerCase().contains(query) ||
+              (offer['description'] as String).toLowerCase().contains(query) ||
+              (offer['discount'] as String).toLowerCase().contains(query) ||
+              (offer['type'] as String).toLowerCase().contains(query) ||
+              (offer['product'] as String? ?? '').toLowerCase().contains(query);
+        })
+        .toList();
 
-    final productSales = [
-      {
-        'title': '15% Off Premium Dog Food',
-        'description': 'Special discount on Premium Dog Food 20kg',
-        'discount': '15% OFF',
-        'type': 'Product Sale',
-        'validUntil': 'Valid until: Feb 28, 2026',
-        'status': 'Active',
-      },
-    ];
+    final filteredActiveProductSales = _productSales.asMap().entries.where((
+      entry,
+    ) {
+      final offer = entry.value;
+      if (offer['status'] != 'Active') return false;
+      if (query.isEmpty) return true;
+      return (offer['title'] as String).toLowerCase().contains(query) ||
+          (offer['description'] as String).toLowerCase().contains(query) ||
+          (offer['discount'] as String).toLowerCase().contains(query) ||
+          (offer['type'] as String).toLowerCase().contains(query) ||
+          (offer['product'] as String? ?? '').toLowerCase().contains(query);
+    }).toList();
+
+    final filteredInactiveStoreWideOffers = _storeWideOffers
+        .asMap()
+        .entries
+        .where((entry) {
+          final offer = entry.value;
+          if (offer['status'] != 'Inactive') return false;
+          if (query.isEmpty) return true;
+          return (offer['title'] as String).toLowerCase().contains(query) ||
+              (offer['description'] as String).toLowerCase().contains(query) ||
+              (offer['discount'] as String).toLowerCase().contains(query) ||
+              (offer['type'] as String).toLowerCase().contains(query) ||
+              (offer['product'] as String? ?? '').toLowerCase().contains(query);
+        })
+        .toList();
+
+    final filteredInactiveProductSales = _productSales.asMap().entries.where((
+      entry,
+    ) {
+      final offer = entry.value;
+      if (offer['status'] != 'Inactive') return false;
+      if (query.isEmpty) return true;
+      return (offer['title'] as String).toLowerCase().contains(query) ||
+          (offer['description'] as String).toLowerCase().contains(query) ||
+          (offer['discount'] as String).toLowerCase().contains(query) ||
+          (offer['type'] as String).toLowerCase().contains(query) ||
+          (offer['product'] as String? ?? '').toLowerCase().contains(query);
+    }).toList();
 
     return SingleChildScrollView(
       child: Column(
@@ -1352,17 +3792,19 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
           const SizedBox(height: 12),
           const Text(
             'Choose the type of offer you want to create',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey,
-            ),
+            style: TextStyle(fontSize: 12, color: Colors.grey),
           ),
           const SizedBox(height: 16),
 
           // Search Field
           TextField(
+            onChanged: (value) {
+              setState(() {
+                _offerSearchQuery = value;
+              });
+            },
             decoration: InputDecoration(
-              hintText: 'Search offers by title, description, or product...',
+              hintText: 'Search offers by title, description, or discount...',
               hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
               prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
               border: OutlineInputBorder(
@@ -1373,7 +3815,10 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide(color: Colors.grey[200]!),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 12,
+              ),
             ),
           ),
           const SizedBox(height: 20),
@@ -1407,10 +3852,7 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                           SizedBox(height: 4),
                           Text(
                             'Apply discount to all products in your store',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
-                            ),
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
                           ),
                         ],
                       ),
@@ -1421,7 +3863,9 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed: () {},
+                    onPressed: () {
+                      _showStoreWideOfferDialog();
+                    },
                     icon: const Icon(Icons.add, size: 18),
                     label: const Text('Create Store-Wide Offer'),
                     style: ElevatedButton.styleFrom(
@@ -1451,7 +3895,11 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.local_offer, size: 24, color: const Color(0xFF1976D2)),
+                    Icon(
+                      Icons.local_offer,
+                      size: 24,
+                      color: const Color(0xFF1976D2),
+                    ),
                     const SizedBox(width: 12),
                     const Expanded(
                       child: Column(
@@ -1468,10 +3916,7 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                           SizedBox(height: 4),
                           Text(
                             'Create discount for specific products',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
-                            ),
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
                           ),
                         ],
                       ),
@@ -1482,7 +3927,9 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed: () {},
+                    onPressed: () {
+                      _showProductSaleDialog();
+                    },
                     icon: const Icon(Icons.add, size: 18),
                     label: const Text('Create Product Sale'),
                     style: ElevatedButton.styleFrom(
@@ -1502,7 +3949,7 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
 
           // Store-Wide Offers Section
           Text(
-            'Store-Wide Offers (${storeWideOffers.length})',
+            'Store-Wide Offers (${filteredActiveStoreWideOffers.length})',
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -1510,16 +3957,35 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
             ),
           ),
           const SizedBox(height: 12),
-          ...storeWideOffers.map((offer) => Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _buildOfferCard(offer),
-          )),
+          if (filteredActiveStoreWideOffers.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey[200]!),
+              ),
+              child: const Text(
+                'No store-wide offers found.',
+                style: TextStyle(color: Colors.grey, fontSize: 13),
+              ),
+            )
+          else
+            ...filteredActiveStoreWideOffers.map((entry) {
+              final index = entry.key;
+              final offer = entry.value;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _buildOfferCard(offer, index, true),
+              );
+            }).toList(),
 
           const SizedBox(height: 24),
 
           // Product Sales Section
           Text(
-            'Product Sales (${productSales.length})',
+            'Product Sales (${filteredActiveProductSales.length})',
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -1527,25 +3993,98 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
             ),
           ),
           const SizedBox(height: 12),
-          ...productSales.map((offer) => Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _buildOfferCard(offer),
-          )),
+          if (filteredActiveProductSales.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey[200]!),
+              ),
+              child: const Text(
+                'No product sales found.',
+                style: TextStyle(color: Colors.grey, fontSize: 13),
+              ),
+            )
+          else
+            ...filteredActiveProductSales.map((entry) {
+              final index = entry.key;
+              final offer = entry.value;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _buildOfferCard(offer, index, false),
+              );
+            }).toList(),
+
+          const SizedBox(height: 24),
+
+          Text(
+            'Inactive Offers (${filteredInactiveStoreWideOffers.length + filteredInactiveProductSales.length})',
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF634732),
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (filteredInactiveStoreWideOffers.isEmpty &&
+              filteredInactiveProductSales.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey[200]!),
+              ),
+              child: const Text(
+                'No inactive offers yet.',
+                style: TextStyle(color: Colors.grey, fontSize: 13),
+              ),
+            )
+          else ...[
+            ...filteredInactiveStoreWideOffers.map((entry) {
+              final index = entry.key;
+              final offer = entry.value;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _buildOfferCard(offer, index, true),
+              );
+            }),
+            ...filteredInactiveProductSales.map((entry) {
+              final index = entry.key;
+              final offer = entry.value;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _buildOfferCard(offer, index, false),
+              );
+            }),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildOfferCard(Map<String, dynamic> offer) {
-    Color statusColor = const Color(0xFFFF6B35);
-    Color backgroundColor = const Color(0xFFFFF3E0);
+  Widget _buildOfferCard(
+    Map<String, dynamic> offer,
+    int index,
+    bool isStoreWide,
+  ) {
+    final isActive = offer['status'] == 'Active';
+    Color statusColor = isActive ? const Color(0xFFFF6B35) : Colors.grey;
+    Color backgroundColor = isActive
+        ? const Color(0xFFFFF3E0)
+        : Colors.grey.shade100;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFFB38A)),
+        border: Border.all(
+          color: isActive ? const Color(0xFFFFB38A) : Colors.grey.shade300,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1569,10 +4108,7 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                     const SizedBox(height: 4),
                     Text(
                       offer['description'],
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                     ),
                   ],
                 ),
@@ -1581,7 +4117,10 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
               Column(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: statusColor,
                       borderRadius: BorderRadius.circular(4),
@@ -1597,7 +4136,10 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                   ),
                   const SizedBox(height: 4),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.grey[200],
                       borderRadius: BorderRadius.circular(4),
@@ -1622,10 +4164,7 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
               const SizedBox(width: 6),
               Text(
                 offer['validUntil'],
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 11, color: Colors.grey[600]),
               ),
               if (offer['minOrder'] != null) ...[
                 const SizedBox(width: 16),
@@ -1633,10 +4172,7 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                 const SizedBox(width: 6),
                 Text(
                   offer['minOrder'],
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey[600],
-                  ),
+                  style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                 ),
               ],
             ],
@@ -1645,12 +4181,21 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
           Row(
             children: [
               OutlinedButton.icon(
-                onPressed: () {},
+                onPressed: () {
+                  if (isStoreWide) {
+                    _showStoreWideOfferDialog(offer: offer, index: index);
+                  } else {
+                    _showProductSaleDialog(offer: offer, index: index);
+                  }
+                },
                 icon: const Icon(Icons.edit, size: 14),
                 label: const Text('Edit'),
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: Colors.grey),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(6),
                   ),
@@ -1658,12 +4203,24 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
               ),
               const SizedBox(width: 8),
               OutlinedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.pause_circle, size: 14),
-                label: const Text('Deactivate'),
+                onPressed: () {
+                  _toggleOfferActive(index, isStoreWide);
+                },
+                icon: Icon(
+                  offer['status'] == 'Active'
+                      ? Icons.pause_circle
+                      : Icons.play_circle,
+                  size: 14,
+                ),
+                label: Text(
+                  offer['status'] == 'Active' ? 'Deactivate' : 'Activate',
+                ),
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: Colors.grey),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(6),
                   ),
@@ -1671,10 +4228,15 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
               ),
               const SizedBox(width: 8),
               OutlinedButton(
-                onPressed: () {},
+                onPressed: () {
+                  _removeOffer(index, isStoreWide);
+                },
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: Colors.grey),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(6),
                   ),
@@ -1732,7 +4294,11 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                       children: [
                         Row(
                           children: const [
-                            Icon(Icons.star, color: Color(0xFFFFA500), size: 28),
+                            Icon(
+                              Icons.star,
+                              color: Color(0xFFFFA500),
+                              size: 28,
+                            ),
                             SizedBox(width: 8),
                             Text(
                               '5.0',
@@ -1747,10 +4313,7 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                         const SizedBox(height: 8),
                         const Text(
                           'Average Store Rating',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                          ),
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
                         ),
                         const SizedBox(height: 2),
                         Text(
@@ -1801,10 +4364,12 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
           const SizedBox(height: 16),
 
           // Review Cards
-          ...reviews.map((review) => Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _buildReviewCard(review),
-          )),
+          ...reviews.map(
+            (review) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _buildReviewCard(review),
+            ),
+          ),
         ],
       ),
     );
@@ -1838,10 +4403,7 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                   const SizedBox(height: 2),
                   Text(
                     review['date'],
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                   ),
                 ],
               ),
@@ -1853,10 +4415,7 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                 ),
                 child: Text(
                   review['orderId'],
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey[600],
-                  ),
+                  style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                 ),
               ),
             ],
@@ -1873,10 +4432,7 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
           const SizedBox(height: 4),
           Text(
             review['productReview'],
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[700],
-            ),
+            style: TextStyle(fontSize: 12, color: Colors.grey[700]),
           ),
           const SizedBox(height: 12),
           Text(
@@ -1890,10 +4446,7 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
           const SizedBox(height: 4),
           Text(
             review['storeReview'],
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[700],
-            ),
+            style: TextStyle(fontSize: 12, color: Colors.grey[700]),
           ),
         ],
       ),
@@ -1957,7 +4510,10 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                       borderRadius: BorderRadius.circular(8),
                       borderSide: BorderSide(color: Colors.grey[200]!),
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -1983,7 +4539,10 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                       borderRadius: BorderRadius.circular(8),
                       borderSide: BorderSide(color: Colors.grey[200]!),
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -2009,7 +4568,10 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                       borderRadius: BorderRadius.circular(8),
                       borderSide: BorderSide(color: Colors.grey[200]!),
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -2025,7 +4587,9 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                 ),
                 const SizedBox(height: 6),
                 TextField(
-                  controller: TextEditingController(text: 'Complete pet supply store with premium brands'),
+                  controller: TextEditingController(
+                    text: 'Complete pet supply store with premium brands',
+                  ),
                   maxLines: 3,
                   decoration: InputDecoration(
                     border: OutlineInputBorder(
@@ -2036,7 +4600,10 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                       borderRadius: BorderRadius.circular(8),
                       borderSide: BorderSide(color: Colors.grey[200]!),
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -2058,17 +4625,26 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                           ),
                           const SizedBox(height: 6),
                           TextField(
-                            controller: TextEditingController(text: '+1 (555) 000-9999'),
+                            controller: TextEditingController(
+                              text: '+1 (555) 000-9999',
+                            ),
                             decoration: InputDecoration(
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide(color: Colors.grey[200]!),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[200]!,
+                                ),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide(color: Colors.grey[200]!),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[200]!,
+                                ),
                               ),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
                             ),
                           ),
                         ],
@@ -2089,17 +4665,26 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                           ),
                           const SizedBox(height: 6),
                           TextField(
-                            controller: TextEditingController(text: 'store@petsuppliesplu'),
+                            controller: TextEditingController(
+                              text: 'store@petsuppliesplu',
+                            ),
                             decoration: InputDecoration(
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide(color: Colors.grey[200]!),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[200]!,
+                                ),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide(color: Colors.grey[200]!),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[200]!,
+                                ),
                               ),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
                             ),
                           ),
                         ],
@@ -2130,7 +4715,10 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                       borderRadius: BorderRadius.circular(8),
                       borderSide: BorderSide(color: Colors.grey[200]!),
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -2168,11 +4756,7 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
               border: Border.all(color: Colors.grey[200]!),
             ),
             child: GestureDetector(
-              onTap: () {
-                setState(() {
-                  _showProfileModal = true;
-                });
-              },
+              onTap: _showProfileDialog,
               child: Row(
                 children: [
                   Icon(Icons.person, size: 18, color: Colors.grey[600]),
@@ -2189,234 +4773,482 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
               ),
             ),
           ),
-
-          // Profile Modal
-          if (_showProfileModal)
-            Center(
-              child: Dialog(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  constraints: const BoxConstraints(maxWidth: 400),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'My Profile',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF634732),
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _showProfileModal = false;
-                              });
-                            },
-                            child: Icon(Icons.close, color: Colors.grey[600]),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Update your personal information and account details',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Full Name
-                      const Text(
-                        'Full Name',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF634732),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      TextField(
-                        controller: TextEditingController(text: 'John Anderson'),
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(6),
-                            borderSide: BorderSide(color: Colors.grey[200]!),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(6),
-                            borderSide: BorderSide(color: Colors.grey[200]!),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-
-                      // Email
-                      const Text(
-                        'Email',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF634732),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      TextField(
-                        controller: TextEditingController(text: 'alkhatib.rama12@gmail.com'),
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(6),
-                            borderSide: BorderSide(color: Colors.grey[200]!),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(6),
-                            borderSide: BorderSide(color: Colors.grey[200]!),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-
-                      // Phone
-                      const Text(
-                        'Phone',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF634732),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      TextField(
-                        controller: TextEditingController(text: '+1 (555) 444-5555'),
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(6),
-                            borderSide: BorderSide(color: Colors.grey[200]!),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(6),
-                            borderSide: BorderSide(color: Colors.grey[200]!),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-
-                      // Business Name
-                      const Text(
-                        'Business Name',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF634732),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      TextField(
-                        controller: TextEditingController(text: 'Pet Supplies Plus'),
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(6),
-                            borderSide: BorderSide(color: Colors.grey[200]!),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(6),
-                            borderSide: BorderSide(color: Colors.grey[200]!),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Change Password Button
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed: () {},
-                          icon: const Icon(Icons.lock, size: 16),
-                          label: const Text('Change Password'),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Colors.grey),
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Buttons Row
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: () {
-                                setState(() {
-                                  _showProfileModal = false;
-                                });
-                              },
-                              style: OutlinedButton.styleFrom(
-                                side: const BorderSide(color: Colors.grey),
-                                padding: const EdgeInsets.symmetric(vertical: 10),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                              ),
-                              child: const Text('Cancel'),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: () {
-                                setState(() {
-                                  _showProfileModal = false;
-                                });
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF5B9D8E),
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 10),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                              ),
-                              child: const Text('Save Changes'),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
         ],
       ),
     );
   }
 
+  void _showProfileDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return Dialog(
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 24,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'My Profile',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF634732),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.close, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Update your personal information and account details',
+                    style: TextStyle(fontSize: 13, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Full Name
+                  const Text(
+                    'Full Name',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF634732),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: _profileNameController,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(6),
+                        borderSide: BorderSide(color: Colors.grey[200]!),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(6),
+                        borderSide: BorderSide(color: Colors.grey[200]!),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Email
+                  const Text(
+                    'Email',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF634732),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: _profileEmailController,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(6),
+                        borderSide: BorderSide(color: Colors.grey[200]!),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(6),
+                        borderSide: BorderSide(color: Colors.grey[200]!),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Phone
+                  const Text(
+                    'Phone',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF634732),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: _profilePhoneController,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(6),
+                        borderSide: BorderSide(color: Colors.grey[200]!),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(6),
+                        borderSide: BorderSide(color: Colors.grey[200]!),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Business Name
+                  const Text(
+                    'Business Name',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF634732),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: _profileBusinessNameController,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(6),
+                        borderSide: BorderSide(color: Colors.grey[200]!),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(6),
+                        borderSide: BorderSide(color: Colors.grey[200]!),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Change Password Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        _showChangePasswordDialog();
+                      },
+                      icon: const Icon(Icons.lock, size: 16),
+                      label: const Text('Change Password'),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.grey),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Buttons Row
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.grey),
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 10,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                          ),
+                          child: const Text('Cancel'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Profile changes saved'),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF5B9D8E),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 10,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                          ),
+                          child: const Text('Save Changes'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showChangePasswordDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return Dialog(
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 24,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Change Password',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF634732),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.close, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Enter your current password and choose a new one',
+                    style: TextStyle(fontSize: 13, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Current Password
+                  const Text(
+                    'Current Password',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF634732),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: _currentPasswordController,
+                    obscureText: true,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(6),
+                        borderSide: BorderSide(color: Colors.grey[200]!),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(6),
+                        borderSide: BorderSide(color: Colors.grey[200]!),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // New Password
+                  const Text(
+                    'New Password',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF634732),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: _newPasswordController,
+                    obscureText: true,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(6),
+                        borderSide: BorderSide(color: Colors.grey[200]!),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(6),
+                        borderSide: BorderSide(color: Colors.grey[200]!),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Confirm New Password
+                  const Text(
+                    'Confirm New Password',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF634732),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: _confirmPasswordController,
+                    obscureText: true,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(6),
+                        borderSide: BorderSide(color: Colors.grey[200]!),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(6),
+                        borderSide: BorderSide(color: Colors.grey[200]!),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Buttons Row
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.grey),
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 10,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                          ),
+                          child: const Text('Cancel'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            if (_newPasswordController.text != _confirmPasswordController.text) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('New passwords do not match'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              return;
+                            }
+                            Navigator.of(context).pop();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Password changed successfully'),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF5B9D8E),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 10,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                          ),
+                          child: const Text('Change Password'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildAuditTab() {
-    final auditLogs = [
+    final allAuditLogs = [
       {
         'action': 'Store Opened',
         'description': 'Store status changed to open',
         'timestamp': 'Apr 20, 2026 at 16:09',
+        'dateTime': DateTime(2026, 4, 20, 16, 9),
         'icon': Icons.info,
       },
+      {
+        'action': 'New Offer Added',
+        'description': 'A store-wide discount was added',
+        'timestamp': 'Apr 19, 2026 at 10:30',
+        'dateTime': DateTime(2026, 4, 19, 10, 30),
+        'icon': Icons.local_offer,
+      },
+      {
+        'action': 'Product Deactivated',
+        'description': 'An inactive product was moved to archive',
+        'timestamp': 'Apr 18, 2026 at 14:20',
+        'dateTime': DateTime(2026, 4, 18, 14, 20),
+        'icon': Icons.delete,
+      },
     ];
+    final query = _auditSearchQuery.trim().toLowerCase();
+    final filteredAuditLogs = allAuditLogs.where((log) {
+      if (query.isNotEmpty &&
+          !(log['action'] as String).toLowerCase().contains(query) &&
+          !(log['description'] as String).toLowerCase().contains(query)) {
+        return false;
+      }
+      if (_selectedAuditDate != null) {
+        final logDate = log['dateTime'] as DateTime;
+        return logDate.year == _selectedAuditDate!.year &&
+            logDate.month == _selectedAuditDate!.month &&
+            logDate.day == _selectedAuditDate!.day;
+      }
+      return true;
+    }).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2426,10 +5258,19 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
           children: [
             Expanded(
               child: TextField(
+                onChanged: (value) {
+                  setState(() {
+                    _auditSearchQuery = value;
+                  });
+                },
                 decoration: InputDecoration(
                   hintText: 'Search audit logs by action',
                   hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
-                  prefixIcon: Icon(Icons.search, color: Colors.grey[400], size: 20),
+                  prefixIcon: Icon(
+                    Icons.search,
+                    color: Colors.grey[400],
+                    size: 20,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: BorderSide(color: Colors.grey[300]!),
@@ -2438,20 +5279,69 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                     borderRadius: BorderRadius.circular(8),
                     borderSide: BorderSide(color: Colors.grey[200]!),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
                 ),
               ),
             ),
             const SizedBox(width: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey[200]!),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                'mm/dd/yyyy',
-                style: TextStyle(color: Colors.grey[500], fontSize: 13),
+            GestureDetector(
+              onTap: () async {
+                final selectedDate = await showDatePicker(
+                  context: context,
+                  initialDate: _selectedAuditDate ?? DateTime.now(),
+                  firstDate: DateTime(2000),
+                  lastDate: DateTime(2100),
+                );
+                if (selectedDate != null) {
+                  setState(() {
+                    _selectedAuditDate = selectedDate;
+                  });
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey[200]!),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.calendar_today,
+                      size: 18,
+                      color: Colors.grey[500],
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      _selectedAuditDate == null
+                          ? 'mm/dd/yyyy'
+                          : _formatSelectedDate(_selectedAuditDate!),
+                      style: TextStyle(color: Colors.grey[500], fontSize: 13),
+                    ),
+                    if (_selectedAuditDate != null) ...[
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedAuditDate = null;
+                          });
+                        },
+                        child: const Icon(
+                          Icons.close,
+                          size: 18,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ),
             ),
           ],
@@ -2477,7 +5367,7 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                auditLogs.length.toString(),
+                filteredAuditLogs.length.toString(),
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 12,
@@ -2493,9 +5383,9 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
         ListView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: auditLogs.length,
+          itemCount: filteredAuditLogs.length,
           itemBuilder: (context, index) {
-            final log = auditLogs[index];
+            final log = filteredAuditLogs[index];
             return Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: _buildAuditLogCard(log),
@@ -2548,10 +5438,7 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                     const SizedBox(height: 4),
                     Text(
                       log['description'],
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
                   ],
                 ),
@@ -2565,10 +5452,7 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
               const SizedBox(width: 6),
               Text(
                 log['timestamp'],
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[500],
-                ),
+                style: TextStyle(fontSize: 12, color: Colors.grey[500]),
               ),
             ],
           ),
