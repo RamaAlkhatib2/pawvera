@@ -29,6 +29,7 @@ class MainApp extends StatelessWidget {
         fontFamily: 'Roboto',
         scaffoldBackgroundColor: const Color(0xFFFBF6EE),
       ),
+
       home: const SignInPage(),
     );
   }

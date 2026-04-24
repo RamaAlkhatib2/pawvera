@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pawvera/pages/pet%20care%20pages/confirm_booking_page.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
@@ -145,9 +146,32 @@ class _BookingPageState extends State<BookingPage> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: ElevatedButton(
+                    // داخل _showVerificationDialog -> ElevatedButton onPressed:
                     onPressed: () {
-                      // منطق التأكيد النهائي هنا
-                      Navigator.pop(context);
+                      Navigator.pop(context); // إغلاق الدايلوج أولاً
+
+                      // تجميع كافة البيانات لإرسالها لصفحة التأكيد
+                      final bookingInfo = {
+                        'service': widget.serviceName,
+                        'provider': widget.providerName,
+                        'price': "21.25", // السعر بعد الخصم كما في الصورة
+                        'date':
+                            "${_selectedDay?.day}/${_selectedDay?.month}/${_selectedDay?.year}",
+                        'time': _selectedTime,
+                        'pet': _selectedPet,
+                        'name': _nameController.text,
+                        'phone': "+962 ${_phoneController.text}",
+                        'email': _emailController.text,
+                      };
+
+                      // الانتقال لصفحة التأكيد
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              ConfirmBookingPage(bookingData: bookingInfo),
+                        ),
+                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: primaryGreen,
