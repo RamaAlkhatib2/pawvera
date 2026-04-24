@@ -132,7 +132,29 @@ class ConfirmBookingPage extends StatelessWidget {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
+          // داخل زر Confirm Booking
+          onPressed: () async {
+            var box = Hive.box(
+              'myBox',
+            ); // التأكد من استخدام نفس اسم الـ Box المفتوح في الماين
+
+            // 1. جلب القائمة الحالية (أو إنشاء قائمة فارغة إذا كانت أول مرة)
+            List<dynamic> currentBookings = box.get(
+              'all_bookings',
+              defaultValue: [],
+            );
+
+            // 2. تحويلها لـ List قابلة للتعديل وإضافة الحجز الجديد
+            List<Map<String, dynamic>> updatedList =
+                List<Map<String, dynamic>>.from(currentBookings);
+            updatedList.add(bookingData);
+
+            // 3. حفظ القائمة المحدثة
+            await box.put('all_bookings', updatedList);
+
+            // 4. إظهار نافذة النجاح
+            _showSuccessDialog(context);
+          },
         ),
         title: const Text(
           "Confirm Booking",
