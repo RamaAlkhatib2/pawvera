@@ -1,213 +1,208 @@
 import 'package:flutter/material.dart';
 
-class AdoptionPage extends StatefulWidget {
-  const AdoptionPage({super.key});
-
-  @override
-  State<AdoptionPage> createState() => _AdoptionPageState();
-}
-
-class _AdoptionPageState extends State<AdoptionPage> {
-  final List<Map<String, dynamic>> pets = [
-    {
-      'name': 'Max',
-      'type': 'Dog',
-      'breed': 'Golden Retriever',
-      'age': '2 years old',
-      'location': 'Downtown Shelter',
-      'description': 'Friendly golden retriever looking for a loving home...',
-      'image': 'https://images.unsplash.com/photo-1552053831-71594a27632d?q=80&w=1000&auto=format&fit=crop',
-    },
-    {
-      'name': 'Luna',
-      'type': 'Cat',
-      'breed': 'Persian',
-      'age': '1 year old',
-      'location': 'Uptown Shelter',
-      'description': 'Playful and affectionate Persian cat seeking a cozy home...',
-      'image': 'https://images.unsplash.com/photo-1574158622682-e40e69881006?q=80&w=1000&auto=format&fit=crop',
-    },
-    {
-      'name': 'Buddy',
-      'type': 'Dog',
-      'breed': 'Labrador Mix',
-      'age': '3 years old',
-      'location': 'Central Shelter',
-      'description': 'Energetic and loving Labrador mix ready for adventures...',
-      'image': 'https://images.unsplash.com/photo-1633722715463-d30628519d71?q=80&w=1000&auto=format&fit=crop',
-    },
-  ];
-
+class AdoptionScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final primaryTeal = Color(0xFF5BA092);
+    final backgroundCream = Color(0xFFF9F6EE);
+
     return Scaffold(
+      backgroundColor: backgroundCream,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF5B9D8E),
-        title: const Text(
-          'Pet Adoption',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
+        title: Text('Adoption',
+            style: TextStyle(
+                color: Colors.brown,
+                fontWeight: FontWeight.bold,
+                fontSize: 24)),
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: const Icon(Icons.arrow_back, color: Colors.white),
-        ),
+        leading: IconButton(
+            icon: Icon(Icons.arrow_back, color: Colors.black),
+            onPressed: () {}),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: ElevatedButton.icon(
+              onPressed: () {},
+              icon: Icon(Icons.add, size: 16),
+              label: Text("Post"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryTeal,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+                elevation: 0,
+              ),
+            ),
+          )
+        ],
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Find Your New Friend',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF634732),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: TextField(
+                decoration: InputDecoration(
+                  hintText: 'Search pets by name, description, or location...',
+                  hintStyle: TextStyle(fontSize: 13, color: Colors.grey),
+                  prefixIcon: Icon(Icons.search, color: Colors.grey),
+                  fillColor: Colors.white,
+                  filled: true,
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide.none),
+                  contentPadding: EdgeInsets.zero,
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Browse adoptable pets in our shelters',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                ),
+            ),
+            Container(
+              height: 50,
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: [
+                  _buildFilterChip("All", primaryTeal, Colors.white),
+                  _buildFilterChip("Dogs", Colors.white, Colors.brown),
+                  _buildFilterChip("Cats", Colors.white, Colors.brown),
+                  _buildFilterChip("Birds", Colors.white, Colors.brown),
+                  _buildFilterChip("Other", Colors.white, Colors.brown),
+                  SizedBox(width: 10),
+                  _buildFilterIcon(primaryTeal),
+                ],
               ),
-              const SizedBox(height: 20),
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: pets.length,
-                itemBuilder: (context, index) {
-                  return _buildPetCard(pets[index]);
-                },
-              ),
-            ],
-          ),
+            ),
+            SizedBox(height: 10),
+            _buildPetCard(
+              context,
+              'https://images.unsplash.com/photo-1552053831-71594a27632d',
+              'Max',
+              'Dog',
+              'Friendly golden retriever looking for a loving home. Great with kids and other pets!',
+              'Downtown Shelter',
+              '2 years old',
+              'Male',
+              primaryTeal,
+              'Sarah Johnson', // اسم الشخص المتبنى
+            ),
+            _buildPetCard(
+              context,
+              'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba',
+              'Luna',
+              'Cat',
+              'Playful kitten, great with children. Very affectionate and loves to cuddle.',
+              'West Side Rescue',
+              '1 year old',
+              'Female',
+              primaryTeal,
+              'Mike Chen',
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildPetCard(Map<String, dynamic> pet) {
+  Widget _buildFilterChip(String label, Color bgColor, Color textColor) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: Chip(
+        label: Text(label, style: TextStyle(color: textColor, fontSize: 12)),
+        backgroundColor: bgColor,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+            borderSide: BorderSide(color: Colors.grey.shade300)),
+        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+      ),
+    );
+  }
+
+  Widget _buildFilterIcon(Color primaryColor) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      padding: EdgeInsets.all(8),
+      decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(15),
+          borderSide: BorderSide(color: Colors.grey.shade300)),
+      child: Icon(Icons.tune, color: primaryColor, size: 20),
+    );
+  }
+
+  Widget _buildPetCard(
+    BuildContext context,
+    String imageUrl,
+    String petName,
+    String petType,
+    String description,
+    String location,
+    String age,
+    String gender,
+    Color primaryColor,
+    String adopterName,
+  ) {
+    return Container(
+      margin: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey[200]!),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.teal.shade50),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            child: Image.network(
-              pet['image'],
-              height: 200,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Container(
-                height: 200,
-                color: Colors.grey[200],
-                child: const Icon(Icons.pets, size: 50, color: Colors.grey),
-              ),
-            ),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            child: Image.network(imageUrl,
+                height: 180, width: double.infinity, fit: BoxFit.cover),
           ),
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      pet['name'],
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF634732),
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF5F5F5),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        pet['type'],
-                        style: const TextStyle(
-                          color: Color(0xFF5B9D8E),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  pet['breed'],
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF5B9D8E),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  pet['description'],
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey[600],
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Icon(Icons.location_on_outlined, size: 16, color: Colors.grey[500]),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        '${pet['location']} • ${pet['age']}',
+                    Text(petName,
                         style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
-                      ),
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.brown[900])),
+                    Container(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                          color: Colors.teal.shade50,
+                          borderRadius: BorderRadius.circular(10)),
+                      child: Text(petType,
+                          style: TextStyle(color: Colors.teal, fontSize: 11)),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 8),
+                Text(description,
+                    style: TextStyle(
+                        color: Colors.grey[600], fontSize: 13, height: 1.4)),
+                SizedBox(height: 12),
+                _buildInfoRow(Icons.location_on_outlined, location),
+                _buildInfoRow(Icons.access_time_outlined, age),
+                _buildInfoRow(Icons.transgender, gender),
+                SizedBox(height: 15),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed: () => _showAdoptionModal(context, pet),
-                    icon: const Icon(Icons.favorite_border, size: 18),
-                    label: const Text('Interested to Adopt'),
+                    onPressed: () =>
+                        _showChatModal(context, petName, adopterName),
+                    icon: Icon(Icons.favorite_border, size: 18),
+                    label: Text('Interested to Adopt',
+                        style: TextStyle(fontSize: 14)),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF5B9D8E),
+                      backgroundColor: primaryColor,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                          borderRadius: BorderRadius.circular(12)),
+                      padding: EdgeInsets.symmetric(vertical: 14),
+                      elevation: 0,
                     ),
                   ),
                 ),
@@ -219,7 +214,24 @@ class _AdoptionPageState extends State<AdoptionPage> {
     );
   }
 
-  void _showAdoptionModal(BuildContext context, Map<String, dynamic> pet) {
+  Widget _buildInfoRow(IconData icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: Colors.grey),
+          SizedBox(width: 6),
+          Text(text, style: TextStyle(color: Colors.grey[700], fontSize: 12)),
+        ],
+      ),
+    );
+  }
+
+  void _showChatModal(
+      BuildContext context, String petName, String adopterName) {
+    final chatBackground = Color(0xFFEDFBF9);
+    final primaryTeal = Color(0xFF5BA092);
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -227,71 +239,66 @@ class _AdoptionPageState extends State<AdoptionPage> {
       builder: (context) {
         return Container(
           height: MediaQuery.of(context).size.height * 0.75,
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: chatBackground,
             borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
           ),
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                padding: EdgeInsets.all(16),
+                child: Column(
                   children: [
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Icon(Icons.chat_bubble_outline,
-                            color: Color(0xFF5A3E2B)),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Chat with Shelter',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF5A3E2B),
-                            fontSize: 16,
-                          ),
+                        Row(
+                          children: [
+                            Icon(Icons.chat_bubble_outline,
+                                color: Colors.brown, size: 20),
+                            SizedBox(width: 8),
+                            Text('Chat with $adopterName',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.brown,
+                                    fontSize: 16)),
+                          ],
                         ),
+                        IconButton(
+                            icon: Icon(Icons.close, size: 20),
+                            onPressed: () => Navigator.pop(context)),
                       ],
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.close, size: 20),
-                      onPressed: () => Navigator.pop(context),
-                    ),
+                    Align(
+                        alignment: Alignment.centerLeft,
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 30),
+                          child: Text('About adopting $petName',
+                              style: TextStyle(
+                                  fontSize: 11, color: Colors.teal[700])),
+                        )),
                   ],
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text(
-                  'About adopting ${pet['name']}',
-                  style: TextStyle(fontSize: 12, color: Colors.teal[700]),
-                ),
-              ),
-              const Divider(height: 16),
+              Divider(height: 1),
               Expanded(
                 child: Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(Icons.chat_bubble_outline,
-                          size: 60, color: Colors.teal.withOpacity(0.3)),
-                      const SizedBox(height: 10),
-                      Text(
-                        'Start a conversation about adopting ${pet['name']}',
-                        style: TextStyle(color: Colors.teal[300]),
-                        textAlign: TextAlign.center,
-                      ),
+                          size: 50, color: Colors.teal.withOpacity(0.3)),
+                      SizedBox(height: 10),
+                      Text('Start a conversation about adopting $petName',
+                          style:
+                              TextStyle(color: Colors.teal[300], fontSize: 12)),
                     ],
                   ),
                 ),
               ),
               Container(
-                padding: EdgeInsets.only(
-                  left: 16,
-                  right: 16,
-                  bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-                  top: 10,
-                ),
+                padding:
+                    EdgeInsets.only(left: 16, right: 16, bottom: 24, top: 10),
                 color: Colors.white,
                 child: Row(
                   children: [
@@ -299,21 +306,16 @@ class _AdoptionPageState extends State<AdoptionPage> {
                       child: TextField(
                         decoration: InputDecoration(
                           hintText: 'Type your message...',
-                          hintStyle: const TextStyle(fontSize: 14),
+                          hintStyle: TextStyle(fontSize: 13),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                          filled: true,
-                          fillColor: Colors.grey[100],
-                          contentPadding:
-                              const EdgeInsets.symmetric(horizontal: 16),
+                              borderRadius: BorderRadius.circular(12)),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 16),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    const CircleAvatar(
-                      backgroundColor: Color(0xFF5B9D8E),
+                    SizedBox(width: 10),
+                    CircleAvatar(
+                      backgroundColor: primaryTeal.withOpacity(0.4),
                       child: Icon(Icons.send, color: Colors.white, size: 18),
                     ),
                   ],
@@ -326,3 +328,4 @@ class _AdoptionPageState extends State<AdoptionPage> {
     );
   }
 }
+ 
