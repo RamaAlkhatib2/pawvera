@@ -1,322 +1,263 @@
-import 'package:flutter/material.dart';
+ import 'package:flutter/material.dart';
 
-class ReminderPage extends StatefulWidget {
-  const ReminderPage({super.key});
-
-  @override
-  State<ReminderPage> createState() => _ReminderPageState();
-}
-
-class _ReminderPageState extends State<ReminderPage> {
-  final List<Map<String, dynamic>> reminders = [
-    {
-      'pet': 'Buddy',
-      'title': 'Heartworm Medication',
-      'date': 'Jan 18, 2026 at 8:00 AM',
-      'type': 'Medication',
-      'priority': 'High',
-      'completed': false,
-    },
-    {
-      'pet': 'Max',
-      'title': 'Annual Checkup',
-      'date': 'Jan 20, 2026 at 10:00 AM',
-      'type': 'Vet Visit',
-      'priority': 'Medium',
-      'completed': false,
-    },
-    {
-      'pet': 'Luna',
-      'title': 'Grooming Appointment',
-      'date': 'Jan 22, 2026 at 2:00 PM',
-      'type': 'Grooming',
-      'priority': 'Low',
-      'completed': false,
-    },
-  ];
-
+class ReminderScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final primaryTeal = Color(0xFF5BA092);
+    final backgroundCream = Color(0xFFF9F6EE);
+
     return Scaffold(
+      backgroundColor: backgroundCream,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF5B9D8E),
-        title: const Text(
-          'Reminders',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: const Icon(Icons.arrow_back, color: Colors.white),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("My Reminders",
+                style: TextStyle(
+                    color: Color(0xFF5D4037),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 22)),
+            Text("3 reminders total",
+                style: TextStyle(color: Colors.grey, fontSize: 12)),
+          ],
         ),
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildAddReminderButton(),
-              const SizedBox(height: 20),
-              const Text(
-                'Upcoming Reminders',
+      body: SingleChildScrollView(
+        padding: EdgeInsets.symmetric(horizontal: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(height: 10),
+            TextField(
+              decoration: InputDecoration(
+                hintText: 'Search reminders by title or pet name...',
+                hintStyle: TextStyle(fontSize: 13, color: Colors.grey),
+                prefixIcon: Icon(Icons.search, color: Colors.grey),
+                fillColor: Colors.white,
+                filled: true,
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none),
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+            SizedBox(height: 20),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildFilterChip("All", isSelected: true, color: primaryTeal),
+                  _buildFilterChip("Vaccination"),
+                  _buildFilterChip("Medication"),
+                  _buildFilterChip("Grooming"),
+                ],
+              ),
+            ),
+            SizedBox(height: 20),
+            Text("Upcoming",
                 style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF634732),
-                ),
-              ),
-              const SizedBox(height: 12),
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: reminders.length,
-                itemBuilder: (context, index) {
-                  return _buildReminderItem(reminders[index], index);
-                },
-              ),
-            ],
-          ),
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF5D4037))),
+            SizedBox(height: 15),
+            _buildReminderCard(
+              title: "Heartworm Medication",
+              petName: "Buddy",
+              date: "Jan 18, 2026 at 8:00 AM",
+              type: "Medication",
+              priority: "High Priority",
+              iconColor: Color(0xFFE57373),
+            ),
+            _buildReminderCard(
+              title: "Weight Check",
+              petName: "Buddy",
+              date: "Jan 30, 2026 at 4:00 PM",
+              type: "Other",
+              priority: "Low Priority",
+              iconColor: Color(0xFF90A4AE),
+            ),
+          ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showAddReminderSheet(context, primaryTeal),
+        backgroundColor: primaryTeal,
+        child: Icon(Icons.add, color: Colors.white),
       ),
     );
   }
 
-  Widget _buildAddReminderButton() {
-    return GestureDetector(
-      onTap: () => _showNewReminderModal(),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: const Color(0xFF5B9D8E),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.add, color: Colors.white, size: 24),
-            SizedBox(width: 8),
-            Text(
-              'Add New Reminder',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
+  Widget _buildReminderCard({
+    required String title,
+    required String petName,
+    required String date,
+    required String type,
+    required String priority,
+    required Color iconColor,
+  }) {
+    return Container(
+      margin: EdgeInsets.only(bottom: 16),
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: iconColor.withOpacity(0.2),
+                child: Icon(Icons.calendar_today, size: 18, color: iconColor),
               ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16)),
+                    Text(petName,
+                        style: TextStyle(color: Colors.grey, fontSize: 13)),
+                  ],
+                ),
+              ),
+              Icon(Icons.edit_outlined, size: 20, color: Colors.blue[300]),
+              SizedBox(width: 10),
+              Icon(Icons.delete_outline, size: 20, color: Colors.red[300]),
+            ],
+          ),
+          SizedBox(height: 12),
+          Row(
+            children: [
+              Icon(Icons.access_time, size: 14, color: Colors.grey),
+              SizedBox(width: 5),
+              Text(date, style: TextStyle(color: Colors.grey, fontSize: 12)),
+            ],
+          ),
+          SizedBox(height: 10),
+          Row(
+            children: [
+              _buildTag(type, iconColor),
+              SizedBox(width: 8),
+              _buildTag(priority, Colors.orange),
+            ],
+          )
+        ],
+      ),
+    );
+  }
+
+  void _showAddReminderSheet(BuildContext context, Color primaryColor) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(30))),
+      builder: (context) => Container(
+        padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 20,
+            right: 20,
+            top: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text("Cancel")),
+                Text("New Reminder",
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                TextButton(
+                    onPressed: () {},
+                    child: Text("Add",
+                        style: TextStyle(fontWeight: FontWeight.bold))),
+              ],
             ),
+            Divider(),
+            TextField(
+              decoration: InputDecoration(
+                  hintText: "Title",
+                  border: InputBorder.none,
+                  hintStyle: TextStyle(color: Colors.grey)),
+            ),
+            Divider(),
+            TextField(
+              maxLines: 2,
+              decoration: InputDecoration(
+                  hintText: "Notes",
+                  border: InputBorder.none,
+                  hintStyle: TextStyle(color: Colors.grey)),
+            ),
+            Divider(),
+            _buildModalTile(Icons.pets, "Pet", "Choose"),
+            _buildModalTile(
+                Icons.calendar_today, "Date & Time", "Jan 15, 2026 09:00"),
+            _buildModalTile(Icons.repeat, "Repeat", "Never"),
+            _buildModalTile(Icons.category, "Type", "Vaccination"),
+            _buildModalTile(Icons.priority_high, "Priority", "medium"),
+            SizedBox(height: 20),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildReminderItem(Map<String, dynamic> reminder, int index) {
+  Widget _buildFilterChip(String label,
+      {bool isSelected = false, Color? color}) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      margin: EdgeInsets.only(right: 8),
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
+        color: isSelected ? color : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.teal.shade50),
       ),
-      child: Row(
-        children: [
-          Checkbox(
-            value: reminder['completed'],
-            onChanged: (value) {
-              setState(() {
-                reminders[index]['completed'] = value;
-              });
-            },
-            activeColor: const Color(0xFF5B9D8E),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  reminder['title'],
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF634732),
-                    decoration: reminder['completed']
-                        ? TextDecoration.lineThrough
-                        : null,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  '${reminder['pet']} • ${reminder['date']}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF5F5F5),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        reminder['type'],
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Color(0xFF5B9D8E),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _getPriorityColor(reminder['priority']),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        reminder['priority'],
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Colors.white,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.edit, size: 18),
-            color: Colors.grey,
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete, size: 18),
-            color: Colors.red[300],
-            onPressed: () {
-              setState(() {
-                reminders.removeAt(index);
-              });
-            },
-          ),
-        ],
-      ),
+      child: Text(label,
+          style: TextStyle(
+              color: isSelected ? Colors.white : Colors.teal, fontSize: 12)),
     );
   }
 
-  Color _getPriorityColor(String priority) {
-    switch (priority.toLowerCase()) {
-      case 'high':
-        return Colors.red;
-      case 'medium':
-        return Colors.orange;
-      case 'low':
-        return Colors.green;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  void _showNewReminderModal() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-      ),
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(20),
-          height: MediaQuery.of(context).size.height * 0.75,
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text(
-                      'Cancel',
-                      style: TextStyle(color: Colors.blue),
-                    ),
-                  ),
-                  const Text(
-                    'New Reminder',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text(
-                      'Add',
-                      style: TextStyle(color: Color(0xFF5B9D8E)),
-                    ),
-                  ),
-                ],
-              ),
-              const Divider(),
-              TextField(
-                decoration: const InputDecoration(
-                  hintText: 'Title',
-                  border: InputBorder.none,
-                ),
-              ),
-              TextField(
-                decoration: const InputDecoration(
-                  hintText: 'Notes',
-                  border: InputBorder.none,
-                ),
-                maxLines: 3,
-              ),
-              const Divider(),
-              _buildModalOption(Icons.pets, 'Pet', 'Choose'),
-              _buildModalOption(
-                Icons.calendar_today,
-                'Date & Time',
-                'Jan 15, 2026 09:00',
-              ),
-              _buildModalOption(Icons.repeat, 'Repeat', 'Never'),
-              _buildModalOption(Icons.category, 'Type', 'Vaccination'),
-              _buildModalOption(Icons.priority_high, 'Priority', 'Medium'),
-            ],
-          ),
-        );
-      },
+  Widget _buildTag(String label, Color color) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8)),
+      child: Text(label,
+          style: TextStyle(
+              color: color, fontSize: 10, fontWeight: FontWeight.bold)),
     );
   }
 
-  Widget _buildModalOption(IconData icon, String title, String value) {
+  Widget _buildModalTile(IconData icon, String title, String value) {
     return ListTile(
-      leading: Icon(icon, color: Colors.grey),
-      title: Text(title, style: const TextStyle(fontSize: 14)),
+      leading: Icon(icon, color: Colors.grey, size: 20),
+      title: Text(title, style: TextStyle(fontSize: 14)),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            value,
-            style: const TextStyle(color: Colors.grey, fontSize: 14),
-          ),
-          const Icon(Icons.chevron_right, color: Colors.grey),
+          Text(value, style: TextStyle(color: Colors.grey, fontSize: 14)),
+          Icon(Icons.chevron_right, size: 18, color: Colors.grey),
         ],
       ),
+      contentPadding: EdgeInsets.zero,
     );
   }
 }
