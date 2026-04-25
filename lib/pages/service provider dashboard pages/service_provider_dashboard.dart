@@ -3,7 +3,8 @@ import 'package:pawvera/pages/service%20provider%20dashboard%20pages/audit_tab.d
 import 'package:pawvera/pages/service%20provider%20dashboard%20pages/booking_tab.dart';
 import 'package:pawvera/pages/service%20provider%20dashboard%20pages/services_tab.dart';
 import 'package:pawvera/pages/service%20provider%20dashboard%20pages/shop_info_tab.dart';
-import 'package:pawvera/pages/service%20provider%20dashboard%20pages/offers_tab.dart'; // 1. استيراد ملف العروض
+import 'package:pawvera/pages/service%20provider%20dashboard%20pages/offers_tab.dart';
+import 'package:pawvera/pages/sign_in_page.dart'; // 1. تأكد من وجود هذا الاستيراد لعمل Logout
 import 'overview_tab.dart';
 
 class ServiceProviderDashboard extends StatefulWidget {
@@ -20,6 +21,115 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
   final Color primaryTeal = const Color(0xFF2D6A64);
   final Color bgGrey = const Color(0xFFF8FBFB);
 
+  // دالة عرض نافذة الملف الشخصي (Profile Dialog)
+  void _showProfileDialog() {
+    final TextEditingController nameController = TextEditingController(
+      text: "John Smith",
+    );
+    final TextEditingController emailController = TextEditingController(
+      text: "a@gmail.com",
+    );
+    final TextEditingController phoneController = TextEditingController(
+      text: "+1 (555) 000-1111",
+    );
+    final TextEditingController businessController = TextEditingController(
+      text: "Pawfect Spa",
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              "My Profile",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            IconButton(
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(Icons.close),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "Update your personal information and account details",
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+              const SizedBox(height: 15),
+              _buildProfileField("Full Name", nameController),
+              _buildProfileField("Email", emailController),
+              _buildProfileField("Phone", phoneController),
+              _buildProfileField("Business Name", businessController),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {},
+                  icon: const Icon(Icons.lock_outline, size: 18),
+                  label: const Text("Change Password"),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.grey[700],
+                    side: BorderSide(color: Colors.grey[300]!),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context),
+            style: ElevatedButton.styleFrom(backgroundColor: primaryTeal),
+            child: const Text(
+              "Save Changes",
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // دالة مساعدة لبناء حقول الملف الشخصي
+  Widget _buildProfileField(String label, TextEditingController controller) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+          ),
+          const SizedBox(height: 5),
+          TextField(
+            controller: controller,
+            decoration: InputDecoration(
+              isDense: true,
+              filled: true,
+              fillColor: primaryTeal.withOpacity(0.05),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -29,42 +139,72 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 1. العنوان الثابت العلوي وأزرار الملف الشخصي
+            // ... داخل ميثود الـ build ...
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Service Provider',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF2D6A64),
-                          height: 1.1,
+                  // العناوين (يسار)
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Service Provider',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF2D6A64),
+                            height: 1.1,
+                          ),
                         ),
-                      ),
-                      const Text(
-                        'Dashboard',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF2D6A64),
+                        const Text(
+                          'Dashboard',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF2D6A64),
+                          ),
                         ),
-                      ),
-                      Text(
-                        'Pawfect Spa',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                      ),
-                    ],
+                        Text(
+                          'Pawfect Spa',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  Row(
+
+                  // الأزرار مرتبة عمودياً (يمين)
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      _buildHeaderButton(Icons.person_outline, 'Profile'),
-                      const SizedBox(width: 8),
-                      _buildHeaderButton(Icons.logout, 'Logout'),
+                      _buildHeaderButton(
+                        Icons.person_outline,
+                        'Profile',
+                        onTap: _showProfileDialog,
+                      ),
+                      const SizedBox(height: 8),
+                      _buildHeaderButton(
+                        Icons.logout,
+                        'Logout',
+                        onTap: () {
+                          // الحل المباشر إذا كان Navigator.pushReplacementNamed لا يعمل:
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const SignInPage(),
+                            ),
+                            (route) =>
+                                false, // يمسح كل الصفحات السابقة ويمنع الرجوع
+                          );
+                        },
+                      ),
                     ],
                   ),
                 ],
@@ -82,10 +222,7 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
                     _buildTabItem('Bookings', Icons.calendar_today),
                     _buildTabItem('Services', Icons.content_cut),
                     _buildTabItem('Shop Info', Icons.storefront_outlined),
-                    _buildTabItem(
-                      'Offers',
-                      Icons.local_offer_outlined,
-                    ), // هذا التبويب أصبح فعالاً الآن
+                    _buildTabItem('Offers', Icons.local_offer_outlined),
                     _buildTabItem('Audit', Icons.assignment_outlined),
                   ],
                 ),
@@ -143,28 +280,34 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
     );
   }
 
-  Widget _buildHeaderButton(IconData icon, String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey[200]!),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 16, color: Colors.grey[600]),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: const TextStyle(fontSize: 12, color: Colors.black87),
-          ),
-        ],
+  Widget _buildHeaderButton(
+    IconData icon,
+    String label, {
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.grey[200]!),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 16, color: Colors.grey[600]),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 12, color: Colors.black87),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  // الميثود المسؤولة عن عرض المحتوى - تم ربط Offers هنا
   Widget _buildCurrentTabContent() {
     switch (_selectedTab) {
       case 'Overview':
@@ -177,7 +320,7 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
         return const ShopInfoTab();
       case 'Offers':
         return const OffersTab();
-      case 'Audit': // إضافة الحالة هنا
+      case 'Audit':
         return const AuditTab();
       default:
         return const Center(child: Text('Coming Soon...'));
