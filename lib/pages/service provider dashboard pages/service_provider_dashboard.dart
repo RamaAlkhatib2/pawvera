@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:pawvera/pages/service%20provider%20dashboard%20pages/audit_tab.dart';
 import 'package:pawvera/pages/service%20provider%20dashboard%20pages/booking_tab.dart';
 import 'package:pawvera/pages/service%20provider%20dashboard%20pages/services_tab.dart';
+import 'package:pawvera/pages/service%20provider%20dashboard%20pages/shop_info_tab.dart';
+import 'package:pawvera/pages/service%20provider%20dashboard%20pages/offers_tab.dart'; // 1. استيراد ملف العروض
 import 'overview_tab.dart';
 
 class ServiceProviderDashboard extends StatefulWidget {
@@ -14,10 +17,7 @@ class ServiceProviderDashboard extends StatefulWidget {
 class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
   String _selectedTab = 'Overview';
 
-  // الألوان حسب تصميم Figma المرفق
-  final Color primaryTeal = const Color(
-    0xFF2D6A64,
-  ); // اللون الأخضر الغامق للتاب المختار
+  final Color primaryTeal = const Color(0xFF2D6A64);
   final Color bgGrey = const Color(0xFFF8FBFB);
 
   @override
@@ -42,7 +42,7 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF2D6A64), // لون العنوان
+                          color: Color(0xFF2D6A64),
                           height: 1.1,
                         ),
                       ),
@@ -71,7 +71,7 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
               ),
             ),
 
-            // 2. شريط التبويبات (Tabs) المحدث حسب الصورة
+            // 2. شريط التبويبات (Tabs)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: SingleChildScrollView(
@@ -81,7 +81,11 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
                     _buildTabItem('Overview', Icons.grid_view),
                     _buildTabItem('Bookings', Icons.calendar_today),
                     _buildTabItem('Services', Icons.content_cut),
-                    _buildTabItem('Offers', Icons.local_offer_outlined),
+                    _buildTabItem('Shop Info', Icons.storefront_outlined),
+                    _buildTabItem(
+                      'Offers',
+                      Icons.local_offer_outlined,
+                    ), // هذا التبويب أصبح فعالاً الآن
                     _buildTabItem('Audit', Icons.assignment_outlined),
                   ],
                 ),
@@ -103,7 +107,6 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
     );
   }
 
-  // بناء التاب الفردي (Style Match Figma)
   Widget _buildTabItem(String title, IconData icon) {
     bool isSelected = _selectedTab == title;
     return GestureDetector(
@@ -140,7 +143,6 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
     );
   }
 
-  // أزرار الهيدر (Profile & Logout)
   Widget _buildHeaderButton(IconData icon, String label) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -162,15 +164,21 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
     );
   }
 
-  // 2. تحديث الميثود المسؤولة عن عرض المحتوى فقط
+  // الميثود المسؤولة عن عرض المحتوى - تم ربط Offers هنا
   Widget _buildCurrentTabContent() {
     switch (_selectedTab) {
       case 'Overview':
         return const OverviewTab();
       case 'Bookings':
         return const BookingsTab();
-      case 'Services': // إضافة هذه الحالة
+      case 'Services':
         return const ServicesTab();
+      case 'Shop Info':
+        return const ShopInfoTab();
+      case 'Offers':
+        return const OffersTab();
+      case 'Audit': // إضافة الحالة هنا
+        return const AuditTab();
       default:
         return const Center(child: Text('Coming Soon...'));
     }
