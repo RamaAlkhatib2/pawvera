@@ -16,7 +16,7 @@ class _AdoptionPageState extends State<AdoptionPage> {
       'age': '2 years old',
       'location': 'Downtown Shelter',
       'description': 'Friendly golden retriever looking for a loving home...',
-      'image': 'https://images.unsplash.com/photo-1552053831-71594a27632d',
+      'image': 'https://images.unsplash.com/photo-1552053831-71594a27632d?q=80&w=1000&auto=format&fit=crop',
     },
     {
       'name': 'Luna',
@@ -25,7 +25,7 @@ class _AdoptionPageState extends State<AdoptionPage> {
       'age': '1 year old',
       'location': 'Uptown Shelter',
       'description': 'Playful and affectionate Persian cat seeking a cozy home...',
-      'image': 'https://images.unsplash.com/photo-1574158622682-e40e69881006',
+      'image': 'https://images.unsplash.com/photo-1574158622682-e40e69881006?q=80&w=1000&auto=format&fit=crop',
     },
     {
       'name': 'Buddy',
@@ -34,7 +34,7 @@ class _AdoptionPageState extends State<AdoptionPage> {
       'age': '3 years old',
       'location': 'Central Shelter',
       'description': 'Energetic and loving Labrador mix ready for adventures...',
-      'image': 'https://images.unsplash.com/photo-1633722715463-d30628519d71',
+      'image': 'https://images.unsplash.com/photo-1633722715463-d30628519d71?q=80&w=1000&auto=format&fit=crop',
     },
   ];
 

@@ -60,7 +60,7 @@ class _PetCarePageState extends State<PetCarePage> {
       hasOffer: true,
       isFavorite: false,
       imageUrl:
-          "https://images.unsplash.com/photo-1516733725897-1aa73b87c8e8?w=500",
+          "https://images.unsplash.com/photo-1516733725897-1aa73b87c8e8?q=80&w=1000&auto=format&fit=crop",
     ),
     ServiceProvider(
       id: "2",
@@ -72,7 +72,7 @@ class _PetCarePageState extends State<PetCarePage> {
       petType: "Cat",
       hasOffer: true,
       imageUrl:
-          "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=500",
+          "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?q=80&w=1000&auto=format&fit=crop",
     ),
   ];
 
