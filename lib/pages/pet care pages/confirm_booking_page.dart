@@ -205,7 +205,10 @@ class ConfirmBookingPage extends StatelessWidget {
                   _buildSummaryRow("Provider", bookingData['provider']),
                   _buildSummaryRow("Date", bookingData['date']),
                   _buildSummaryRow("Time", bookingData['time']),
-                  _buildSummaryRow("Duration", "45 mins"),
+                  _buildSummaryRow(
+                    "Duration",
+                    bookingData['duration'] ?? "45 mins",
+                  ),
                   _buildSummaryRow("Pet", bookingData['pet']),
                   const Divider(height: 30),
                   _buildSummaryRow("Original Price", "25.00 JOD"),

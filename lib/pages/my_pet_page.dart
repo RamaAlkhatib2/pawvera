@@ -13,7 +13,7 @@ class MyPetPage extends StatefulWidget {
 
 class _MyPetPageState extends State<MyPetPage> {
   final Color primaryGreen = const Color(0xFF5B9D8E);
-  final Color bgCream = const Color(0xFFF9F8F4);
+  final Color bgCream = const Color(0xFFEAF5F1);
   final String boxName = 'myBox';
 
   // --- 1. ميثود الإضافة (Add Pet) - رجعت تشتغل كاملة ---
@@ -74,7 +74,7 @@ class _MyPetPageState extends State<MyPetPage> {
                 _buildTextField(nameCtrl, "Name"),
                 _buildLabel("Type"),
                 _buildDropdown(
-                  ['Dog', 'Cat', 'Bird', 'Rabbit'],
+                  ['Dog', 'Cat', 'Bird', 'Rabbit', 'Fish'],
                   selectedType,
                   (v) => setSheetState(() => selectedType = v!),
                 ),
@@ -147,6 +147,11 @@ class _MyPetPageState extends State<MyPetPage> {
                           'weight': weightCtrl.text,
                           'color': colorCtrl.text,
                           'imagePath': imagePath,
+                          'ownerName': '',
+                          'ownerPhone': '',
+                          'ownerEmail': '',
+                          'medicalInfo': '',
+                          'allergies': '',
                         };
 
                         var box = Hive.box(boxName);
@@ -182,142 +187,281 @@ class _MyPetPageState extends State<MyPetPage> {
   }
 
   // --- 2. نافذة QR حسب تصميم Figma الجديد ---
-  void _showQRCodeDialog(Map pet) {
+  void _showQRCodeDialog(Map pet, int index, List allPets) {
     bool isCodeActive = true;
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const SizedBox(width: 20),
-                    const Text(
-                      "Pet QR Tag",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 17,
-                        color: Color(0xFF634732),
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: const Icon(Icons.close, color: Colors.grey),
-                    ),
-                  ],
-                ),
-                const Text(
-                  "Scan or edit your pet's QR tag information",
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-                const SizedBox(height: 20),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(15),
-                    border: Border.all(color: Colors.grey[300]!),
-                  ),
-                  child: Row(
+        builder: (context, setDialogState) {
+          final ownerName = pet['ownerName'] as String? ?? '';
+          final ownerPhone = pet['ownerPhone'] as String? ?? '';
+          final ownerEmail = pet['ownerEmail'] as String? ?? '';
+          final medicalInfo = pet['medicalInfo'] as String? ?? 'None';
+          final allergies = pet['allergies'] as String? ?? 'None';
+          return Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              "QR Code Status",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                                color: Color(0xFF634732),
-                              ),
-                            ),
-                            Text(
-                              isCodeActive
-                                  ? "Active - Code can be scanned"
-                                  : "Inactive",
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: Colors.green,
-                              ),
-                            ),
-                          ],
+                      const SizedBox(width: 20),
+                      Text(
+                        "Pet QR Tag - ${pet['name'] ?? ''}",
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 17,
+                          color: Color(0xFF634732),
                         ),
                       ),
-                      Switch(
-                        value: isCodeActive,
-                        onChanged: (v) =>
-                            setDialogState(() => isCodeActive = v),
-                        activeColor: primaryGreen,
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: const Icon(Icons.close, color: Colors.grey),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 15),
-                QrImageView(
-                  data: "Pet: ${pet['name']}, Info: ${pet['breed']}",
-                  size: 180,
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  "Scan this QR code to view your pet's information",
-                  style: TextStyle(fontSize: 11, color: Colors.grey),
-                ),
-                const Divider(height: 30),
-                const Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    "Owner Contact:\nNot set • No phone",
+                  const SizedBox(height: 8),
+                  const Text(
+                    "Scan or edit your pet's QR tag information",
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: Colors.grey[300]!),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                "QR Code Status",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: Color(0xFF634732),
+                                ),
+                              ),
+                              Text(
+                                isCodeActive
+                                    ? "Active - Code can be scanned"
+                                    : "Inactive",
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.green,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Switch(
+                          value: isCodeActive,
+                          onChanged: (v) =>
+                              setDialogState(() => isCodeActive = v),
+                          activeColor: primaryGreen,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+                  QrImageView(
+                    data: "Pet: ${pet['name']}, Info: ${pet['breed']}",
+                    size: 180,
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    "Scan this QR code to view your pet's information",
                     style: TextStyle(fontSize: 11, color: Colors.grey),
                   ),
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () {},
-                        child: const Text(
-                          "Edit Info",
-                          style: TextStyle(fontSize: 12),
+                  const Divider(height: 30),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      "Owner Name: ${ownerName.isNotEmpty ? ownerName : 'Not set'}\n"
+                      "Phone: ${ownerPhone.isNotEmpty ? ownerPhone : 'No phone'}\n"
+                      "Email: ${ownerEmail.isNotEmpty ? ownerEmail : 'No email'}",
+                      style: const TextStyle(fontSize: 11, color: Colors.grey),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      "Medical Info: ${medicalInfo.isNotEmpty ? medicalInfo : 'None'}\n"
+                      "Allergies: ${allergies.isNotEmpty ? allergies : 'None'}",
+                      style: const TextStyle(fontSize: 11, color: Colors.grey),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            Future.delayed(
+                              Duration.zero,
+                              () => _showQRCodeEditDialog(pet, index, allPets),
+                            );
+                          },
+                          child: const Text(
+                            "Edit Info",
+                            style: TextStyle(fontSize: 12),
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () {},
-                        child: const Text(
-                          "Print QR",
-                          style: TextStyle(fontSize: 12),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {},
+                          child: const Text(
+                            "Print QR",
+                            style: TextStyle(fontSize: 12),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
+          );
+        },
+      ),
+    );
+  }
+
+  // --- 3. نافذة Edit حسب تصميم Figma الجديد ---
+  void _showQRCodeEditDialog(Map pet, int index, List allPets) {
+    final ownerNameCtrl = TextEditingController(text: pet['ownerName']);
+    final ownerPhoneCtrl = TextEditingController(text: pet['ownerPhone']);
+    final ownerEmailCtrl = TextEditingController(text: pet['ownerEmail']);
+    final medicalInfoCtrl = TextEditingController(text: pet['medicalInfo']);
+    final allergiesCtrl = TextEditingController(text: pet['allergies']);
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const SizedBox(width: 20),
+                  Text(
+                    "Pet QR Tag - ${pet['name'] ?? ''}",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 17,
+                      color: Color(0xFF634732),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                "Scan or edit your pet's QR tag information",
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+              const SizedBox(height: 20),
+              _buildLabel("Owner Name"),
+              _buildTextField(ownerNameCtrl, "Your name"),
+              _buildLabel("Owner Phone"),
+              _buildTextField(ownerPhoneCtrl, "(+) 1 555 000-0000"),
+              _buildLabel("Owner Email"),
+              _buildTextField(ownerEmailCtrl, "your@email.com"),
+              _buildLabel("Medical Information"),
+              _buildTextField(
+                medicalInfoCtrl,
+                "Vaccinations, medications, conditions...",
+              ),
+              _buildLabel("Allergies"),
+              _buildTextField(
+                allergiesCtrl,
+                "Any allergies or sensitivities...",
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: primaryGreen,
+                        side: BorderSide(color: primaryGreen.withOpacity(0.3)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: const Text("Cancel"),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        List newList = List.from(allPets);
+                        newList[index] = {
+                          ...pet,
+                          'ownerName': ownerNameCtrl.text,
+                          'ownerPhone': ownerPhoneCtrl.text,
+                          'ownerEmail': ownerEmailCtrl.text,
+                          'medicalInfo': medicalInfoCtrl.text,
+                          'allergies': allergiesCtrl.text,
+                        };
+                        Hive.box(boxName).put('pets', newList);
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryGreen,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: const Text(
+                        "Save Changes",
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  // --- 3. نافذة Edit حسب تصميم Figma الجديد ---
   void _showEditPetDialog(Map pet, int index, List allPets) {
     final nameCtrl = TextEditingController(text: pet['name']);
     final breedCtrl = TextEditingController(text: pet['breed']);
     final ageCtrl = TextEditingController(text: pet['age']);
     final weightCtrl = TextEditingController(text: pet['weight']);
     final colorCtrl = TextEditingController(text: pet['color']);
+    String selectedType = pet['type'] as String? ?? 'Dog';
+    String selectedGender = pet['gender'] as String? ?? 'Male';
     String? newImg = pet['imagePath'];
 
     showDialog(
@@ -351,24 +495,15 @@ class _MyPetPageState extends State<MyPetPage> {
                     ),
                   ],
                 ),
-                const Center(
-                  child: Text(
-                    "Make changes to your pet's details.",
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
+                const SizedBox(height: 8),
+                const Text(
+                  "Make changes to your pet's details.",
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
                 ),
                 const SizedBox(height: 20),
                 Center(
                   child: Column(
                     children: [
-                      const Text(
-                        "Pet Photo",
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF634732),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
                       GestureDetector(
                         onTap: () async {
                           final img = await ImagePicker().pickImage(
@@ -378,30 +513,70 @@ class _MyPetPageState extends State<MyPetPage> {
                             setDialogState(() => newImg = img.path);
                         },
                         child: Container(
-                          width: 80,
-                          height: 80,
+                          width: 100,
+                          height: 100,
                           decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey[300]!),
+                            color: Colors.grey[100],
                             shape: BoxShape.circle,
+                            border: Border.all(color: Colors.grey[300]!),
                           ),
                           child: newImg != null
-                              ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(40),
+                              ? ClipOval(
                                   child: Image.file(
                                     File(newImg!),
+                                    width: 100,
+                                    height: 100,
                                     fit: BoxFit.cover,
                                   ),
                                 )
-                              : const Icon(Icons.upload, color: Colors.grey),
+                              : Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: const [
+                                    Icon(
+                                      Icons.cloud_upload,
+                                      color: Colors.grey,
+                                    ),
+                                    SizedBox(height: 6),
+                                    Text(
+                                      'Upload Photo',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      const Text(
+                        "Pet Photo",
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF634732),
                         ),
                       ),
                     ],
                   ),
                 ),
+                const SizedBox(height: 20),
                 _buildLabel("Pet Name"),
                 _buildEditField(nameCtrl),
+                _buildLabel("Type"),
+                _buildDropdown(
+                  ['Dog', 'Cat', 'Bird', 'Rabbit', 'Fish'],
+                  selectedType,
+                  (value) => setDialogState(() => selectedType = value!),
+                ),
                 _buildLabel("Breed"),
                 _buildEditField(breedCtrl),
+                _buildLabel("Gender"),
+                _buildDropdown(
+                  ['Male', 'Female'],
+                  selectedGender,
+                  (value) => setDialogState(() => selectedGender = value!),
+                ),
+                const SizedBox(height: 10),
                 Row(
                   children: [
                     Expanded(
@@ -418,7 +593,7 @@ class _MyPetPageState extends State<MyPetPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildLabel("Weight"),
+                          _buildLabel("Weight (kg)"),
                           _buildEditField(weightCtrl),
                         ],
                       ),
@@ -427,12 +602,22 @@ class _MyPetPageState extends State<MyPetPage> {
                 ),
                 _buildLabel("Color"),
                 _buildEditField(colorCtrl),
-                const SizedBox(height: 25),
+                const SizedBox(height: 20),
                 Row(
                   children: [
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: primaryGreen,
+                          side: BorderSide(
+                            color: primaryGreen.withOpacity(0.3),
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
                         child: const Text("Cancel"),
                       ),
                     ),
@@ -444,7 +629,9 @@ class _MyPetPageState extends State<MyPetPage> {
                           newList[index] = {
                             ...pet,
                             'name': nameCtrl.text,
+                            'type': selectedType,
                             'breed': breedCtrl.text,
+                            'gender': selectedGender,
                             'age': ageCtrl.text,
                             'weight': weightCtrl.text,
                             'color': colorCtrl.text,
@@ -455,6 +642,10 @@ class _MyPetPageState extends State<MyPetPage> {
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: primaryGreen,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
                         child: const Text(
                           "Save Changes",
@@ -476,58 +667,77 @@ class _MyPetPageState extends State<MyPetPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: bgCream,
-      appBar: AppBar(
-        title: const Text(
-          "My Pets",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton.icon(
-                onPressed: _showAddPetSheet,
-                icon: const Icon(Icons.add, color: Colors.white),
-                label: const Text(
-                  "Add Pet",
-                  style: TextStyle(color: Colors.white),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryGreen,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+      body: SafeArea(
+        child: Column(
+          children: [
+            const SizedBox(height: 20),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "My Pets",
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2D4536),
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 18),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 46,
+                    child: ElevatedButton.icon(
+                      onPressed: _showAddPetSheet,
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text(
+                        "Add Pet",
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryGreen,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-          Expanded(
-            child: ValueListenableBuilder(
-              valueListenable: Hive.box(boxName).listenable(),
-              builder: (context, Box box, _) {
-                final List pets = box.get('pets', defaultValue: []);
-                if (pets.isEmpty)
-                  return const Center(child: Text("No pets yet."));
-                return ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  itemCount: pets.length,
-                  itemBuilder: (context, index) => _buildPetCard(
-                    Map<String, dynamic>.from(pets[index]),
-                    index,
-                    pets,
-                  ),
-                );
-              },
+            const SizedBox(height: 20),
+            Expanded(
+              child: ValueListenableBuilder(
+                valueListenable: Hive.box(boxName).listenable(),
+                builder: (context, Box box, _) {
+                  final List pets = box.get('pets', defaultValue: []);
+                  if (pets.isEmpty)
+                    return const Center(
+                      child: Text(
+                        "No pets yet.",
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    );
+                  return ListView.builder(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 0,
+                    ),
+                    itemCount: pets.length,
+                    itemBuilder: (context, index) => _buildPetCard(
+                      Map<String, dynamic>.from(pets[index]),
+                      index,
+                      pets,
+                    ),
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -535,35 +745,44 @@ class _MyPetPageState extends State<MyPetPage> {
   Widget _buildPetCard(Map pet, int index, List allPets) {
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
-      padding: const EdgeInsets.all(15),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFE2E8E5), width: 1),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
         ],
       ),
       child: Column(
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: pet['imagePath'] != null
-                    ? Image.file(
-                        File(pet['imagePath']),
-                        width: 65,
-                        height: 65,
-                        fit: BoxFit.cover,
-                      )
-                    : Container(
-                        width: 65,
-                        height: 65,
-                        color: Colors.grey[200],
-                        child: const Icon(Icons.pets),
-                      ),
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.grey[200]!, width: 2),
+                  color: Colors.grey[100],
+                ),
+                child: ClipOval(
+                  child: pet['imagePath'] != null
+                      ? Image.file(
+                          File(pet['imagePath']),
+                          width: 72,
+                          height: 72,
+                          fit: BoxFit.cover,
+                        )
+                      : const Icon(Icons.pets, size: 32, color: Colors.grey),
+                ),
               ),
-              const SizedBox(width: 15),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -572,16 +791,19 @@ class _MyPetPageState extends State<MyPetPage> {
                       pet['name'] ?? '',
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                        fontSize: 18,
                       ),
                     ),
+                    const SizedBox(height: 4),
                     Text(
                       pet['breed'] ?? '',
-                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                      style: const TextStyle(color: Colors.grey, fontSize: 13),
                     ),
-                    const SizedBox(height: 5),
+                    const SizedBox(height: 12),
                     Wrap(
-                      spacing: 5,
+                      spacing: 8,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         _buildTag("${pet['age']} yrs"),
                         _buildTag(pet['type']),
@@ -592,37 +814,64 @@ class _MyPetPageState extends State<MyPetPage> {
                   ],
                 ),
               ),
-              IconButton(
-                onPressed: () {
+              InkWell(
+                onTap: () {
                   List newList = List.from(allPets);
                   newList.removeAt(index);
                   Hive.box(boxName).put('pets', newList);
                 },
-                icon: const Icon(Icons.close, color: Colors.red, size: 20),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFEBEB),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.close,
+                    color: Color(0xFFDE3A3A),
+                    size: 18,
+                  ),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 15),
+          const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _showQRCodeDialog(pet),
+                child: ElevatedButton.icon(
+                  onPressed: () => _showQRCodeDialog(pet, index, allPets),
                   icon: const Icon(Icons.qr_code, size: 16),
                   label: const Text("QR Tag"),
-                  style: OutlinedButton.styleFrom(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFF5FBF8),
                     foregroundColor: primaryGreen,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      side: BorderSide(color: primaryGreen.withOpacity(0.28)),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: OutlinedButton.icon(
+                child: ElevatedButton.icon(
                   onPressed: () => _showEditPetDialog(pet, index, allPets),
                   icon: const Icon(Icons.edit, size: 16),
                   label: const Text("Edit Info"),
-                  style: OutlinedButton.styleFrom(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFF5FBF8),
                     foregroundColor: primaryGreen,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      side: BorderSide(color: primaryGreen.withOpacity(0.28)),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                 ),
               ),
@@ -688,11 +937,14 @@ class _MyPetPageState extends State<MyPetPage> {
     ),
   );
   Widget _buildTag(String t) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
     decoration: BoxDecoration(
-      color: Colors.grey[100],
-      borderRadius: BorderRadius.circular(5),
+      color: const Color(0xFFF3F8F5),
+      borderRadius: BorderRadius.circular(12),
     ),
-    child: Text(t, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+    child: Text(
+      t,
+      style: const TextStyle(fontSize: 11, color: Color(0xFF4B5F59)),
+    ),
   );
 }

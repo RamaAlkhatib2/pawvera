@@ -328,49 +328,98 @@ class _MyBookingsPageState extends State<MyBookingsPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFBF6EE),
-      appBar: AppBar(
-        title: const Text(
-          "My Bookings",
-          style: TextStyle(
-            color: Color(0xFF634732),
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-      ),
-      body: Column(
-        children: [
-          Container(
-            margin: const EdgeInsets.all(16),
-            padding: const EdgeInsets.all(5),
-            decoration: BoxDecoration(
-              color: Colors.grey[200],
-              borderRadius: BorderRadius.circular(25),
-            ),
-            child: TabBar(
-              controller: _tabController,
-              indicator: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                color: primaryGreen,
+      backgroundColor: const Color(0xFFEAF5F1),
+      body: SafeArea(
+        child: Column(
+          children: [
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: ValueListenableBuilder(
+                valueListenable: Hive.box('myBox').listenable(),
+                builder: (context, Box box, _) {
+                  final List allBookings = box.get(
+                    'all_bookings',
+                    defaultValue: [],
+                  );
+                  return Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: const Color(0xFFE6EFEA)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 18,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "My Bookings",
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF2E4D3D),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          "${allBookings.length} total bookings",
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
-              labelColor: Colors.white,
-              unselectedLabelColor: Colors.grey,
-              tabs: const [
-                Tab(text: "Current Bookings"),
-                Tab(text: "Past Bookings"),
-              ],
             ),
-          ),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [_buildBookingsList(true), _buildBookingsList(false)],
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(25),
+                  border: Border.all(color: const Color(0xFFE6EFEA)),
+                ),
+                child: TabBar(
+                  controller: _tabController,
+                  indicator: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    color: primaryGreen,
+                  ),
+                  labelColor: Colors.white,
+                  unselectedLabelColor: const Color(0xFF7A7A7A),
+                  labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+                  unselectedLabelStyle: const TextStyle(
+                    fontWeight: FontWeight.w500,
+                  ),
+                  tabs: const [
+                    Tab(text: "Current Bookings"),
+                    Tab(text: "Past Bookings"),
+                  ],
+                ),
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 12),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [_buildBookingsList(true), _buildBookingsList(false)],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -400,10 +449,18 @@ class _MyBookingsPageState extends State<MyBookingsPage>
   Widget _buildBookingCard(Map<dynamic, dynamic> data, int actualIndex) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFE3EEE7)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -415,27 +472,49 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                 data['service'] ?? "Service",
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
-                  fontSize: 16,
+                  fontSize: 17,
                 ),
               ),
-              const Text(
-                "Confirmed",
-                style: TextStyle(
-                  color: Colors.green,
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEAF8EF),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text(
+                  "Confirmed",
+                  style: TextStyle(
+                    color: Color(0xFF239761),
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            data['provider'] ?? data['shop'] ?? "Pet Care Service",
+            style: const TextStyle(color: Colors.grey, fontSize: 12),
           ),
           const SizedBox(height: 10),
           Text(
             "${data['date']} at ${data['time']}",
             style: const TextStyle(color: Colors.grey, fontSize: 13),
           ),
+          const SizedBox(height: 4),
           Text(
             "Pet: ${data['pet']}",
             style: const TextStyle(color: Colors.grey, fontSize: 13),
+          ),
+          Text(
+            data['phone'] != null && data['phone'].toString().isNotEmpty
+                ? data['phone']
+                : "No phone",
+            style: const TextStyle(color: Colors.grey, fontSize: 12),
           ),
           const Divider(height: 25),
           Row(
@@ -461,6 +540,14 @@ class _MyBookingsPageState extends State<MyBookingsPage>
               Expanded(
                 child: OutlinedButton(
                   onPressed: () => _showRescheduleSheet(data, actualIndex),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: primaryGreen,
+                    side: BorderSide(color: primaryGreen.withOpacity(0.4)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
                   child: const Text(
                     "Reschedule",
                     style: TextStyle(fontSize: 12),
@@ -475,6 +562,10 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.red,
                     side: const BorderSide(color: Colors.red),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   child: const Text("Cancel", style: TextStyle(fontSize: 12)),
                 ),

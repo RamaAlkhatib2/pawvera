@@ -565,6 +565,7 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
                       price: service.price,
                       clinicName: widget.provider.name,
                       providerName: '',
+                      duration: service.duration,
                     ),
                   ),
                 ),
