@@ -59,7 +59,9 @@ class _PetCarePageState extends State<PetCarePage> {
     'Grooming',
     'Walking',
     'Training',
+    'Spa',
     'Daycare',
+    'Wellness',
   ];
   String _selectedCategory = 'All';
 
@@ -69,7 +71,7 @@ class _PetCarePageState extends State<PetCarePage> {
       name: "Happy Tails Pet Care",
       rating: 4.9,
       description: "Professional pet sitting and dog walking services",
-      tags: ["Walking", "Sitting", "Dog", "Cat"],
+      tags: ["Walking", "Sitting", "Dog", "Cat", "Bird", "Fish"],
       distance: "2.5 km",
       location: "Westside Avenue",
       hours: "7AM - 8PM",
@@ -84,7 +86,7 @@ class _PetCarePageState extends State<PetCarePage> {
       name: "Obedience Masters",
       rating: 4.9,
       description: "Expert pet training and behavior modification",
-      tags: ["Training", "Behavior", "Classes"],
+      tags: ["Training", "Behavior", "Classes", "Cat", "Dog"],
       distance: "3.1 km",
       location: "Pet Training Center",
       hours: "8AM - 6PM",
@@ -98,7 +100,7 @@ class _PetCarePageState extends State<PetCarePage> {
       name: "Pawfect Spa & Grooming",
       rating: 4.8,
       description: "Premium grooming services with certified specialists",
-      tags: ["Grooming", "Spa", "Stylings"],
+      tags: ["Cat", "Dog"],
       distance: "1.2 km",
       location: "Downtown Mall, 2nd floor",
       hours: "9AM - 7PM",
@@ -112,14 +114,14 @@ class _PetCarePageState extends State<PetCarePage> {
       name: "Zen Pet Wellness",
       rating: 4.8,
       description: "Pet massage, aromatherapy, and wellness treatments",
-      tags: ["Massage", "Wellness", "Spa"],
+      tags: ["Massage", "Wellness", "Spa", "Bird", "Fish"],
       distance: "1.2 km",
       location: "Pet Avenue Center",
       hours: "10AM - 6PM",
       petType: "Cat",
       hasOffer: false,
       imageUrl:
-          "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?q=80&w=1000&auto=format&fit=crop",
+          "https://images.unsplash.com/photo-1518791841217-8f162f1e1131?q=80&w=1000&auto=format&fit=crop",
     ),
   ];
 
@@ -133,8 +135,10 @@ class _PetCarePageState extends State<PetCarePage> {
           p.tags.any((tag) => tag.toLowerCase().contains(query));
       final matchesOffer = !_showOffersOnly || p.hasOffer;
       final matchesFav = !_showFavoritesOnly || p.isFavorite;
+      final petTypeLower = _selectedPetType.toLowerCase();
       final matchesPet =
-          _selectedPetType == "All Pet Types" || p.petType == _selectedPetType;
+          _selectedPetType == "All Pet Types" ||
+          p.tags.any((tag) => tag.toLowerCase() == petTypeLower);
       final matchesCategory =
           _selectedCategory == "All" || p.tags.contains(_selectedCategory);
 
@@ -190,7 +194,7 @@ class _PetCarePageState extends State<PetCarePage> {
   // --- ويدجت شريط الفلاتر الأفقي (المطلوب) ---
   Widget _buildCategoryFilter() {
     return SizedBox(
-      height: 35,
+      height: 38,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 15),
@@ -200,11 +204,11 @@ class _PetCarePageState extends State<PetCarePage> {
           return GestureDetector(
             onTap: () => setState(() => _selectedCategory = _categories[index]),
             child: Container(
-              margin: const EdgeInsets.only(right: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 18),
+              margin: const EdgeInsets.only(right: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 14),
               decoration: BoxDecoration(
                 color: isSelected ? selectedTeal : Colors.white,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(10),
                 border: Border.all(
                   color: isSelected ? selectedTeal : Colors.grey.shade300,
                 ),
@@ -263,6 +267,7 @@ class _PetCarePageState extends State<PetCarePage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade300),
         boxShadow: [
           const BoxShadow(
             color: Color(0x0A000000),
@@ -280,7 +285,15 @@ class _PetCarePageState extends State<PetCarePage> {
           fillColor: Colors.white,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none,
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: Colors.grey.shade400, width: 1.2),
           ),
           contentPadding: const EdgeInsets.symmetric(vertical: 14),
         ),
@@ -338,7 +351,7 @@ class _PetCarePageState extends State<PetCarePage> {
   Widget _buildFavoritesRow() => Padding(
     padding: const EdgeInsets.symmetric(horizontal: 15),
     child: _toggleBtn(
-      "Favorites",
+      "Show All",
       _showFavoritesOnly,
       () => setState(() => _showFavoritesOnly = !_showFavoritesOnly),
       Icons.favorite,
@@ -354,6 +367,7 @@ class _PetCarePageState extends State<PetCarePage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
       ),
       child: isPetType
           ? DropdownButtonHideUnderline(
@@ -362,7 +376,7 @@ class _PetCarePageState extends State<PetCarePage> {
                 value: _selectedPetType,
                 style: const TextStyle(fontSize: 13, color: Colors.black),
                 onChanged: (v) => setState(() => _selectedPetType = v!),
-                items: ["All Pet Types", "Dog", "Cat"]
+                items: ["All Pet Types", "Dog", "Cat", "Bird", "Fish"]
                     .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),
               ),
@@ -405,7 +419,7 @@ class _PetCarePageState extends State<PetCarePage> {
       padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 18),
       decoration: BoxDecoration(
         color: active ? selectedTeal : Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: active ? selectedTeal : Colors.grey.shade300),
       ),
       child: Row(
@@ -439,187 +453,250 @@ class _PetCarePageState extends State<PetCarePage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE9F3F2)),
         boxShadow: [
           const BoxShadow(
-            color: Color(0x08000000),
+            color: Color(0x0F000000),
             blurRadius: 18,
-            offset: Offset(0, 10),
+            offset: Offset(0, 8),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            child: Image.network(
-              p.imageUrl,
-              width: double.infinity,
-              height: 160,
-              fit: BoxFit.cover,
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.network(
+                    p.imageUrl,
+                    width: 96,
+                    height: 96,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            p.name,
-                            style: const TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
+                          Expanded(
+                            child: Text(
+                              p.name,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            p.description,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade700,
-                              height: 1.4,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    GestureDetector(
-                      onTap: () => setState(() => p.isFavorite = !p.isFavorite),
-                      child: Icon(
-                        p.isFavorite ? Icons.favorite : Icons.favorite_border,
-                        color: p.isFavorite ? Colors.red : Colors.grey.shade400,
-                        size: 22,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0x1F3AA78E),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.star, color: Colors.amber, size: 12),
-                          const SizedBox(width: 4),
-                          Text(
-                            p.rating.toStringAsFixed(1),
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    ...p.tags
-                        .take(3)
-                        .map(
-                          (tag) => Container(
+                          Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 10,
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.grey.shade100,
+                              color: const Color(0xFFF2F7F5),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: Text(
-                              tag,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: Colors.black87,
-                              ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.star,
+                                  color: Colors.amber,
+                                  size: 12,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  p.rating.toStringAsFixed(1),
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                if (p.hasOffer)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0x1F3AA78E),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Text(
-                      '1 Special Offer',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFF2F7E70),
-                        fontWeight: FontWeight.w600,
+                        ],
                       ),
-                    ),
-                  ),
-                if (p.hasOffer) const SizedBox(height: 12),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.location_on_outlined,
-                      size: 14,
-                      color: Colors.grey,
-                    ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        p.location,
+                      const SizedBox(height: 6),
+                      Text(
+                        p.description,
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 12,
                           color: Colors.grey.shade700,
+                          height: 1.4,
                         ),
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      p.distance,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey.shade700,
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    const Icon(Icons.access_time, size: 14, color: Colors.grey),
-                    const SizedBox(width: 4),
-                    Text(
-                      p.hours,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey.shade700,
-                      ),
+                const SizedBox(width: 10),
+                GestureDetector(
+                  onTap: () => setState(() => p.isFavorite = !p.isFavorite),
+                  child: Container(
+                    height: 36,
+                    width: 36,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade200),
                     ),
-                  ],
+                    child: Icon(
+                      p.isFavorite ? Icons.favorite : Icons.favorite_border,
+                      color: p.isFavorite ? Colors.red : Colors.grey.shade400,
+                      size: 20,
+                    ),
+                  ),
                 ),
               ],
             ),
-          ),
-        ],
+            const SizedBox(height: 12),
+            Builder(
+              builder: (context) {
+                final animalTypesOrder = ['Dog', 'Cat', 'Bird', 'Fish'];
+                final animalTypes = animalTypesOrder.toSet();
+                final animalTags = p.tags
+                    .where(animalTypes.contains)
+                    .toSet()
+                    .toList();
+                if (animalTags.isEmpty && animalTypes.contains(p.petType)) {
+                  animalTags.add(p.petType);
+                }
+                for (final animal in animalTypesOrder) {
+                  if (animalTags.length >= 3) break;
+                  if (!animalTags.contains(animal)) {
+                    animalTags.add(animal);
+                  }
+                }
+                final serviceTags = p.tags
+                    .where((tag) => !animalTypes.contains(tag))
+                    .toList();
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (animalTags.isNotEmpty)
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: animalTags
+                            .map(
+                              (tag) => Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEAF4FF),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  tag,
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Color(0xFF2567A8),
+                                  ),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    if (animalTags.isNotEmpty) const SizedBox(height: 10),
+                    if (p.hasOffer) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF3E0),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Text(
+                          '1 Special Offer',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFFB6691D),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                    ],
+                    if (serviceTags.isNotEmpty)
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: serviceTags
+                            .map(
+                              (tag) => Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF3F7F6),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  tag,
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Icon(
+                  Icons.location_on_outlined,
+                  size: 14,
+                  color: Colors.grey,
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    p.location,
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  p.distance,
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.access_time, size: 14, color: Colors.grey),
+                const SizedBox(width: 4),
+                Text(
+                  p.hours,
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     ),
   );
