@@ -1,6 +1,53 @@
- import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
-class ReminderScreen extends StatelessWidget {
+class ReminderScreen extends StatefulWidget {
+  const ReminderScreen({super.key});
+
+  @override
+  State<ReminderScreen> createState() => _ReminderScreenState();
+}
+
+class _ReminderScreenState extends State<ReminderScreen> {
+  List<Map<String, dynamic>> reminders = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchReminders();
+  }
+
+  Future<void> fetchReminders() async {
+    // Simulate API call
+    await Future.delayed(const Duration(seconds: 2));
+    setState(() {
+      reminders = [
+        {
+          'title': 'Vaccination for Buddy',
+          'petName': 'Buddy',
+          'time': '10:00 AM',
+          'date': '2026-04-30',
+          'description': 'Annual vaccination appointment at the vet.',
+        },
+        {
+          'title': 'Grooming for Whiskers',
+          'petName': 'Whiskers',
+          'time': '2:00 PM',
+          'date': '2026-05-01',
+          'description': 'Monthly grooming session.',
+        },
+        {
+          'title': 'Vet Checkup for Max',
+          'petName': 'Max',
+          'time': '11:00 AM',
+          'date': '2026-05-02',
+          'description': 'Routine health checkup.',
+        },
+      ];
+      isLoading = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final primaryTeal = Color(0xFF5BA092);
@@ -23,7 +70,7 @@ class ReminderScreen extends StatelessWidget {
                     color: Color(0xFF5D4037),
                     fontWeight: FontWeight.bold,
                     fontSize: 22)),
-            Text("3 reminders total",
+            Text("${reminders.length} reminders total",
                 style: TextStyle(color: Colors.grey, fontSize: 12)),
           ],
         ),
@@ -66,22 +113,21 @@ class ReminderScreen extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF5D4037))),
             SizedBox(height: 15),
-            _buildReminderCard(
-              title: "Heartworm Medication",
-              petName: "Buddy",
-              date: "Jan 18, 2026 at 8:00 AM",
-              type: "Medication",
-              priority: "High Priority",
-              iconColor: Color(0xFFE57373),
-            ),
-            _buildReminderCard(
-              title: "Weight Check",
-              petName: "Buddy",
-              date: "Jan 30, 2026 at 4:00 PM",
-              type: "Other",
-              priority: "Low Priority",
-              iconColor: Color(0xFF90A4AE),
-            ),
+            if (isLoading)
+              const Center(child: CircularProgressIndicator())
+            else
+              Column(
+                children: reminders
+                    .map((reminder) => _buildReminderCard(
+                          title: reminder['title'] as String,
+                          petName: reminder['petName'] as String,
+                          date: "${reminder['date']} at ${reminder['time']}",
+                          type: "Other", // placeholder
+                          priority: "Medium Priority", // placeholder
+                          iconColor: primaryTeal,
+                        ))
+                    .toList(),
+              ),
           ],
         ),
       ),
@@ -261,3 +307,4 @@ class ReminderScreen extends StatelessWidget {
     );
   }
 }
+ 
