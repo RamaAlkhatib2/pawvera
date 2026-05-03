@@ -162,6 +162,7 @@ class _BookingPageState extends State<BookingPage> {
                         'time': _selectedTime,
                         'pet': _selectedPet,
                         'duration': widget.duration,
+                        'name': _nameController.text,
                         'phone': "+962 ${_phoneController.text}",
                         'email': _emailController.text,
                       };
@@ -230,11 +231,15 @@ class _BookingPageState extends State<BookingPage> {
             const SizedBox(height: 20),
             _buildSectionTitle("Select Date", Icons.calendar_today),
             _buildCalendar(),
-            const SizedBox(height: 20),
-            _buildSectionTitle("Select Time", Icons.access_time),
-            _buildTimeGrid(),
-            const SizedBox(height: 25),
-            _buildContactInformation(),
+            if (_selectedDay != null) ...[
+              const SizedBox(height: 20),
+              _buildSectionTitle("Select Time", Icons.access_time),
+              _buildTimeGrid(),
+            ],
+            if (_selectedTime != null) ...[
+              const SizedBox(height: 25),
+              _buildContactInformation(),
+            ],
             const SizedBox(height: 30),
             SizedBox(
               width: double.infinity,
@@ -385,6 +390,7 @@ class _BookingPageState extends State<BookingPage> {
           setState(() {
             _selectedDay = selectedDay;
             _focusedDay = focusedDay;
+            _selectedTime = null;
           });
         },
         calendarStyle: CalendarStyle(
