@@ -50,163 +50,238 @@ class _MyBookingsPageState extends State<MyBookingsPage>
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
-            return AlertDialog(
+            final reasons = [
+              "Change of plans",
+              "Found another service",
+              "Pet is not feeling well",
+              "Other",
+            ];
+            return Dialog(
+              insetPadding: const EdgeInsets.symmetric(horizontal: 16),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(10),
               ),
-              contentPadding: const EdgeInsets.all(20),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Row(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFF5F6F7),
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(10),
+                        ),
+                      ),
+                      child: Row(
                         children: [
-                          Icon(
-                            Icons.cancel_outlined,
-                            color: Colors.red,
-                            size: 20,
+                          const Expanded(
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.radio_button_checked,
+                                  color: Colors.red,
+                                  size: 13,
+                                ),
+                                SizedBox(width: 6),
+                                Text(
+                                  "Cancel Booking",
+                                  style: TextStyle(
+                                    color: Colors.red,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          SizedBox(width: 8),
-                          Text(
-                            "Cancel Booking",
-                            style: TextStyle(
-                              color: Colors.red,
-                              fontWeight: FontWeight.bold,
+                          InkWell(
+                            onTap: () => Navigator.pop(context),
+                            borderRadius: BorderRadius.circular(6),
+                            child: Container(
+                              width: 24,
+                              height: 24,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Text(
+                                "×",
+                                style: TextStyle(
+                                  color: Color(0xFF9A9A9A),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                             ),
                           ),
                         ],
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.close, size: 20),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
-                  ),
-                  const Divider(),
-                  const SizedBox(height: 10),
-                  // مربع معلومات الحجز الرمادي
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          "Current Booking:",
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey,
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF4F5F6),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  "Current Booking:",
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF565656),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  "${bookingData['date']} at ${bookingData['time']}",
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    color: Color(0xFF6E6E6E),
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  "${bookingData['service']}",
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    color: Color(0xFF6E6E6E),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 5),
-                        Text(
-                          "${bookingData['date']} at ${bookingData['time']}",
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                        Text(
-                          "${bookingData['service']}",
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
+                          const SizedBox(height: 12),
+                          const Text(
+                            "Reason for Cancellation *",
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 8),
+                          ...reasons.map((reason) {
+                            final isSelected = selectedReason == reason;
+                            return GestureDetector(
+                              onTap: () =>
+                                  setState(() => selectedReason = reason),
+                              child: Container(
+                                width: double.infinity,
+                                margin: const EdgeInsets.only(bottom: 6),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? const Color(0xFFFFF2F2)
+                                      : Colors.white,
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? const Color(0xFFE07E7E)
+                                        : const Color(0xFFD7DDE3),
+                                  ),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  reason,
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: isSelected
+                                        ? const Color(0xFFC84949)
+                                        : const Color(0xFF333333),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 11,
+                                    ),
+                                    backgroundColor: const Color(0xFFECF8F7),
+                                    side: const BorderSide(
+                                      color: Color(0xFFBDE2DF),
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    "Keep Booking",
+                                    style: TextStyle(
+                                      color: Color(0xFF4D5C59),
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: selectedReason.isEmpty
+                                      ? null
+                                      : () {
+                                          _confirmDeletion(actualIndex);
+                                          Navigator.pop(context);
+                                        },
+                                  style: ElevatedButton.styleFrom(
+                                    elevation: 0,
+                                    backgroundColor: const Color(0xFFE79393),
+                                    disabledBackgroundColor: const Color(
+                                      0xFFF4C7C7,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 11,
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    "Yes, Cancel",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 15),
-                  const Text(
-                    "Reason for Cancellation *",
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 10),
-                  // قائمة الأسباب بنفس التصميم المربعي
-                  ...["Change of plans", "Found another service", "Other"].map((
-                    reason,
-                  ) {
-                    bool isSelected = selectedReason == reason;
-                    return GestureDetector(
-                      onTap: () => setState(() => selectedReason = reason),
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 15,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: isSelected ? Colors.red : Colors.grey[300]!,
-                          ),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              reason,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: isSelected ? Colors.red : Colors.black,
-                              ),
-                            ),
-                            if (isSelected)
-                              const Icon(
-                                Icons.check_circle,
-                                color: Colors.red,
-                                size: 18,
-                              ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: OutlinedButton.styleFrom(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          child: const Text(
-                            "Keep Booking",
-                            style: TextStyle(fontSize: 11),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: selectedReason.isEmpty
-                              ? null
-                              : () {
-                                  _confirmDeletion(actualIndex);
-                                  Navigator.pop(context);
-                                },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          child: const Text(
-                            "Yes, Cancel",
-                            style: TextStyle(color: Colors.white, fontSize: 11),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                  ],
+                ),
               ),
             );
           },
@@ -215,110 +290,376 @@ class _MyBookingsPageState extends State<MyBookingsPage>
     );
   }
 
+  DateTime _parseBookingDate(String? value) {
+    if (value == null || value.trim().isEmpty) return DateTime.now();
+    final months = <String, int>{
+      'jan': 1,
+      'feb': 2,
+      'mar': 3,
+      'apr': 4,
+      'may': 5,
+      'jun': 6,
+      'jul': 7,
+      'aug': 8,
+      'sep': 9,
+      'oct': 10,
+      'nov': 11,
+      'dec': 12,
+    };
+    final parts = value
+        .replaceAll(',', '')
+        .split(' ')
+        .where((e) => e.isNotEmpty)
+        .toList();
+    if (parts.length >= 3) {
+      final month = months[parts[0].toLowerCase().substring(0, 3)];
+      final day = int.tryParse(parts[1]);
+      final year = int.tryParse(parts[2]);
+      if (month != null && day != null && year != null) {
+        return DateTime(year, month, day);
+      }
+    }
+    return DateTime.now();
+  }
+
+  String _formatBookingDate(DateTime date) {
+    const monthNames = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+    return "${monthNames[date.month - 1]} ${date.day}, ${date.year}";
+  }
+
   // --- نافذة إعادة الجدولة (Reschedule) ---
   void _showRescheduleSheet(Map<dynamic, dynamic> data, int actualIndex) {
-    String tempDate = data['date'];
-    String tempTime = data['time'];
-    showModalBottomSheet(
+    DateTime selectedDate = _parseBookingDate(data['date']?.toString());
+    String tempTime = (data['time'] ?? "9:30 AM").toString();
+    const timeSlots = [
+      "9:00 AM",
+      "9:30 AM",
+      "10:00 AM",
+      "10:30 AM",
+      "11:00 AM",
+      "11:30 AM",
+      "12:00 PM",
+      "12:30 PM",
+      "1:00 PM",
+    ];
+
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-      ),
       builder: (context) => StatefulBuilder(
-        builder: (context, setSheetState) => Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-            top: 20,
-            left: 20,
-            right: 20,
+        builder: (context, setSheetState) => Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                "Reschedule Booking",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                "Select Date",
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: ["May 24", "May 25", "May 26"].map((d) {
-                  bool isSel = tempDate == d;
-                  return GestureDetector(
-                    onTap: () => setSheetState(() => tempDate = d),
-                    child: Container(
-                      margin: const EdgeInsets.only(right: 10),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: isSel ? primaryGreen : Colors.grey[200],
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        d,
-                        style: TextStyle(
-                          color: isSel ? Colors.white : Colors.black,
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 20,
+          ),
+          child: SizedBox(
+            width: double.infinity,
+            height: MediaQuery.of(context).size.height * 0.82,
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFF4F6F7),
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(18),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Expanded(
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.radio_button_checked_outlined,
+                              size: 14,
+                              color: Color(0xFF1E5BFF),
+                            ),
+                            SizedBox(width: 6),
+                            Text(
+                              "Reschedule Booking",
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF1E5BFF),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                "Select Time",
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 10,
-                children: ["09:00 AM", "01:00 PM", "04:00 PM"].map((t) {
-                  bool isSel = tempTime == t;
-                  return ChoiceChip(
-                    label: Text(t),
-                    selected: isSel,
-                    onSelected: (s) => setSheetState(() => tempTime = t),
-                    selectedColor: primaryGreen,
-                    labelStyle: TextStyle(
-                      color: isSel ? Colors.white : Colors.black,
-                    ),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 30),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryGreen,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 15),
-                  ),
-                  onPressed: () {
-                    var box = Hive.box('myBox');
-                    List all = List.from(
-                      box.get('all_bookings', defaultValue: []),
-                    );
-                    all[actualIndex]['date'] = tempDate;
-                    all[actualIndex]['time'] = tempTime;
-                    box.put('all_bookings', all);
-                    Navigator.pop(context);
-                  },
-                  child: const Text(
-                    "Confirm Reschedule",
-                    style: TextStyle(color: Colors.white),
+                      InkWell(
+                        onTap: () => Navigator.pop(context),
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          width: 24,
+                          height: 24,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text(
+                            "×",
+                            style: TextStyle(
+                              color: Color(0xFF9A9A9A),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-              const SizedBox(height: 20),
-            ],
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF4F6F8),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                "Current Booking:",
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: Color(0xFF505050),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                "${data['date']} at ${data['time']}",
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  color: Color(0xFF6A6A6A),
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                data['service'] ?? "Daily Dog Walking",
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  color: Color(0xFF6A6A6A),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          "Select New Date *",
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF222222),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(color: const Color(0xFFB7D8CF)),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: CalendarDatePicker(
+                            initialDate: selectedDate,
+                            firstDate: DateTime.now().subtract(
+                              const Duration(days: 1),
+                            ),
+                            lastDate: DateTime.now().add(
+                              const Duration(days: 365),
+                            ),
+                            onDateChanged: (picked) =>
+                                setSheetState(() => selectedDate = picked),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          "Select New Time *",
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF222222),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: const Color(0xFFB7D8CF)),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Wrap(
+                            spacing: 7,
+                            runSpacing: 7,
+                            children: timeSlots.map((slot) {
+                              final isSelected = tempTime == slot;
+                              return SizedBox(
+                                width:
+                                    (MediaQuery.of(context).size.width - 78) /
+                                    3,
+                                child: OutlinedButton(
+                                  onPressed: () =>
+                                      setSheetState(() => tempTime = slot),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 9,
+                                    ),
+                                    side: BorderSide(
+                                      color: isSelected
+                                          ? const Color(0xFF2F72FF)
+                                          : const Color(0xFFD5D9DE),
+                                    ),
+                                    backgroundColor: isSelected
+                                        ? const Color(0xFFE9F0FF)
+                                        : Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    slot,
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: isSelected
+                                          ? const Color(0xFF2F72FF)
+                                          : const Color(0xFF444444),
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEAF3FF),
+                            border: Border.all(color: const Color(0xFF9EBEF2)),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                "New Appointment:",
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: Color(0xFF356BC5),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                "${_formatBookingDate(selectedDate)} at $tempTime",
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  color: Color(0xFF2459B2),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () => Navigator.pop(context),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                  side: const BorderSide(
+                                    color: Color(0xFFBFC9C5),
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                child: const Text(
+                                  "Cancel",
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Color(0xFF616A67),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  var box = Hive.box('myBox');
+                                  List all = List.from(
+                                    box.get('all_bookings', defaultValue: []),
+                                  );
+                                  all[actualIndex]['date'] = _formatBookingDate(
+                                    selectedDate,
+                                  );
+                                  all[actualIndex]['time'] = tempTime;
+                                  box.put('all_bookings', all);
+                                  Navigator.pop(context);
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF1E5BFF),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                child: const Text(
+                                  "Confirm Reschedule",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -342,41 +683,35 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                     'all_bookings',
                     defaultValue: [],
                   );
-                  return Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: const Color(0xFFE6EFEA)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.04),
-                          blurRadius: 18,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          "My Bookings",
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF2E4D3D),
+                  return Align(
+                    alignment: Alignment.centerLeft,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 2),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            "My Bookings",
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF6F4A3F),
+                              height: 1.05,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          "${allBookings.length} total bookings",
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey,
+                          const SizedBox(height: 6),
+                          Text(
+                            "${allBookings.length} total bookings",
+                            textAlign: TextAlign.left,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF8F9A99),
+                              letterSpacing: 0.1,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   );
                 },
