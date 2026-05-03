@@ -679,29 +679,35 @@ class _MyPetPageState extends State<MyPetPage> {
                   const Text(
                     "My Pets",
                     style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF2D4536),
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF6F4A3F),
+                      height: 1.05,
                     ),
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 10),
                   SizedBox(
                     width: double.infinity,
-                    height: 46,
+                    height: 38,
                     child: ElevatedButton.icon(
                       onPressed: _showAddPetSheet,
-                      icon: const Icon(Icons.add, size: 18),
+                      icon: const Icon(Icons.add, size: 14),
                       label: const Text(
                         "Add Pet",
-                        style: TextStyle(color: Colors.white),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryGreen,
+                        backgroundColor: const Color(0xFF4D9E8F),
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(6),
                         ),
                         padding: const EdgeInsets.symmetric(horizontal: 16),
+                        elevation: 0,
                       ),
                     ),
                   ),
@@ -744,19 +750,12 @@ class _MyPetPageState extends State<MyPetPage> {
 
   Widget _buildPetCard(Map pet, int index, List allPets) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 15),
-      padding: const EdgeInsets.all(18),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFE2E8E5), width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFF9FC8C0), width: 1),
       ),
       child: Column(
         children: [
@@ -764,25 +763,25 @@ class _MyPetPageState extends State<MyPetPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 72,
-                height: 72,
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.grey[200]!, width: 2),
+                  border: Border.all(color: const Color(0xFF9FC8C0), width: 1),
                   color: Colors.grey[100],
                 ),
                 child: ClipOval(
                   child: pet['imagePath'] != null
                       ? Image.file(
                           File(pet['imagePath']),
-                          width: 72,
-                          height: 72,
+                          width: 48,
+                          height: 48,
                           fit: BoxFit.cover,
                         )
-                      : const Icon(Icons.pets, size: 32, color: Colors.grey),
+                      : const Icon(Icons.pets, size: 24, color: Colors.grey),
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -790,19 +789,24 @@ class _MyPetPageState extends State<MyPetPage> {
                     Text(
                       pet['name'] ?? '',
                       style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        color: Color(0xFF6F4A3F),
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
                       pet['breed'] ?? '',
-                      style: const TextStyle(color: Colors.grey, fontSize: 13),
+                      style: const TextStyle(
+                        color: Color(0xFF7D7D7D),
+                        fontSize: 9,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 6),
                     Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
+                      spacing: 4,
+                      runSpacing: 4,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         _buildTag("${pet['age']} yrs"),
@@ -820,58 +824,67 @@ class _MyPetPageState extends State<MyPetPage> {
                   newList.removeAt(index);
                   Hive.box(boxName).put('pets', newList);
                 },
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(8),
                 child: Container(
-                  width: 34,
-                  height: 34,
+                  width: 22,
+                  height: 22,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFEBEB),
-                    borderRadius: BorderRadius.circular(12),
+                    color: const Color(0xFFFFF4F4),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: const Color(0xFFF1DBDB)),
                   ),
                   child: const Icon(
                     Icons.close,
-                    color: Color(0xFFDE3A3A),
-                    size: 18,
+                    color: Color(0xFFD36A6A),
+                    size: 13,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
           Row(
             children: [
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: () => _showQRCodeDialog(pet, index, allPets),
-                  icon: const Icon(Icons.qr_code, size: 16),
+                  icon: const Icon(Icons.qr_code_2, size: 12),
                   label: const Text("QR Tag"),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFF5FBF8),
-                    foregroundColor: primaryGreen,
+                    backgroundColor: const Color(0xFFF2F5F5),
+                    foregroundColor: const Color(0xFF6C5A45),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      side: BorderSide(color: primaryGreen.withOpacity(0.28)),
+                      borderRadius: BorderRadius.circular(5),
+                      side: const BorderSide(color: Color(0xFFB9D7D2)),
                     ),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    textStyle: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 6),
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: () => _showEditPetDialog(pet, index, allPets),
-                  icon: const Icon(Icons.edit, size: 16),
+                  icon: const Icon(Icons.edit_outlined, size: 12),
                   label: const Text("Edit Info"),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFF5FBF8),
-                    foregroundColor: primaryGreen,
+                    backgroundColor: const Color(0xFFF2F5F5),
+                    foregroundColor: const Color(0xFF6C5A45),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      side: BorderSide(color: primaryGreen.withOpacity(0.28)),
+                      borderRadius: BorderRadius.circular(5),
+                      side: const BorderSide(color: Color(0xFFB9D7D2)),
                     ),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    textStyle: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
@@ -937,14 +950,19 @@ class _MyPetPageState extends State<MyPetPage> {
     ),
   );
   Widget _buildTag(String t) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
     decoration: BoxDecoration(
-      color: const Color(0xFFF3F8F5),
-      borderRadius: BorderRadius.circular(12),
+      color: const Color(0xFFF8FAFA),
+      borderRadius: BorderRadius.circular(4),
+      border: Border.all(color: const Color(0xFFD3E3E0)),
     ),
     child: Text(
       t,
-      style: const TextStyle(fontSize: 11, color: Color(0xFF4B5F59)),
+      style: const TextStyle(
+        fontSize: 8,
+        color: Color(0xFF6C5A45),
+        fontWeight: FontWeight.w600,
+      ),
     ),
   );
 }
