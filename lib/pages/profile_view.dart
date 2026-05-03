@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:pawvera/pages/login_view.dart';
+import 'package:pawvera/pages/my_bookings_page.dart';
+import 'package:pawvera/pages/notifications_page.dart';
 
 class ProfileView extends StatelessWidget {
-  const ProfileView({super.key});
+  /// When provided (e.g. from [Home]), switches tab so the bottom nav stays visible.
+  final VoidCallback? onOpenMyBookings;
+
+  const ProfileView({super.key, this.onOpenMyBookings});
 
   @override
   Widget build(BuildContext context) {
@@ -68,7 +73,22 @@ class ProfileView extends StatelessWidget {
               _buildSectionCard(
                 child: Column(
                   children: [
-                    _buildListTile(Icons.access_time, 'My Bookings'),
+                    _buildListTile(
+                      Icons.access_time,
+                      'My Bookings',
+                      onTap: () {
+                        if (onOpenMyBookings != null) {
+                          onOpenMyBookings!();
+                        } else {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const MyBookingsPage(),
+                            ),
+                          );
+                        }
+                      },
+                    ),
                     const Divider(),
                     _buildListTile(Icons.calendar_today_outlined, 'My Reminders', trailingBadge: '1'),
                     const Divider(),
@@ -82,7 +102,18 @@ class ProfileView extends StatelessWidget {
               _buildSectionCard(
                 child: Column(
                   children: [
-                    _buildListTile(Icons.notifications_none, 'Notifications'),
+                    _buildListTile(
+                      Icons.notifications_none,
+                      'Notifications',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const NotificationsPage(),
+                          ),
+                        );
+                      },
+                    ),
                     const Divider(),
                     _buildListTile(Icons.lock_outline, 'Privacy'),
                     const Divider(),
@@ -156,7 +187,13 @@ class ProfileView extends StatelessWidget {
     );
   }
 
-  Widget _buildListTile(IconData icon, String title, {String? trailingBadge, String? trailingText}) {
+  Widget _buildListTile(
+    IconData icon,
+    String title, {
+    String? trailingBadge,
+    String? trailingText,
+    VoidCallback? onTap,
+  }) {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: Icon(icon, color: const Color(0xFF5A3E2B), size: 22),
@@ -176,7 +213,7 @@ class ProfileView extends StatelessWidget {
           const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
         ],
       ),
-      onTap: () {},
+      onTap: onTap ?? () {},
     );
   }
 }

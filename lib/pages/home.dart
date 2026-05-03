@@ -36,7 +36,9 @@ class _HomePageState extends State<Home> {
       case 3:
         return const MyBookingsPage(); // عرض صفحة الحجوزات عند الضغط على My Bookings
       case 4:
-        return const ProfileView();
+        return ProfileView(
+          onOpenMyBookings: () => setState(() => _selectedIndex = 3),
+        );
       case 0:
       default:
         return _buildHomeContent();
