@@ -9,6 +9,13 @@ class ConfirmBookingPage extends StatelessWidget {
   const ConfirmBookingPage({super.key, required this.bookingData});
 
   final Color primaryGreen = const Color(0xFF5B9D8E);
+
+  String _textValue(String key, {String fallback = "-"}) {
+    final value = bookingData[key];
+    if (value == null) return fallback;
+    final text = value.toString().trim();
+    return text.isEmpty ? fallback : text;
+  }
   // 1. دالة لإظهار نافذة نجاح الحجز
   void _showSuccessDialog(BuildContext context) {
     showDialog(
@@ -27,7 +34,7 @@ class ConfirmBookingPage extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              "Your booking for ${bookingData['pet']} has been confirmed.",
+              "Your booking for ${_textValue('pet')} has been confirmed.",
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 12, color: Colors.grey),
             ),
@@ -43,10 +50,10 @@ class ConfirmBookingPage extends StatelessWidget {
               child: Column(
                 children: [
                   _buildDialogRow("Booking ID:", "#927928"),
-                  _buildDialogRow("Service:", bookingData['service']),
+                  _buildDialogRow("Service:", _textValue('service')),
                   _buildDialogRow(
                     "Date & Time:",
-                    "${bookingData['date']} at ${bookingData['time']}",
+                    "${_textValue('date')} at ${_textValue('time')}",
                   ),
                 ],
               ),
@@ -201,12 +208,15 @@ class ConfirmBookingPage extends StatelessWidget {
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                   ),
                   const SizedBox(height: 20),
-                  _buildSummaryRow("Service", bookingData['service']),
-                  _buildSummaryRow("Provider", bookingData['provider']),
-                  _buildSummaryRow("Date", bookingData['date']),
-                  _buildSummaryRow("Time", bookingData['time']),
-                  _buildSummaryRow("Duration", "45 mins"),
-                  _buildSummaryRow("Pet", bookingData['pet']),
+                  _buildSummaryRow("Service", _textValue('service')),
+                  _buildSummaryRow("Provider", _textValue('provider')),
+                  _buildSummaryRow("Date", _textValue('date')),
+                  _buildSummaryRow("Time", _textValue('time')),
+                  _buildSummaryRow(
+                    "Duration",
+                    _textValue('duration', fallback: "45 mins"),
+                  ),
+                  _buildSummaryRow("Pet", _textValue('pet')),
                   const Divider(height: 30),
                   _buildSummaryRow("Original Price", "25.00 JOD"),
                   _buildSummaryRow(
@@ -222,7 +232,7 @@ class ConfirmBookingPage extends StatelessWidget {
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                       Text(
-                        "${bookingData['price']} JOD",
+                        "${_textValue('price')} JOD",
                         style: TextStyle(
                           color: primaryGreen,
                           fontWeight: FontWeight.bold,
@@ -251,9 +261,9 @@ class ConfirmBookingPage extends StatelessWidget {
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                   ),
                   const SizedBox(height: 15),
-                  _buildContactRow(Icons.person_outline, bookingData['name']),
-                  _buildContactRow(Icons.phone_outlined, bookingData['phone']),
-                  _buildContactRow(Icons.email_outlined, bookingData['email']),
+                  _buildContactRow(Icons.person_outline, _textValue('name')),
+                  _buildContactRow(Icons.phone_outlined, _textValue('phone')),
+                  _buildContactRow(Icons.email_outlined, _textValue('email')),
                 ],
               ),
             ),
@@ -286,7 +296,7 @@ class ConfirmBookingPage extends StatelessWidget {
                   ),
                 ),
                 child: Text(
-                  "Confirm Booking (${bookingData['price']} JOD)",
+                  "Confirm Booking (${_textValue('price')} JOD)",
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,

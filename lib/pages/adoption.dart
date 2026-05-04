@@ -1,6 +1,49 @@
 import 'package:flutter/material.dart';
 
-class AdoptionScreen extends StatelessWidget {
+class AdoptionScreen extends StatefulWidget {
+  const AdoptionScreen({super.key});
+
+  @override
+  State<AdoptionScreen> createState() => _AdoptionScreenState();
+}
+
+class _AdoptionScreenState extends State<AdoptionScreen> {
+  List<Map<String, dynamic>> pets = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchPets();
+  }
+
+  Future<void> fetchPets() async {
+    // Simulate API call
+    await Future.delayed(const Duration(seconds: 2));
+    setState(() {
+      pets = [
+        {
+          'name': 'Buddy',
+          'breed': 'Golden Retriever',
+          'age': '2 years',
+          'location': 'Amman',
+          'image': 'assets/images/dog1.jpg',
+          'description': 'Friendly and playful dog looking for a loving home.',
+        },
+        {
+          'name': 'Whiskers',
+          'breed': 'Persian Cat',
+          'age': '1 year',
+          'location': 'Irbid',
+          'image': 'assets/images/cat1.jpg',
+          'description': 'Beautiful Persian cat, very affectionate.',
+        },
+        // Add more pets as needed
+      ];
+      isLoading = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final primaryTeal = Color(0xFF5BA092);
@@ -73,30 +116,25 @@ class AdoptionScreen extends StatelessWidget {
               ),
             ),
             SizedBox(height: 10),
-            _buildPetCard(
-              context,
-              'https://images.unsplash.com/photo-1552053831-71594a27632d',
-              'Max',
-              'Dog',
-              'Friendly golden retriever looking for a loving home. Great with kids and other pets!',
-              'Downtown Shelter',
-              '2 years old',
-              'Male',
-              primaryTeal,
-              'Sarah Johnson', // اسم الشخص المتبنى
-            ),
-            _buildPetCard(
-              context,
-              'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba',
-              'Luna',
-              'Cat',
-              'Playful kitten, great with children. Very affectionate and loves to cuddle.',
-              'West Side Rescue',
-              '1 year old',
-              'Female',
-              primaryTeal,
-              'Mike Chen',
-            ),
+            if (isLoading)
+              const Center(child: CircularProgressIndicator())
+            else
+              Column(
+                children: pets
+                    .map((pet) => _buildPetCard(
+                          context,
+                          pet['image'] as String,
+                          pet['name'] as String,
+                          pet['breed'] as String,
+                          pet['description'] as String,
+                          pet['location'] as String,
+                          pet['age'] as String,
+                          'Unknown', // gender not in map
+                          primaryTeal,
+                          'Adopter Name', // placeholder
+                        ))
+                    .toList(),
+              ),
           ],
         ),
       ),
@@ -123,6 +161,7 @@ class AdoptionScreen extends StatelessWidget {
       decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: Colors.grey.shade300)),
           border: Border.all(color: Colors.grey.shade300)),
       child: Icon(Icons.tune, color: primaryColor, size: 20),
     );
@@ -329,3 +368,4 @@ class AdoptionScreen extends StatelessWidget {
   }
 }
  
+                   

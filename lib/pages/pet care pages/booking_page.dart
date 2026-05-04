@@ -8,6 +8,7 @@ class BookingPage extends StatefulWidget {
   final String providerName;
   final String price;
   final String clinicName;
+  final String duration;
 
   const BookingPage({
     super.key,
@@ -15,6 +16,7 @@ class BookingPage extends StatefulWidget {
     required this.providerName,
     required this.price,
     required this.clinicName,
+    required this.duration,
   });
 
   @override
@@ -23,7 +25,7 @@ class BookingPage extends StatefulWidget {
 
 class _BookingPageState extends State<BookingPage> {
   final Color primaryGreen = const Color(0xFF5B9D8E);
-  final Color bgCream = const Color(0xFFFBF6EE);
+  final Color bgCream = const Color(0xFFE8F4F1);
 
   // Controllers لجمع بيانات اليوزر
   final _nameController = TextEditingController();
@@ -159,6 +161,7 @@ class _BookingPageState extends State<BookingPage> {
                             "${_selectedDay?.day}/${_selectedDay?.month}/${_selectedDay?.year}",
                         'time': _selectedTime,
                         'pet': _selectedPet,
+                        'duration': widget.duration,
                         'name': _nameController.text,
                         'phone': "+962 ${_phoneController.text}",
                         'email': _emailController.text,
@@ -195,7 +198,7 @@ class _BookingPageState extends State<BookingPage> {
     return Scaffold(
       backgroundColor: bgCream,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: bgCream,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
@@ -228,11 +231,15 @@ class _BookingPageState extends State<BookingPage> {
             const SizedBox(height: 20),
             _buildSectionTitle("Select Date", Icons.calendar_today),
             _buildCalendar(),
-            const SizedBox(height: 20),
-            _buildSectionTitle("Select Time", Icons.access_time),
-            _buildTimeGrid(),
-            const SizedBox(height: 25),
-            _buildContactInformation(),
+            if (_selectedDay != null) ...[
+              const SizedBox(height: 20),
+              _buildSectionTitle("Select Time", Icons.access_time),
+              _buildTimeGrid(),
+            ],
+            if (_selectedTime != null) ...[
+              const SizedBox(height: 25),
+              _buildContactInformation(),
+            ],
             const SizedBox(height: 30),
             SizedBox(
               width: double.infinity,
@@ -284,38 +291,62 @@ class _BookingPageState extends State<BookingPage> {
 
   Widget _buildServiceDetailCard() {
     return Container(
-      padding: const EdgeInsets.all(15),
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: primaryGreen.withOpacity(0.2)),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                widget.serviceName,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                  color: Color(0xFF634732),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.serviceName,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color: Color(0xFF634732),
+                  ),
                 ),
-              ),
-              Text(
-                widget.providerName,
-                style: const TextStyle(color: Colors.grey, fontSize: 12),
-              ),
-            ],
+                const SizedBox(height: 6),
+                Text(
+                  widget.clinicName,
+                  style: const TextStyle(color: Colors.grey, fontSize: 13),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  "Duration: ${widget.duration}",
+                  style: const TextStyle(fontSize: 13, color: Colors.black54),
+                ),
+              ],
+            ),
           ),
-          Text(
-            widget.price,
-            style: TextStyle(
-              color: primaryGreen,
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF2FCF9),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFDFF4EA)),
+            ),
+            child: Text(
+              widget.price,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF2B7B62),
+                fontSize: 16,
+              ),
             ),
           ),
         ],
@@ -348,6 +379,7 @@ class _BookingPageState extends State<BookingPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade200),
       ),
       child: TableCalendar(
         firstDay: DateTime.now(),
@@ -358,6 +390,7 @@ class _BookingPageState extends State<BookingPage> {
           setState(() {
             _selectedDay = selectedDay;
             _focusedDay = focusedDay;
+            _selectedTime = null;
           });
         },
         calendarStyle: CalendarStyle(
@@ -379,39 +412,47 @@ class _BookingPageState extends State<BookingPage> {
   }
 
   Widget _buildTimeGrid() {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: _timeSlots.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        childAspectRatio: 2.4,
-        mainAxisSpacing: 10,
-        crossAxisSpacing: 10,
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade200),
       ),
-      itemBuilder: (context, index) {
-        bool isSelected = _selectedTime == _timeSlots[index];
-        return GestureDetector(
-          onTap: () => setState(() => _selectedTime = _timeSlots[index]),
-          child: Container(
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: isSelected ? primaryGreen : Colors.white,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: isSelected ? primaryGreen : Colors.grey.shade200,
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: _timeSlots.length,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          childAspectRatio: 2.4,
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+        ),
+        itemBuilder: (context, index) {
+          bool isSelected = _selectedTime == _timeSlots[index];
+          return GestureDetector(
+            onTap: () => setState(() => _selectedTime = _timeSlots[index]),
+            child: Container(
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: isSelected ? primaryGreen : Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: isSelected ? primaryGreen : Colors.grey.shade200,
+                ),
+              ),
+              child: Text(
+                _timeSlots[index],
+                style: TextStyle(
+                  color: isSelected ? Colors.white : Colors.black,
+                  fontSize: 12,
+                ),
               ),
             ),
-            child: Text(
-              _timeSlots[index],
-              style: TextStyle(
-                color: isSelected ? Colors.white : Colors.black,
-                fontSize: 12,
-              ),
-            ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
