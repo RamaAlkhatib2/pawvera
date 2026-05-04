@@ -269,8 +269,9 @@ class _ShopInfoTabState extends State<ShopInfoTab> {
                   final picked = await picker.pickImage(
                     source: ImageSource.gallery,
                   );
-                  if (picked != null)
+                  if (picked != null) {
                     setModalState(() => shopImage = File(picked.path));
+                  }
                 },
                 child: Container(
                   width: 100,
