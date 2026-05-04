@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RegisterView extends StatefulWidget {
   const RegisterView({super.key});
@@ -33,6 +35,57 @@ class _RegisterViewState extends State<RegisterView> {
     phoneController.dispose();
     passwordController.dispose();
     super.dispose();
+  }
+
+  // دالة التسجيل في Firebase
+  Future<void> registerUser() async {
+    // إظهار مؤشر تحميل
+    showDialog(
+      context: context,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      // 1. إنشاء الحساب في Firebase Auth
+      UserCredential userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
+      );
+
+      // 2. حفظ بيانات المستخدم الإضافية في Firestore
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCredential.user!.uid)
+          .set({
+        'uid': userCredential.user!.uid,
+        'fullName': fullNameController.text.trim(),
+        'userName': userNameController.text.trim(),
+        'email': emailController.text.trim(),
+        'phone': phoneController.text.trim(),
+        'country': selectedCountry,
+        'role': 'adopter', // القيمة الافتراضية
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      // إغلاق مؤشر التحميل
+      if (mounted) Navigator.pop(context);
+
+      // (اختياري) الانتقال للصفحة الرئيسية أو تسجيل الدخول
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Account created successfully!")),
+      );
+    } on FirebaseAuthException catch (e) {
+      if (mounted) Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message ?? "An error occurred")),
+      );
+    } catch (e) {
+      if (mounted) Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $e")),
+      );
+    }
   }
 
   // --- Widget داخلي بديل لـ MyTextfields ---
@@ -187,9 +240,7 @@ class _RegisterViewState extends State<RegisterView> {
           const SizedBox(height: 25),
 
           buildRegisterButton(
-            onTap: () {
-              // أضف منطق التسجيل هنا
-            },
+            onTap: registerUser,
             text: "Register",
           ),
           const SizedBox(height: 20),

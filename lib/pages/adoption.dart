@@ -179,7 +179,8 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
       padding: EdgeInsets.all(8),
       decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(15)),
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: Colors.grey.shade300)),
       child: Icon(Icons.tune, color: primaryColor, size: 20),
     );
   }

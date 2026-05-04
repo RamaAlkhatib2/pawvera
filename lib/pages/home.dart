@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'supplies_store.dart';
 import 'profile_view.dart';
 import 'my_pet_page.dart';
@@ -7,6 +8,7 @@ import 'pet care pages/pet_care_page.dart';
 import 'reminder.dart';
 import 'adoption.dart';
 import 'my_bookings_page.dart';
+import 'package:pawvera/services/database_service.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -17,6 +19,7 @@ class Home extends StatefulWidget {
 
 class _HomePageState extends State<Home> {
   int _selectedIndex = 0;
+  final DatabaseService _db = DatabaseService();
 
   @override
   Widget build(BuildContext context) {
@@ -67,60 +70,70 @@ class _HomePageState extends State<Home> {
   }
 
   Widget _buildHeader() {
-    return Row(
-      children: [
-        Container(
-          width: 64,
-          height: 64,
-          decoration: const BoxDecoration(
-            color: Color(0xFFDFF3EE),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(Icons.pets, color: Color(0xFF3AA78E), size: 34),
-        ),
-        const SizedBox(width: 12),
-        const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return StreamBuilder<DocumentSnapshot>(
+      stream: _db.userData,
+      builder: (context, snapshot) {
+        String userName = "...";
+        if (snapshot.hasData && snapshot.data!.exists) {
+          userName = (snapshot.data!.data() as Map<String, dynamic>)['fullName'] ?? "User";
+        }
+
+        return Row(
           children: [
-            Text(
-              'PawVera',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF5A3E2B),
+            Container(
+              width: 64,
+              height: 64,
+              decoration: const BoxDecoration(
+                color: Color(0xFFDFF3EE),
+                shape: BoxShape.circle,
               ),
+              child: const Icon(Icons.pets, color: Color(0xFF3AA78E), size: 34),
             ),
-            SizedBox(height: 4),
-            Text(
-              'Where Every Paw Matters',
-              style: TextStyle(fontSize: 12, color: Color(0xFF8A7A6C)),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Hello, $userName',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF5A3E2B),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Where Every Paw Matters',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF8A7A6C)),
+                ),
+              ],
+            ),
+            const Spacer(),
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const NotificationsPage(),
+                  ),
+                );
+              },
+              child: ClipOval(
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  color: const Color(0xFFDDEEEA),
+                  child: const Icon(
+                    Icons.notifications_none,
+                    size: 20,
+                    color: Color(0xFF6B6B6B),
+                  ),
+                ),
+              ),
             ),
           ],
-        ),
-        const Spacer(),
-        GestureDetector(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const NotificationsPage(),
-              ),
-            );
-          },
-          child: ClipOval(
-            child: Container(
-              width: 38,
-              height: 38,
-              color: const Color(0xFFDDEEEA),
-              child: const Icon(
-                Icons.notifications_none,
-                size: 20,
-                color: Color(0xFF6B6B6B),
-              ),
-            ),
-          ),
-        ),
-      ],
+        );
+      }
     );
   }
 
@@ -133,14 +146,31 @@ class _HomePageState extends State<Home> {
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
-        Wrap(
-          spacing: 15,
-          runSpacing: 10,
-          children: [
-            _petAvatar('B', 'Buddy', Colors.brown.shade300),
-            _petAvatar('W', 'Whiskers', Colors.orange.shade200),
-            _addPetButton(),
-          ],
+        StreamBuilder<QuerySnapshot>(
+          stream: _db.userPets,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const CircularProgressIndicator();
+            }
+
+            final pets = snapshot.data?.docs ?? [];
+
+            return Wrap(
+              spacing: 15,
+              runSpacing: 10,
+              children: [
+                ...pets.map((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  return _petAvatar(
+                    (data['name'] as String? ?? 'P')[0].toUpperCase(),
+                    data['name'] ?? 'Pet',
+                    Colors.teal.shade300,
+                  );
+                }),
+                _addPetButton(),
+              ],
+            );
+          }
         ),
       ],
     );

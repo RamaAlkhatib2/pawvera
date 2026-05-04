@@ -1,8 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:pawvera/services/database_service.dart';
 
 class MyPetPage extends StatefulWidget {
   const MyPetPage({super.key});
@@ -14,9 +15,9 @@ class MyPetPage extends StatefulWidget {
 class _MyPetPageState extends State<MyPetPage> {
   final Color primaryGreen = const Color(0xFF5B9D8E);
   final Color bgCream = const Color(0xFFEAF5F1);
-  final String boxName = 'myBox';
+  final DatabaseService _db = DatabaseService();
 
-  // --- 1. ميثود الإضافة (Add Pet) - رجعت تشتغل كاملة ---
+  // --- 1. ميثود الإضافة (Add Pet) - Integrated with Firestore ---
   void _showAddPetSheet() {
     final nameCtrl = TextEditingController();
     final breedCtrl = TextEditingController();
@@ -146,7 +147,7 @@ class _MyPetPageState extends State<MyPetPage> {
                           'age': ageCtrl.text,
                           'weight': weightCtrl.text,
                           'color': colorCtrl.text,
-                          'imagePath': imagePath,
+                          'imagePath': imagePath, // Note: Should ideally be uploaded to Firebase Storage
                           'ownerName': '',
                           'ownerPhone': '',
                           'ownerEmail': '',
@@ -154,13 +155,8 @@ class _MyPetPageState extends State<MyPetPage> {
                           'allergies': '',
                         };
 
-                        var box = Hive.box(boxName);
-                        List currentList = List.from(
-                          box.get('pets', defaultValue: []),
-                        );
-                        currentList.add(newPet);
-                        await box.put('pets', currentList);
-                        Navigator.pop(context);
+                        await _db.addPet(newPet);
+                        if (context.mounted) Navigator.pop(context);
                       }
                     },
                     style: ElevatedButton.styleFrom(
@@ -187,7 +183,7 @@ class _MyPetPageState extends State<MyPetPage> {
   }
 
   // --- 2. نافذة QR حسب تصميم Figma الجديد ---
-  void _showQRCodeDialog(Map pet, int index, List allPets) {
+  void _showQRCodeDialog(Map pet, String petId) {
     bool isCodeActive = true;
     showDialog(
       context: context,
@@ -311,7 +307,7 @@ class _MyPetPageState extends State<MyPetPage> {
                             Navigator.pop(context);
                             Future.delayed(
                               Duration.zero,
-                              () => _showQRCodeEditDialog(pet, index, allPets),
+                              () => _showQRCodeEditDialog(pet, petId),
                             );
                           },
                           child: const Text(
@@ -342,7 +338,7 @@ class _MyPetPageState extends State<MyPetPage> {
   }
 
   // --- 3. نافذة Edit حسب تصميم Figma الجديد ---
-  void _showQRCodeEditDialog(Map pet, int index, List allPets) {
+  void _showQRCodeEditDialog(Map pet, String petId) {
     final ownerNameCtrl = TextEditingController(text: pet['ownerName']);
     final ownerPhoneCtrl = TextEditingController(text: pet['ownerPhone']);
     final ownerEmailCtrl = TextEditingController(text: pet['ownerEmail']);
@@ -419,18 +415,15 @@ class _MyPetPageState extends State<MyPetPage> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () {
-                        List newList = List.from(allPets);
-                        newList[index] = {
-                          ...pet,
+                      onPressed: () async {
+                        await _db.updatePet(petId, {
                           'ownerName': ownerNameCtrl.text,
                           'ownerPhone': ownerPhoneCtrl.text,
                           'ownerEmail': ownerEmailCtrl.text,
                           'medicalInfo': medicalInfoCtrl.text,
                           'allergies': allergiesCtrl.text,
-                        };
-                        Hive.box(boxName).put('pets', newList);
-                        Navigator.pop(context);
+                        });
+                        if (context.mounted) Navigator.pop(context);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: primaryGreen,
@@ -454,7 +447,7 @@ class _MyPetPageState extends State<MyPetPage> {
     );
   }
 
-  void _showEditPetDialog(Map pet, int index, List allPets) {
+  void _showEditPetDialog(Map pet, String petId) {
     final nameCtrl = TextEditingController(text: pet['name']);
     final breedCtrl = TextEditingController(text: pet['breed']);
     final ageCtrl = TextEditingController(text: pet['age']);
@@ -624,10 +617,8 @@ class _MyPetPageState extends State<MyPetPage> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () {
-                          List newList = List.from(allPets);
-                          newList[index] = {
-                            ...pet,
+                        onPressed: () async {
+                          await _db.updatePet(petId, {
                             'name': nameCtrl.text,
                             'type': selectedType,
                             'breed': breedCtrl.text,
@@ -636,9 +627,8 @@ class _MyPetPageState extends State<MyPetPage> {
                             'weight': weightCtrl.text,
                             'color': colorCtrl.text,
                             'imagePath': newImg,
-                          };
-                          Hive.box(boxName).put('pets', newList);
-                          Navigator.pop(context);
+                          });
+                          if (context.mounted) Navigator.pop(context);
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: primaryGreen,
@@ -716,28 +706,34 @@ class _MyPetPageState extends State<MyPetPage> {
             ),
             const SizedBox(height: 20),
             Expanded(
-              child: ValueListenableBuilder(
-                valueListenable: Hive.box(boxName).listenable(),
-                builder: (context, Box box, _) {
-                  final List pets = box.get('pets', defaultValue: []);
-                  if (pets.isEmpty)
+              child: StreamBuilder<QuerySnapshot>(
+                stream: _db.userPets,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  final List pets = snapshot.data?.docs ?? [];
+
+                  if (pets.isEmpty) {
                     return const Center(
                       child: Text(
                         "No pets yet.",
                         style: TextStyle(color: Colors.grey),
                       ),
                     );
+                  }
                   return ListView.builder(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,
                       vertical: 0,
                     ),
                     itemCount: pets.length,
-                    itemBuilder: (context, index) => _buildPetCard(
-                      Map<String, dynamic>.from(pets[index]),
-                      index,
-                      pets,
-                    ),
+                    itemBuilder: (context, index) {
+                      final petDoc = pets[index];
+                      final petData = petDoc.data() as Map<String, dynamic>;
+                      return _buildPetCard(petData, petDoc.id);
+                    },
                   );
                 },
               ),
@@ -748,7 +744,7 @@ class _MyPetPageState extends State<MyPetPage> {
     );
   }
 
-  Widget _buildPetCard(Map pet, int index, List allPets) {
+  Widget _buildPetCard(Map pet, String petId) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(10),
@@ -819,10 +815,8 @@ class _MyPetPageState extends State<MyPetPage> {
                 ),
               ),
               InkWell(
-                onTap: () {
-                  List newList = List.from(allPets);
-                  newList.removeAt(index);
-                  Hive.box(boxName).put('pets', newList);
+                onTap: () async {
+                  await _db.deletePet(petId);
                 },
                 borderRadius: BorderRadius.circular(8),
                 child: Container(
@@ -847,7 +841,7 @@ class _MyPetPageState extends State<MyPetPage> {
             children: [
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: () => _showQRCodeDialog(pet, index, allPets),
+                  onPressed: () => _showQRCodeDialog(pet, petId),
                   icon: const Icon(Icons.qr_code_2, size: 12),
                   label: const Text("QR Tag"),
                   style: ElevatedButton.styleFrom(
@@ -869,7 +863,7 @@ class _MyPetPageState extends State<MyPetPage> {
               const SizedBox(width: 6),
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: () => _showEditPetDialog(pet, index, allPets),
+                  onPressed: () => _showEditPetDialog(pet, petId),
                   icon: const Icon(Icons.edit_outlined, size: 12),
                   label: const Text("Edit Info"),
                   style: ElevatedButton.styleFrom(

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "935933039172",
+    "project_id": "pawvera-3578f",
+    "storage_bucket": "pawvera-3578f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:935933039172:android:e1c2d7f97f44a2858fe211",
+        "android_client_info": {
+          "package_name": "com.example.pawvera"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA3qD4cGRf2sAlie_ojW9KzIeL3KAHt-3s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
