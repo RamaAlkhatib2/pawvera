@@ -110,8 +110,8 @@ class AdoptionScreen extends StatelessWidget {
         label: Text(label, style: TextStyle(color: textColor, fontSize: 12)),
         backgroundColor: bgColor,
         shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
-            borderSide: BorderSide(color: Colors.grey.shade300)),
+            borderRadius: BorderRadius.circular(15)),
+        side: BorderSide(color: Colors.grey.shade300),
         padding: EdgeInsets.symmetric(horizontal: 10, vertical: 0),
       ),
     );
@@ -123,7 +123,7 @@ class AdoptionScreen extends StatelessWidget {
       decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(15),
-          borderSide: BorderSide(color: Colors.grey.shade300)),
+          border: Border.all(color: Colors.grey.shade300)),
       child: Icon(Icons.tune, color: primaryColor, size: 20),
     );
   }

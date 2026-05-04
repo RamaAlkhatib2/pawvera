@@ -12,7 +12,6 @@ class _OverviewTabState extends State<OverviewTab> {
   bool isShopOpen = true;
 
   static const Color primaryTeal = Color(0xFF2D6A64);
-  static const Color textBlack = Color(0xFF212121);
   static const Color textGrey = Color(0xFF757575);
 
   @override

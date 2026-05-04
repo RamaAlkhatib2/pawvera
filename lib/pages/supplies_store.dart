@@ -356,63 +356,6 @@ const SizedBox(height: 16),
     );
   }
 
-  Widget _buildOffersChip() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFFE8F4F1),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFF3AA78E).withOpacity(0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.local_offer_outlined, size: 18, color: Color(0xFF5A3E2B)),
-          const SizedBox(width: 6),
-          const Text('Offers Only',
-              style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF5A3E2B))),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.all(4),
-            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-            child: const Text('3',
-                style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF3AA78E))),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _filterChip(String label, {bool isSelected = false, IconData? icon}) {
-    return Container(
-      margin: const EdgeInsets.only(right: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        color: isSelected ? const Color(0xFF5BA092) : Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: isSelected ? Colors.transparent : Colors.grey.shade200),
-      ),
-      child: Row(
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 18, color: isSelected ? Colors.white : const Color(0xFF5BA092)),
-            const SizedBox(width: 8),
-          ],
-          Text(label,
-              style: TextStyle(
-                  color: isSelected ? Colors.white : const Color(0xFF5A3E2B),
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
-        ],
-      ),
-    );
-  }
-
   Widget _buildStoreCard({
     required BuildContext context,
     required String name,

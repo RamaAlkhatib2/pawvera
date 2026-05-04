@@ -229,7 +229,7 @@ class _HomePageState extends State<Home> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const ReminderPage()),
+                  MaterialPageRoute(builder: (context) => ReminderScreen()),
                 );
               },
               child: _serviceCard(
@@ -243,7 +243,7 @@ class _HomePageState extends State<Home> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const AdoptionPage()),
+                  MaterialPageRoute(builder: (context) => AdoptionScreen()),
                 );
               },
               child: _serviceCard(
@@ -366,7 +366,7 @@ class _HomePageState extends State<Home> {
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const ReminderPage()),
+              MaterialPageRoute(builder: (context) => ReminderScreen()),
             );
           },
           child: Container(

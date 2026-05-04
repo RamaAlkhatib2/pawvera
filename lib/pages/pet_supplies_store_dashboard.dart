@@ -259,7 +259,6 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
   }
 
   void _showStoreWideOfferDialog({Map<String, dynamic>? offer, int? index}) {
-    final discountButtons = ['10', '15', '20', '25', '30', '50'];
     String selectedDiscount = '20';
     final titleController = TextEditingController(
       text: offer != null
@@ -292,14 +291,6 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
     );
     DateTime? selectedDate;
     String selectedDateText = 'mm/dd/yyyy';
-    bool applyPriceRange =
-        offer != null &&
-        (offer['minPrice'] as String? ?? '').isNotEmpty &&
-        (offer['maxPrice'] as String? ?? '').isNotEmpty;
-    bool requireMinOrder =
-        offer != null &&
-        offer['minOrder'] != null &&
-        (offer['minOrder'] as String).isNotEmpty;
 
     if (offer != null) {
       final raw = offer['discount'] as String;
@@ -326,7 +317,7 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
           ),
           child: StatefulBuilder(
             builder: (context, innerSetState) {
-              final previewText = '${selectedDiscount}% Off Store-Wide';
+
               final isEdit = offer != null;
               return SingleChildScrollView(
                 child: Padding(
@@ -612,7 +603,7 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
   }
 
   void _showProductSaleDialog({Map<String, dynamic>? offer, int? index}) {
-    final discountButtons = ['10', '15', '20', '25', '30', '50'];
+
     String selectedDiscount = '15';
     String selectedProduct = _products.first['name'] as String;
     final titleController = TextEditingController(
@@ -1224,10 +1215,6 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
     setState(() {
       _products.insert(0, product);
     });
-  }
-
-  void _toggleProductSaleAtIndex(int index) {
-    _showManageSaleDialog(context, index);
   }
 
   void _showManageSaleDialog(BuildContext context, int index) {

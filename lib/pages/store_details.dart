@@ -716,24 +716,6 @@ class _StoreDetailsState extends State<StoreDetails> {
     );
   }
 
-  Widget _buildCategoryChoiceChip(String label) {
-    final bool isSelected = selectedCategory == label;
-    return ChoiceChip(
-      label: Text(
-        label,
-        style: TextStyle(
-          color: isSelected ? Colors.white : Colors.black87,
-          fontSize: 13,
-        ),
-      ),
-      selected: isSelected,
-      selectedColor: const Color(0xFF5BA092),
-      backgroundColor: Colors.grey.shade200,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      onSelected: (_) => setState(() => selectedCategory = label),
-    );
-  }
-
   Widget _buildFilterChip(
     IconData icon,
     String label, {
