@@ -1,232 +1,165 @@
  import 'package:flutter/material.dart';
 
 class AdoptionScreen extends StatefulWidget {
-  const AdoptionScreen({super.key});
-
   @override
-  State<AdoptionScreen> createState() => _AdoptionScreenState();
+  _AdoptionScreenState createState() => _AdoptionScreenState();
 }
 
 class _AdoptionScreenState extends State<AdoptionScreen> {
-  List<Map<String, dynamic>> pets = [];
-  bool isLoading = true;
-
-  // ✅ chat
-  TextEditingController messageController = TextEditingController();
-  List<String> messages = [];
-
-  @override
-  void initState() {
-    super.initState();
-    fetchPets();
-  }
-
-  Future<void> fetchPets() async {
-    await Future.delayed(const Duration(seconds: 2));
-    setState(() {
-      pets = [
-        {
-          'name': 'Luna',
-          'breed': 'Cat',
-          'age': '1 year',
-          'location': 'West Side Rescue',
-          'image':
-              'https://images.unsplash.com/photo-1592194996308-7b43878e84a6',
-          'description':
-              'Playful kitten, great with children. Very affectionate and loves to cuddle.',
-        },
-        {
-          'name': 'Max',
-          'breed': 'Dog',
-          'age': '2 years',
-          'location': 'Amman',
-          'image':
-              'https://images.unsplash.com/photo-1558788353-f76d92427f16',
-          'description':
-              'Friendly dog looking for a loving home. Very playful and loyal.',
-        },
-      ];
-      isLoading = false;
-    });
-  }
+  final Color primaryTeal = Color(0xFF5BA092);
+  final Color backgroundCream = Color(0xFFF9F6EE);
 
   @override
   Widget build(BuildContext context) {
-    final primaryTeal = Color(0xFF5BA092);
-    final backgroundCream = Color(0xFFF9F6EE);
-
     return Scaffold(
       backgroundColor: backgroundCream,
       appBar: AppBar(
-        title: Text('Adoption',
-            style: TextStyle(
-                color: Colors.brown,
-                fontWeight: FontWeight.bold,
-                fontSize: 24)),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: Colors.black),
-            onPressed: () {}),
+        leading: IconButton(icon: Icon(Icons.arrow_back, color: Colors.black), onPressed: () {}),
+        title: Text('Adoption', style: TextStyle(color: Color(0xFF5D4037), fontWeight: FontWeight.bold)),
         actions: [
+            
           Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
             child: ElevatedButton.icon(
-              onPressed: () {},
-              icon: Icon(Icons.add, size: 16),
+              onPressed: () => _showPostPetSheet(context),
+              icon: Icon(Icons.add, size: 18),
               label: Text("Post"),
               style: ElevatedButton.styleFrom(
                 backgroundColor: primaryTeal,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
-                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
-          )
+          ),
         ],
       ),
-
-      // ✅ Bottom Navigation
-      bottomNavigationBar: BottomNavigationBar(
-        selectedItemColor: Colors.brown,
-        unselectedItemColor: Colors.grey,
-        type: BottomNavigationBarType.fixed,
-        items: [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.favorite), label: "My Pets"),
-          BottomNavigationBarItem(icon: Icon(Icons.chat), label: "Messages"),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_today), label: "My Bookings"),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
-        ],
-      ),
-
       body: SingleChildScrollView(
         child: Column(
           children: [
+            // شريط البحث والفلاتر
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: TextField(
-                decoration: InputDecoration(
-                  hintText:
-                      'Search pets by name, description, or location...',
-                  hintStyle: TextStyle(fontSize: 13, color: Colors.grey),
-                  prefixIcon: Icon(Icons.search, color: Colors.grey),
-                  fillColor: Colors.white,
-                  filled: true,
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide.none),
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ),
-            ),
-            Container(
-              height: 50,
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: ListView(
-                scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
                 children: [
-                  _buildFilterChip("All", primaryTeal, Colors.white),
-                  _buildFilterChip("Dogs", Colors.white, Colors.brown),
-                  _buildFilterChip("Cats", Colors.white, Colors.brown),
-                  _buildFilterChip("Birds", Colors.white, Colors.brown),
-                  _buildFilterChip("Other", Colors.white, Colors.brown),
-                  SizedBox(width: 10),
-                  _buildFilterIcon(primaryTeal),
+                  TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Search pets by name, description, or location...',
+                      prefixIcon: Icon(Icons.search),
+                      fillColor: Colors.white,
+                      filled: true,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _buildFilterChip("All", true),
+                        _buildFilterChip("Dogs", false),
+                        _buildFilterChip("Cats", false),
+                        _buildFilterChip("Birds", false),
+                        _buildFilterChip("Other", false),
+                        SizedBox(width: 10),
+                        ActionChip(
+                          avatar: Icon(Icons.tune, size: 16),
+                          label: Text("Filters"),
+                          onPressed: () {},
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
-            SizedBox(height: 10),
-            if (isLoading)
-              const Center(child: CircularProgressIndicator())
-            else
-              Column(
-                children: pets
-                    .map((pet) => _buildPetCard(
-                          context,
-                          pet['image'],
-                          pet['name'],
-                          pet['breed'],
-                          pet['description'],
-                          pet['location'],
-                          pet['age'],
-                          'Female',
-                          primaryTeal,
-                          'Sarah Johnson',
-                        ))
-                    .toList(),
-              ),
+            // كرت الحيوان (Luna)
+            _buildPetCard(
+              context,
+              "Luna",
+              "Cat",
+              "Playful kitten, great with children. Very affectionate and loves to cuddle.",
+              "West Side Rescue",
+              "1 year old",
+              "Female",
+              "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba",
+            ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildFilterChip(String label, Color bgColor, Color textColor) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: Chip(
-        label: Text(label, style: TextStyle(color: textColor, fontSize: 12)),
-        backgroundColor: bgColor,
+        
+      bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: primaryTeal,
+        unselectedItemColor: Colors.grey,
+        currentIndex: 0,
+        onTap: (index) {
+          if (index == 2) _showMessagesSheet(context);   
+        },
+        items: [
+          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: "Home"),
+          BottomNavigationBarItem(icon: Icon(Icons.favorite_outline), label: "My Pets"),
+          BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), label: "Messages"),
+          BottomNavigationBarItem(icon: Icon(Icons.calendar_month_outlined), label: "My Bookings"),
+          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: "Profile"),
+        ],
       ),
     );
   }
 
-  Widget _buildFilterIcon(Color primaryColor) {
-    return Container(
-      padding: EdgeInsets.all(8),
-      decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: Colors.grey.shade300)),
-      child: Icon(Icons.tune, color: primaryColor, size: 20),
+  Widget _buildFilterChip(String label, bool isSelected) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8.0),
+      child: FilterChip(
+        label: Text(label),
+        selected: isSelected,
+        onSelected: (bool value) {},
+        selectedColor: primaryTeal.withOpacity(0.2),
+        checkmarkColor: primaryTeal,
+      ),
     );
   }
 
-  Widget _buildPetCard(
-    BuildContext context,
-    String imageUrl,
-    String petName,
-    String petType,
-    String description,
-    String location,
-    String age,
-    String gender,
-    Color primaryColor,
-    String adopterName,
-  ) {
+  Widget _buildPetCard(BuildContext context, String name, String type, String desc, String location, String age, String gender, String imgUrl) {
     return Container(
       margin: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-      ),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ClipRRect(
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-            child: Image.network(imageUrl,
-                height: 180, width: double.infinity, fit: BoxFit.cover),
+            child: Image.network(imgUrl, height: 200, width: double.infinity, fit: BoxFit.cover),
           ),
           Padding(
-            padding: EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(petName,
-                    style:
-                        TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(name, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                    Container(padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(10)), child: Text(type, style: TextStyle(fontSize: 12))),
+                  ],
+                ),
                 SizedBox(height: 10),
-                Text(description),
+                Text(desc, style: TextStyle(color: Colors.grey[700])),
+                SizedBox(height: 12),
+                Row(children: [Icon(Icons.location_on_outlined, size: 16, color: Colors.grey), Text(" $location  •  $age  •  $gender", style: TextStyle(color: Colors.grey, fontSize: 13))]),
                 SizedBox(height: 15),
-                ElevatedButton(
-                  onPressed: () =>
-                      _showChatModal(context, petName, adopterName),
-                  child: Text("Interested to Adopt"),
-                )
+                  
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _showChatSheet(context, name, "Mike Chen"),
+                    icon: Icon(Icons.favorite_border),
+                    label: Text("Interested to Adopt"),
+                    style: ElevatedButton.styleFrom(backgroundColor: primaryTeal, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
+                  ),
+                ),
               ],
             ),
           )
@@ -235,72 +168,98 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
     );
   }
 
-  void _showChatModal(
-      BuildContext context, String petName, String adopterName) {
-    final primaryTeal = Color(0xFF5BA092);
-
+   
+  void _showChatSheet(BuildContext context, String petName, String ownerName) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (context) {
-        return Container(
-          height: MediaQuery.of(context).size.height * 0.75,
-          child: Column(
-            children: [
-              SizedBox(height: 10),
-              Text("Chat with $adopterName"),
-              Text("About adopting $petName"),
-
-              // ✅ messages
-              Expanded(
-                child: ListView.builder(
-                  padding: EdgeInsets.all(16),
-                  itemCount: messages.length,
-                  itemBuilder: (context, index) {
-                    return Align(
-                      alignment: Alignment.centerRight,
-                      child: Container(
-                        margin: EdgeInsets.only(bottom: 10),
-                        padding: EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: primaryTeal,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(messages[index],
-                            style: TextStyle(color: Colors.white)),
-                      ),
-                    );
-                  },
-                ),
-              ),
-
-              // ✅ input
-              Row(
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.85,
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(30))),
+        child: Column(
+          children: [
+            ListTile(
+              leading: Icon(Icons.chat_bubble_outline, color: Colors.brown),
+              title: Text("Chat with $ownerName", style: TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Text("About adopting $petName"),
+              trailing: IconButton(icon: Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+            ),
+            Expanded(child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.chat_bubble_outline, size: 80, color: Colors.grey[300]), Text("Start a conversation about adopting $petName", style: TextStyle(color: Colors.grey))]))),
+            // حقل الكتابة والارسال
+            Padding(
+              padding: EdgeInsets.all(16),
+              child: Row(
                 children: [
                   Expanded(
                     child: TextField(
-                      controller: messageController,
-                      decoration:
-                          InputDecoration(hintText: "Type your message..."),
+                      decoration: InputDecoration(hintText: "Type your message...", border: OutlineInputBorder(borderRadius: BorderRadius.circular(15))),
                     ),
                   ),
-                  IconButton(
-                    icon: Icon(Icons.send),
-                    onPressed: () {
-                      if (messageController.text.isNotEmpty) {
-                        setState(() {
-                          messages.add(messageController.text);
-                          messageController.clear();
-                        });
-                      }
-                    },
-                  )
+                  SizedBox(width: 10),
+                  CircleAvatar(backgroundColor: primaryTeal, child: IconButton(icon: Icon(Icons.send, color: Colors.white), onPressed: () {})),
                 ],
-              )
-            ],
-          ),
-        );
-      },
+              ),
+            )
+          ],
+        ),
+      ),
     );
   }
+
+   
+  void _showPostPetSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(30))),
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 20, right: 20, top: 20),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text("Post Pet for Adoption", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.brown)),
+              Text("Fill in the details about the pet you want to list", style: TextStyle(color: Colors.grey, fontSize: 13)),
+              SizedBox(height: 20),
+              Container(height: 100, width: double.infinity, decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300, style: BorderStyle.none), borderRadius: BorderRadius.circular(15), color: Colors.teal.shade50), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.upload, color: primaryTeal), Text("Upload photos", style: TextStyle(color: primaryTeal))])),
+              _buildInputLabel("Pet Name"), TextField(decoration: InputDecoration(border: OutlineInputBorder())),
+              _buildInputLabel("Description"), TextField(maxLines: 3, decoration: InputDecoration(border: OutlineInputBorder())),
+              SizedBox(height: 20),
+              SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () => Navigator.pop(context), child: Text("Post for Adoption"), style: ElevatedButton.styleFrom(backgroundColor: primaryTeal, foregroundColor: Colors.white))),
+              SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+    
+  void _showMessagesSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(30))),
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.8,
+        padding: EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Text("Messages", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.brown)),
+            TextField(decoration: InputDecoration(hintText: "Search conversations...", prefixIcon: Icon(Icons.search))),
+            Expanded(
+              child: ListView(
+                children: [
+                  _buildMessageTile("Sarah Johnson", "About: Max", "Jan 13"),
+                  _buildMessageTile("Mike Chen", "About: Luna", "Jan 13"),
+                  _buildMessageTile("Emma Davis", "About: Charlie", "Jan 12"),
+                ],
+              ),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInputLabel(String label) => Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Align(alignment: Alignment.centerLeft, child: Text(label, style: TextStyle(fontWeight: FontWeight.bold))));
+  Widget _buildMessageTile(String name, String sub, String date) => ListTile(leading: CircleAvatar(child: Icon(Icons.person)), title: Text(name), subtitle: Text(sub), trailing: Text(date));
 }
