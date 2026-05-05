@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pawvera/pages/home.dart';
 import 'package:pawvera/pages/service%20provider%20dashboard%20pages/service_provider_dashboard.dart';
 import 'package:pawvera/pages/pet_supplies_store_dashboard.dart';
@@ -30,6 +32,75 @@ class _LoginViewState extends State<LoginView> {
     userEmailController.dispose();
     passwordController.dispose();
     super.dispose();
+  }
+
+  // دالة تسجيل الدخول عبر Firebase
+  Future<void> loginUser() async {
+    // إظهار مؤشر تحميل
+    showDialog(
+      context: context,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      // 1. تسجيل الدخول في Firebase Auth
+      UserCredential userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(
+        email: userEmailController.text.trim(),
+        password: passwordController.text.trim(),
+      );
+
+      // 2. التحقق من دور المستخدم في Firestore للتأكد من صلاحياته
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCredential.user!.uid)
+          .get();
+
+      // إغلاق مؤشر التحميل
+      if (mounted) Navigator.pop(context);
+
+      if (userDoc.exists) {
+        // التحقق من توافق الدور المختار مع الدور في قاعدة البيانات (اختياري)
+        // String dbRole = userDoc.get('role');
+
+        if (activeRole == "Pet Owner") {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const Home()),
+          );
+        } else if (activeRole == "Provider") {
+          if (selectedProviderType == "Pet Supplies Store") {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => const PetSuppliesStoreDashboard()),
+            );
+          } else {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => ServiceProviderDashboard(
+                    providerType: selectedProviderType!,
+                  )),
+            );
+          }
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("User data not found")),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      if (mounted) Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message ?? "Authentication failed")),
+      );
+    } catch (e) {
+      if (mounted) Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $e")),
+      );
+    }
   }
 
   // --- Widget بديل لـ MyTextfields المحذوف ---
@@ -213,39 +284,7 @@ class _LoginViewState extends State<LoginView> {
 
           buildLoginButton(
             text: "Login",
-            onTap: () {
-              if (activeRole == "Pet Owner") {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const Home()),
-                );
-              } else if (activeRole == "Provider") {
-                if (selectedProviderType == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Please select a provider type'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                } else if (selectedProviderType == "Pet Supplies Store") {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const PetSuppliesStoreDashboard(),
-                    ),
-                  );
-                } else {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ServiceProviderDashboard(
-                        providerType: selectedProviderType!,
-                      ),
-                    ),
-                  );
-                }
-              }
-            },
+            onTap: loginUser,
           ),
 
           const SizedBox(height: 20),

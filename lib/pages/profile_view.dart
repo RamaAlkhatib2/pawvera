@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pawvera/pages/login_view.dart';
 import 'package:pawvera/pages/my_bookings_page.dart';
 import 'package:pawvera/pages/notifications_page.dart';
+import 'package:pawvera/services/database_service.dart';
 
 class ProfileView extends StatelessWidget {
   /// When provided (e.g. from [Home]), switches tab so the bottom nav stays visible.
   final VoidCallback? onOpenMyBookings;
 
-  const ProfileView({super.key, this.onOpenMyBookings});
+  ProfileView({super.key, this.onOpenMyBookings});
+
+  final DatabaseService _db = DatabaseService();
 
   @override
   Widget build(BuildContext context) {
@@ -19,54 +24,82 @@ class ProfileView extends StatelessWidget {
     return Scaffold(
       backgroundColor: backgroundLight,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Profile',
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: darkText),
-              ),
-              const SizedBox(height: 20),
+        child: StreamBuilder<DocumentSnapshot>(
+          stream: _db.userData,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-              // 1. Header Card (Pet Owner Info)
-              _buildSectionCard(
-                child: Column(
-                  children: [
-                    Row(
+            if (!snapshot.hasData || !snapshot.data!.exists) {
+              return const Center(child: Text("User data not found"));
+            }
+
+            var userData = snapshot.data!.data() as Map<String, dynamic>;
+            String fullName = userData['fullName'] ?? 'User';
+            String email = userData['email'] ?? 'No email';
+
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Profile',
+                    style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: darkText),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // 1. Header Card (Pet Owner Info)
+                  _buildSectionCard(
+                    child: Column(
                       children: [
-                        const CircleAvatar(
-                          radius: 40,
-                          backgroundColor: Color(0xFFDFF3EE),
-                          child: Icon(Icons.person_outline, size: 45, color: primaryTeal),
-                        ),
-                        const SizedBox(width: 15),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        Row(
                           children: [
-                            const Text('Pet Owner', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: darkText)),
-                            Text('hhh@gmail.com', style: TextStyle(color: Colors.grey.shade600)),
+                            const CircleAvatar(
+                              radius: 40,
+                              backgroundColor: Color(0xFFDFF3EE),
+                              child: Icon(Icons.person_outline,
+                                  size: 45, color: primaryTeal),
+                            ),
+                            const SizedBox(width: 15),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(fullName,
+                                    style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: darkText)),
+                                Text(email,
+                                    style: TextStyle(
+                                        color: Colors.grey.shade600)),
+                              ],
+                            ),
                           ],
+                        ),
+                        const SizedBox(height: 20),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () {},
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: primaryTeal,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10)),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            child: const Text('Edit Profile',
+                                style:
+                                    TextStyle(color: Colors.white, fontSize: 16)),
+                          ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 20),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () {},
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryTeal,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                        child: const Text('Edit Profile', style: TextStyle(color: Colors.white, fontSize: 16)),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+                  ),
 
               // 2. My Activity Section
               _buildSectionTitle('My Activity'),
@@ -142,28 +175,37 @@ class ProfileView extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(builder: (context) => const LoginView()),
-                      (route) => false,
-                    );
+                  onPressed: () async {
+                    await FirebaseAuth.instance.signOut();
+                    if (context.mounted) {
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const LoginView()),
+                        (route) => false,
+                      );
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFD32F2F),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
-                  child: const Text('Logout', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  child: const Text('Logout',
+                      style: TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
               ),
               const SizedBox(height: 20),
             ],
           ),
-        ),
-      ),
-    );
-  }
+        );
+      },
+    ),
+  ),
+);
+}
 
   // ويجيت لإنشاء الكرت المنحني لكل قسم
   Widget _buildSectionCard({required Widget child}) {
