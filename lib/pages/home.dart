@@ -56,7 +56,7 @@ class _HomePageState extends State<Home> {
             const SizedBox(height: 20),
             _buildMyPetsRow(),
             const SizedBox(height: 20),
-            _buildServicesGrid(),
+            _buildServicesGrid(context),
             const SizedBox(height: 22),
             _buildUpcomingReminderCard(),
             const SizedBox(height: 20),
@@ -208,149 +208,155 @@ class _HomePageState extends State<Home> {
     );
   }
 
-  Widget _buildServicesGrid() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Services',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(height: 12),
-        GridView(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            mainAxisExtent: 120,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-          ),
-          children: [
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => ReminderScreen()),
-                );
-              },
-              child: _serviceCard(
-                title: 'Reminders',
-                subtitle: 'Schedule pet tasks',
-                icon: Icons.calendar_today,
-                color: const Color(0xFFF4CFC6),
-              ),
-            ),
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => AdoptionScreen()),
-                );
-              },
-              child: _serviceCard(
-                title: 'Adoption',
-                subtitle: 'Find new friends',
-                icon: Icons.favorite_border,
-                color: const Color(0xFFDFF6EF),
-              ),
-            ),
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const SuppliesStore(),
-                  ),
-                );
-              },
-              child: _serviceCard(
-                title: 'Pet Supplies',
-                subtitle: 'Shop Now',
-                icon: Icons.shopping_bag_outlined,
-                color: const Color(0xFFF7EACD),
-              ),
-            ),
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const PetCarePage()),
-                );
-              },
-              child: _serviceCard(
-                title: 'Pet Care',
-                subtitle: 'Book Services',
-                icon: Icons.pets_outlined,
-                color: const Color(0xFFFDE0C8),
-              ),
-            ),
-            _serviceCard(
-              title: 'Doctor Appointments',
-              subtitle: 'Book vet consults',
-              icon: Icons.medical_services_outlined,
-              color: const Color(0xFFD9F1F9),
-            ),
-            _serviceCard(
-              title: 'Health Records',
-              subtitle: 'Medical history',
-              icon: Icons.receipt_long,
-              color: const Color(0xFFE6F6F0),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _serviceCard({
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(16),
+ Widget _buildServicesGrid(BuildContext context) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const Text(
+        'Services',
+        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.start,
+      const SizedBox(height: 12),
+      GridView(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          mainAxisExtent: 130, 
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+        ),
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, size: 18, color: const Color(0xFF6B6B6B)),
+          // 1. Reminders
+          _buildTappableServiceCard(
+            context: context,
+            screen: const ReminderScreen(), 
+            title: 'Reminders',
+            subtitle: 'Schedule pet tasks',
+            icon: Icons.calendar_today,
+            color: const Color(0xFFF4CFC6),
+            imagePath: 'assets/icons/reminders.icon.png',
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF4B3B34),
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: const TextStyle(fontSize: 11, color: Color(0xFF6E6E6E)),
-              ),
-            ],
+          // 2. Adoption
+          _buildTappableServiceCard(
+            context: context,
+            screen: const AdoptionScreen(),
+            title: 'Adoption',
+            subtitle: 'Find new friends',
+            icon: Icons.favorite_border,
+            color: const Color(0xFFDFF6EF),
+            imagePath: 'assets/icons/adoption.icon.png',
+          ),
+          // 3. Pet Supplies
+          _buildTappableServiceCard(
+            context: context,
+            screen: const SuppliesStore(),
+            title: 'Pet Supplies',
+            subtitle: 'Shop Now',
+            icon: Icons.shopping_bag_outlined,
+            color: const Color(0xFFF7EACD),
+            imagePath: 'assets/icons/pet_supplies.icon.png',
+          ),
+          // 4. Pet Care
+          _buildTappableServiceCard(
+            context: context,
+            screen: const PetCarePage(),
+            title: 'Pet Care',
+            subtitle: 'Book Services',
+            icon: Icons.pets_outlined,
+            color: const Color(0xFFFDE0C8),
+            imagePath: 'assets/icons/pet_care.icon.png',
+          ),
+          // 5. Doctor Appointments (بدون استجابة عند الكبس)
+          _serviceCard(
+            title: 'Doctor Appointments',
+            subtitle: 'Book vet consults',
+            icon: Icons.medical_services_outlined,
+            color: const Color(0xFFD9F1F9),
+          ),
+          // 6. Health Records
+          _serviceCard(
+            title: 'Health Records',
+            subtitle: 'Medical history',
+            icon: Icons.receipt_long,
+            color: const Color(0xFFE6F6F0),
+            imagePath: 'assets/icons/health_records.icon.png',
           ),
         ],
       ),
-    );
-  }
+    ],
+  );
+}
 
+// دالة بناء الكرت الأساسية (تأكدي أن هذه الدالة موجودة تحت الدالة السابقة مباشرة)
+Widget _serviceCard({
+  required String title,
+  required String subtitle,
+  required IconData icon,
+  required Color color,
+  String? imagePath,
+}) {
+  return Container(
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: color,
+      borderRadius: BorderRadius.circular(16),
+    ),
+    child: Stack(
+      children: [
+        Align(
+          alignment: Alignment.topLeft,
+          child: Container(
+            width: 36,
+            height: 36,
+            decoration: const BoxDecoration(color: Colors.white70, shape: BoxShape.circle),
+            child: Icon(icon, size: 18, color: const Color(0xFF6B6B6B)),
+          ),
+        ),
+        if (imagePath != null)
+          Positioned(
+            bottom: -5,
+            right: -5,
+            child: Image.asset(imagePath, width: 70, height: 70, fit: BoxFit.contain),
+          ),
+        Align(
+          alignment: Alignment.bottomLeft,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF4B3B34))),
+              const SizedBox(height: 2),
+              Text(subtitle, style: const TextStyle(fontSize: 10, color: Color(0xFF6E6E6E))),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+// دالة المساعدة لجعل الكرت قابلاً للضغط
+Widget _buildTappableServiceCard({
+  required BuildContext context,
+  required Widget screen,
+  required String title,
+  required String subtitle,
+  required IconData icon,
+  required Color color,
+  String? imagePath,
+}) {
+  return GestureDetector(
+    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => screen)),
+    child: _serviceCard(
+      title: title,
+      subtitle: subtitle,
+      icon: icon,
+      color: color,
+      imagePath: imagePath,
+    ),
+  );
+}
   Widget _buildUpcomingReminderCard() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
