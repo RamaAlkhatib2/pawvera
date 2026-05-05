@@ -51,10 +51,16 @@ class _LoginViewState extends State<LoginView> {
         password: passwordController.text.trim(),
       );
 
+      // Safely access user UID to avoid platform channel type cast errors
+      final user = userCredential.user;
+      if (user == null || user.uid.isEmpty) {
+        throw Exception('Failed to sign in user');
+      }
+
       // 2. التحقق من دور المستخدم في Firestore للتأكد من صلاحياته
       DocumentSnapshot userDoc = await FirebaseFirestore.instance
           .collection('users')
-          .doc(userCredential.user!.uid)
+          .doc(user.uid)
           .get();
 
       // إغلاق مؤشر التحميل

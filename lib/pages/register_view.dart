@@ -54,12 +54,18 @@ class _RegisterViewState extends State<RegisterView> {
         password: passwordController.text.trim(),
       );
 
+      // Safely access user UID to avoid platform channel type cast errors
+      final user = userCredential.user;
+      if (user == null || user.uid.isEmpty) {
+        throw Exception('Failed to create user account');
+      }
+
       // 2. حفظ بيانات المستخدم الإضافية في Firestore
       await FirebaseFirestore.instance
           .collection('users')
-          .doc(userCredential.user!.uid)
+          .doc(user.uid)
           .set({
-        'uid': userCredential.user!.uid,
+        'uid': user.uid,
         'fullName': fullNameController.text.trim(),
         'userName': userNameController.text.trim(),
         'email': emailController.text.trim(),
