@@ -1,4 +1,6 @@
- import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import '../services/backend_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class AdoptionScreen extends StatefulWidget {
   const AdoptionScreen({super.key});
@@ -10,6 +12,7 @@ class AdoptionScreen extends StatefulWidget {
 class _AdoptionScreenState extends State<AdoptionScreen> {
   List<Map<String, dynamic>> pets = [];
   bool isLoading = true;
+  final backend = BackendService();
 
   // ✅ chat
   TextEditingController messageController = TextEditingController();
@@ -18,37 +21,16 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
   @override
   void initState() {
     super.initState();
-    fetchPets();
-  }
-
-  Future<void> fetchPets() async {
-    await Future.delayed(const Duration(seconds: 2));
-    setState(() {
-      pets = [
-        {
-          'name': 'Luna',
-          'breed': 'Cat',
-          'age': '1 year',
-          'location': 'West Side Rescue',
-          'image':
-              'https://images.unsplash.com/photo-1592194996308-7b43878e84a6',
-          'description':
-              'Playful kitten, great with children. Very affectionate and loves to cuddle.',
-        },
-        {
-          'name': 'Max',
-          'breed': 'Dog',
-          'age': '2 years',
-          'location': 'Amman',
-          'image':
-              'https://images.unsplash.com/photo-1558788353-f76d92427f16',
-          'description':
-              'Friendly dog looking for a loving home. Very playful and loyal.',
-        },
-      ];
-      isLoading = false;
+    // subscribe to pets stream
+    backend.petsStream().listen((list) {
+      setState(() {
+        pets = list;
+        isLoading = false;
+      });
     });
   }
+
+  
 
   @override
   Widget build(BuildContext context) {
@@ -146,15 +128,16 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
                 children: pets
                     .map((pet) => _buildPetCard(
                           context,
-                          pet['image'],
-                          pet['name'],
-                          pet['breed'],
-                          pet['description'],
-                          pet['location'],
-                          pet['age'],
+                          pet['image'] ?? '',
+                          pet['name'] ?? '',
+                          pet['breed'] ?? '',
+                          pet['description'] ?? '',
+                          pet['location'] ?? '',
+                          pet['age']?.toString() ?? '',
                           'Female',
                           primaryTeal,
-                          'Sarah Johnson',
+                          pet['id'] ?? '',
+                          pet['ownerId'] ?? '',
                         ))
                     .toList(),
               ),
@@ -195,7 +178,8 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
     String age,
     String gender,
     Color primaryColor,
-    String adopterName,
+    String petId,
+    String ownerId,
   ) {
     return Container(
       margin: EdgeInsets.all(16),
@@ -223,8 +207,7 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
                 Text(description),
                 SizedBox(height: 15),
                 ElevatedButton(
-                  onPressed: () =>
-                      _showChatModal(context, petName, adopterName),
+                  onPressed: () => _showChatModal(context, petName, 'Owner', petId: petId, ownerId: ownerId),
                   child: Text("Interested to Adopt"),
                 )
               ],
@@ -236,7 +219,8 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
   }
 
   void _showChatModal(
-      BuildContext context, String petName, String adopterName) {
+      BuildContext context, String petName, String adopterName,
+      {required String petId, required String ownerId}) {
     final primaryTeal = Color(0xFF5BA092);
 
     showModalBottomSheet(
@@ -288,10 +272,12 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
                     icon: Icon(Icons.send),
                     onPressed: () {
                       if (messageController.text.isNotEmpty) {
+                        final text = messageController.text;
                         setState(() {
-                          messages.add(messageController.text);
+                          messages.add(text);
                           messageController.clear();
                         });
+                        _sendAdoptionRequest(petId, ownerId, text);
                       }
                     },
                   )
@@ -302,5 +288,19 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
         );
       },
     );
+  }
+
+  Future<void> _sendAdoptionRequest(String petId, String ownerId, String message) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Please log in to send requests')));
+      return;
+    }
+    try {
+      await backend.createAdoptionRequest(petId: petId, fromUserId: user.uid, toOwnerId: ownerId, message: message);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Adoption request sent')));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to send request')));
+    }
   }
 }

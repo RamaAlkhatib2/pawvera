@@ -1,0 +1,24 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // User profile images: only owner can upload/delete
+    match /users/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Pet images: owner or admin can write
+    match /pets/{petId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null && (
+        request.auth.token.admin == true || request.auth.uid == resource.metadata.ownerId || request.auth.uid == request.resource.metadata.ownerId
+      );
+    }
+
+    // Default: deny writes
+    match /{allPaths=**} {
+      allow read: if false;
+      allow write: if false;
+    }
+  }
+}

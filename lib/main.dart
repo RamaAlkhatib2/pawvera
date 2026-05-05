@@ -3,6 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart'; // أضفنا هاد المكت
 import 'package:firebase_core/firebase_core.dart';
 import 'package:pawvera/firebase_options.dart';
 import 'package:pawvera/pages/sign_in_page.dart';
+import 'package:pawvera/services/backend_service.dart';
 
 void main() async {
   // 1. تأكيد تهيئة الـ Widgets
@@ -15,6 +16,9 @@ void main() async {
 
   // 3. تهيئة Hive للعمل على الموبايل
   await Hive.initFlutter();
+
+  // Initialize FCM token registration and handlers
+  await BackendService().initMessaging();
 
   // 3. فتح الـ Box المخصص للبيانات (يجب أن يكون نفس الاسم المستخدم في MyPetPage)
   // فتحه هنا يضمن أن كل صفحات التطبيق تستطيع الوصول إليه فوراً

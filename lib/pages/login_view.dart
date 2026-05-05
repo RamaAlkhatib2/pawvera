@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pawvera/pages/home.dart';
+import 'package:pawvera/services/backend_service.dart';
 import 'package:pawvera/pages/service%20provider%20dashboard%20pages/service_provider_dashboard.dart';
 import 'package:pawvera/pages/pet_supplies_store_dashboard.dart';
 import '../components/role_button.dart'; // تأكد أن هذا الملف لا يزال موجوداً
@@ -58,6 +59,9 @@ class _LoginViewState extends State<LoginView> {
 
       // إغلاق مؤشر التحميل
       if (mounted) Navigator.pop(context);
+
+        // initialize messaging (save token)
+        await BackendService().initMessaging();
 
       if (userDoc.exists) {
         // التحقق من توافق الدور المختار مع الدور في قاعدة البيانات (اختياري)

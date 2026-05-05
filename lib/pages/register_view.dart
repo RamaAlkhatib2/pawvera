@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:pawvera/services/backend_service.dart';
 
 class RegisterView extends StatefulWidget {
   const RegisterView({super.key});
@@ -70,6 +71,9 @@ class _RegisterViewState extends State<RegisterView> {
 
       // إغلاق مؤشر التحميل
       if (mounted) Navigator.pop(context);
+
+      // initialize messaging (save token if available)
+      await BackendService().initMessaging();
 
       // (اختياري) الانتقال للصفحة الرئيسية أو تسجيل الدخول
       ScaffoldMessenger.of(context).showSnackBar(
