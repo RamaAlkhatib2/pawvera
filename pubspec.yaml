@@ -14,11 +14,11 @@ dependencies:
     sdk: flutter
   hive: ^2.2.3
   hive_flutter: ^1.1.0
-  firebase_core: 
-  firebase_auth: 
-  cloud_firestore: 
-  firebase_storage: 
-  firebase_messaging: 
+  firebase_core: ^2.13.0
+  firebase_auth: ^4.8.0
+  cloud_firestore: ^4.9.0
+  firebase_storage: ^11.0.0
+  firebase_messaging: ^14.0.0
 
 dev_dependencies:
   flutter_test:
