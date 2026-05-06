@@ -141,31 +141,35 @@ class _SuppliesStoreState extends State<SuppliesStore> {
           Padding(
   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
   child: Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    mainAxisAlignment: MainAxisAlignment.start,
     children: [
       // 1. كبسة الـ Sort (المفعلة) 🔽
-      PopupMenuButton<String>(
-        onSelected: (value) => setState(() => selectedSort = value),
-        itemBuilder: (context) => [
-          const PopupMenuItem(value: 'Nearest', child: Text('Sort: Nearest')),
-          const PopupMenuItem(value: 'Top Rated', child: Text('Sort: Top Rated')),
-          const PopupMenuItem(value: 'Popular', child: Text('Sort: Popular')),
-        ],
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: Colors.grey.shade200),
-          ),
-          child: Row(
-            children: [
-              Text("Sort: $selectedSort", style: const TextStyle(fontSize: 13, color: Color(0xFF5A3E2B))),
-              const Icon(Icons.arrow_drop_down, color: Colors.grey),
-            ],
+      Expanded(
+        child: PopupMenuButton<String>(
+          onSelected: (value) => setState(() => selectedSort = value),
+          itemBuilder: (context) => [
+            const PopupMenuItem(value: 'Nearest', child: Text('Sort: Nearest')),
+            const PopupMenuItem(value: 'Top Rated', child: Text('Sort: Top Rated')),
+            const PopupMenuItem(value: 'Popular', child: Text('Sort: Popular')),
+          ],
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text("Sort: $selectedSort", style: const TextStyle(fontSize: 13, color: Color(0xFF5A3E2B))),
+                const Icon(Icons.arrow_drop_down, color: Colors.grey),
+              ],
+            ),
           ),
         ),
       ),
+      const SizedBox(width: 8),
 
       // 2. كبسة الـ Offers Only (المفعلة) 🏷️
       GestureDetector(
@@ -177,7 +181,6 @@ class _SuppliesStoreState extends State<SuppliesStore> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            // يتغير اللون للأخضر الفاتح إذا كانت مفعلة
             color: showOnlyOffers ? const Color(0xFFE8F4F1) : Colors.white,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: showOnlyOffers ? const Color(0xFF3AA78E) : Colors.grey.shade200),
@@ -513,7 +516,7 @@ else {
                         ],
                       ),
                       const SizedBox(height: 4),
-                      Text(desc, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                      Text(desc, style: const TextStyle(color: Colors.black, fontSize: 13)),
                     ],
                   ),
                 ),
@@ -547,11 +550,11 @@ else {
               children: [
                 const Icon(Icons.location_on_outlined, size: 14, color: Colors.grey),
                 const SizedBox(width: 4),
-                Text('$location  •  $distance', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                Text('$location  •  $distance', style: const TextStyle(color: Colors.black, fontSize: 12)),
                 const Spacer(),
                 const Icon(Icons.access_time, size: 14, color: Colors.grey),
                 const SizedBox(width: 4),
-                Text(time, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                Text(time, style: const TextStyle(color: Colors.black, fontSize: 12)),
               ],
             ),
           ],
