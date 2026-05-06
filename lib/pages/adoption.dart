@@ -1,8 +1,10 @@
  import 'package:flutter/material.dart';
 
 class AdoptionScreen extends StatefulWidget {
+  const AdoptionScreen({super.key});
+
   @override
-  _AdoptionScreenState createState() => _AdoptionScreenState();
+  State<AdoptionScreen> createState() => _AdoptionScreenState();
 }
 
 class _AdoptionScreenState extends State<AdoptionScreen> {
@@ -226,7 +228,7 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
               _buildInputLabel("Pet Name"), TextField(decoration: InputDecoration(border: OutlineInputBorder())),
               _buildInputLabel("Description"), TextField(maxLines: 3, decoration: InputDecoration(border: OutlineInputBorder())),
               SizedBox(height: 20),
-              SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () => Navigator.pop(context), child: Text("Post for Adoption"), style: ElevatedButton.styleFrom(backgroundColor: primaryTeal, foregroundColor: Colors.white))),
+              SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () => Navigator.pop(context), style: ElevatedButton.styleFrom(backgroundColor: primaryTeal, foregroundColor: Colors.white), child: Text("Post for Adoption"))),
               SizedBox(height: 20),
             ],
           ),

@@ -404,7 +404,7 @@ Widget _buildTappableServiceCard({
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => ReminderScreen()),
+              MaterialPageRoute(builder: (context) => const ReminderScreen()),
             );
           },
           child: Container(
