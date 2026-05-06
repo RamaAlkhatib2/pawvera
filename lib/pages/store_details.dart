@@ -611,25 +611,361 @@ class _StoreDetailsState extends State<StoreDetails> {
     );
   }
 
-  Widget _buildRatingBadge() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.green.shade50,
-        borderRadius: BorderRadius.circular(8),
+  void _showStoreReviewsDialog() {
+    final storeName = widget.storeData['name']?.toString() ?? 'Store';
+    final reviewProfile = _getStoreReviewProfile(storeName);
+    final ratingValue = (reviewProfile['rating'] as double?) ?? 4.8;
+    final ratingText = ratingValue.toStringAsFixed(1);
+    final totalRatings = (reviewProfile['ratingsCount'] as int?) ?? 0;
+    final reviews = (reviewProfile['reviews'] as List<Map<String, dynamic>>?) ?? [];
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: const Color(0xFFEFF6F7),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 620),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    const Spacer(),
+                    const Text(
+                      'Store Reviews',
+                      style: TextStyle(
+                        color: Color(0xFF7A4B25),
+                        fontSize: 36,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const Spacer(),
+                    InkWell(
+                      onTap: () => Navigator.pop(context),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: const Color(0xFF8DC1B7), width: 1.5),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        padding: const EdgeInsets.all(3),
+                        child: const Icon(Icons.close, size: 16, color: Color(0xFF8DC1B7)),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'See what customers are saying about $storeName',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Color(0xFF5A6D8A),
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF7F7F9),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            ratingText,
+                            style: const TextStyle(
+                              color: Color(0xFF7A4B25),
+                              fontSize: 28,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          _buildStarsRow(ratingValue, size: 18),
+                          const SizedBox(height: 2),
+                          Text(
+                            '$totalRatings ratings',
+                            style: const TextStyle(
+                              color: Color(0xFF5A6D8A),
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Based on ${reviews.length} customer reviews',
+                          style: const TextStyle(
+                            color: Color(0xFF5A6D8A),
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: ListView.separated(
+                    itemCount: reviews.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder:
+                        (context, index) =>
+                            _buildStoreReviewCard(reviews[index]),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
-      child: Row(
+    );
+  }
+
+  Map<String, dynamic> _getStoreReviewProfile(String storeName) {
+    const profiles = {
+      'Comfort Paws Store': {
+        'rating': 4.8,
+        'ratingsCount': 412,
+        'reviews': [
+          {
+            'name': 'Jennifer C.',
+            'initial': 'J',
+            'date': '2026-01-03',
+            'stars': 5,
+            'comment':
+                "Absolutely love this store! The quality of their furniture is exceptional. My cats' new bed is perfect!",
+          },
+          {
+            'name': 'Hassan Y.',
+            'initial': 'H',
+            'date': '2025-12-30',
+            'stars': 5,
+            'comment':
+                'Premium products at premium prices, but totally worth it. Everything is so well-made and comfortable for pets.',
+          },
+          {
+            'name': 'Maya R.',
+            'initial': 'M',
+            'date': '2025-12-22',
+            'stars': 4,
+            'comment':
+                'Great quality overall and delivery was smooth. I only wish there were more color options.',
+          },
+        ],
+      },
+      'Pet Supplies Plus': {
+        'rating': 4.7,
+        'ratingsCount': 286,
+        'reviews': [
+          {
+            'name': 'Adam K.',
+            'initial': 'A',
+            'date': '2026-01-05',
+            'stars': 5,
+            'comment':
+                'Very good variety and fair prices. Found premium food and accessories in one place.',
+          },
+          {
+            'name': 'Sara M.',
+            'initial': 'S',
+            'date': '2025-12-27',
+            'stars': 4,
+            'comment':
+                'Staff were helpful and product quality is solid. Checkout took a bit longer than expected.',
+          },
+          {
+            'name': 'Yousef N.',
+            'initial': 'Y',
+            'date': '2025-12-18',
+            'stars': 5,
+            'comment':
+                'Excellent grooming products and quick service. I will definitely order again.',
+          },
+        ],
+      },
+      'Whisker World': {
+        'rating': 4.5,
+        'ratingsCount': 193,
+        'reviews': [
+          {
+            'name': 'Noor A.',
+            'initial': 'N',
+            'date': '2026-01-02',
+            'stars': 5,
+            'comment':
+                'Loved the cat toys collection. My cat was obsessed with the new scratching post.',
+          },
+          {
+            'name': 'Khaled T.',
+            'initial': 'K',
+            'date': '2025-12-21',
+            'stars': 4,
+            'comment':
+                'Good prices and friendly team. Some items were out of stock but alternatives were fine.',
+          },
+        ],
+      },
+    };
+
+    final profile = profiles[storeName];
+    if (profile != null) {
+      return Map<String, dynamic>.from(profile);
+    }
+
+    return {
+      'rating': 4.6,
+      'ratingsCount': 120,
+      'reviews': [
+        {
+          'name': 'Pet Owner',
+          'initial': 'P',
+          'date': '2025-12-20',
+          'stars': 5,
+          'comment': 'Great overall experience and good product quality.',
+        },
+        {
+          'name': 'Samir O.',
+          'initial': 'S',
+          'date': '2025-12-10',
+          'stars': 4,
+          'comment': 'Helpful staff and clean store. I found most of what I needed.',
+        },
+      ],
+    };
+  }
+
+  Widget _buildStarsRow(double rating, {double size = 16}) {
+    final rounded = rating.round().clamp(0, 5);
+    return Row(
+      children: List.generate(5, (index) {
+        final isFilled = index < rounded;
+        return Icon(
+          isFilled ? Icons.star : Icons.star_border,
+          color: isFilled ? const Color(0xFFF3C000) : const Color(0xFFBFC8D5),
+          size: size,
+        );
+      }),
+    );
+  }
+
+  Widget _buildStoreReviewCard(Map<String, dynamic> review) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFD4DDE4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.star, color: Colors.green, size: 16),
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: const Color(0xFF5BA092),
+                child: Text(
+                  review['initial'] ?? '',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          review['name'] ?? '',
+                          style: const TextStyle(
+                            color: Color(0xFF7A4B25),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE9F7EF),
+                            border: Border.all(color: const Color(0xFFA8E0BE)),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.check_circle_outline, color: Color(0xFF0E9F47), size: 14),
+                              SizedBox(width: 4),
+                              Text(
+                                'Verified',
+                                style: TextStyle(
+                                  color: Color(0xFF0E9F47),
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    _buildStarsRow((review['stars'] as int? ?? 5).toDouble()),
+                  ],
+                ),
+              ),
+              Text(
+                review['date'] ?? '',
+                style: const TextStyle(color: Color(0xFF5A6D8A), fontSize: 13),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
           Text(
-            ' ${widget.storeData['rating'] ?? "4.8"}',
+            review['comment'] ?? '',
             style: const TextStyle(
-              color: Colors.green,
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
+              color: Color(0xFF4C5C73),
+              fontSize: 15,
+              height: 1.35,
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildRatingBadge() {
+    return GestureDetector(
+      onTap: _showStoreReviewsDialog,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.green.shade50,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.star, color: Colors.green, size: 16),
+            Text(
+              ' ${widget.storeData['rating'] ?? "4.8"}',
+              style: const TextStyle(
+                color: Colors.green,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
