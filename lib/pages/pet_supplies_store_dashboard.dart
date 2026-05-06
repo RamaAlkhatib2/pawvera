@@ -258,6 +258,78 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
     super.dispose();
   }
 
+  /// Stepper arrows for numeric product fields (`suffixIcon` needs fixed size; avoid `Expanded` without height).
+  InputDecoration _numericStepperDecoration({
+    required String labelText,
+    required TextEditingController controller,
+  }) {
+    final outline = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(14),
+      borderSide: BorderSide(color: Colors.grey[300]!),
+    );
+    return InputDecoration(
+      labelText: labelText,
+      suffixIconConstraints: const BoxConstraints(
+        minWidth: 40,
+        maxWidth: 44,
+        minHeight: 48,
+        maxHeight: 54,
+      ),
+      suffixIcon: Material(
+        color: Colors.transparent,
+        child: SizedBox(
+          height: 50,
+          width: 38,
+          child: Column(
+            children: [
+              Expanded(
+                child: InkWell(
+                  onTap: () {
+                    final v = int.tryParse(controller.text.trim()) ?? 0;
+                    controller.text = (v + 1).toString();
+                  },
+                  child: Center(
+                    child: Icon(
+                      Icons.keyboard_arrow_up,
+                      size: 20,
+                      color: Colors.grey.shade800,
+                    ),
+                  ),
+                ),
+              ),
+              Divider(
+                height: 1,
+                thickness: 1,
+                indent: 4,
+                endIndent: 4,
+                color: Colors.grey.shade300,
+              ),
+              Expanded(
+                child: InkWell(
+                  onTap: () {
+                    final v = int.tryParse(controller.text.trim()) ?? 0;
+                    controller.text =
+                        v > 0 ? (v - 1).toString() : '0';
+                  },
+                  child: Center(
+                    child: Icon(
+                      Icons.keyboard_arrow_down,
+                      size: 20,
+                      color: Colors.grey.shade800,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      border: outline,
+      enabledBorder: outline,
+      focusedBorder: outline,
+    );
+  }
+
   void _showStoreWideOfferDialog({Map<String, dynamic>? offer, int? index}) {
     String selectedDiscount = '20';
     final titleController = TextEditingController(
@@ -609,7 +681,7 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
     final titleController = TextEditingController(
       text: offer != null
           ? offer['title'] as String
-          : '$selectedDiscount% Off ${selectedProduct}',
+          : '$selectedDiscount% Off $selectedProduct',
     );
     final descriptionController = TextEditingController(
       text: offer != null
@@ -1750,12 +1822,9 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                         child: TextField(
                           controller: priceController,
                           keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
+                          decoration: _numericStepperDecoration(
                             labelText: 'Price (JOD) *',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(14),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
-                            ),
+                            controller: priceController,
                           ),
                         ),
                       ),
@@ -1764,12 +1833,9 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                         child: TextField(
                           controller: stockController,
                           keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
+                          decoration: _numericStepperDecoration(
                             labelText: 'Stock Quantity *',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(14),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
-                            ),
+                            controller: stockController,
                           ),
                         ),
                       ),
@@ -2472,8 +2538,9 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
       if (order['status'] == 'Delivered') return false;
       if (!showAll &&
           !showPastOrders &&
-          order['status'] != _selectedOrdersFilter)
+          order['status'] != _selectedOrdersFilter) {
         return false;
+      }
       if (showPastOrders) return false;
       if (query.isEmpty) return true;
       return order['id']!.toLowerCase().contains(query) ||
@@ -2743,8 +2810,9 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
     Color statusColor = Colors.grey;
     if (order['status'] == 'Pending') statusColor = const Color(0xFFFFA500);
     if (order['status'] == 'Confirmed') statusColor = const Color(0xFF2196F3);
-    if (order['status'] == 'Out for Delivery')
+    if (order['status'] == 'Out for Delivery') {
       statusColor = const Color(0xFF9C27B0);
+    }
     if (order['status'] == 'Delivered') statusColor = const Color(0xFF4CAF50);
 
     return Container(
@@ -2852,7 +2920,8 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
           const SizedBox(height: 12),
 
           // View Details Button
-          Center(
+          Align(
+            alignment: Alignment.centerLeft,
             child: OutlinedButton.icon(
               onPressed: () {
                 _showOrderDetails(order);
@@ -3332,12 +3401,9 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                         child: TextField(
                           controller: priceController,
                           keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
+                          decoration: _numericStepperDecoration(
                             labelText: 'Price (JOD) *',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(14),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
-                            ),
+                            controller: priceController,
                           ),
                         ),
                       ),
@@ -3346,12 +3412,9 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                         child: TextField(
                           controller: stockController,
                           keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
+                          decoration: _numericStepperDecoration(
                             labelText: 'Stock Quantity *',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(14),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
-                            ),
+                            controller: stockController,
                           ),
                         ),
                       ),
@@ -3966,7 +4029,7 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                 padding: const EdgeInsets.only(bottom: 12),
                 child: _buildOfferCard(offer, index, true),
               );
-            }).toList(),
+            }),
 
           const SizedBox(height: 24),
 
@@ -4002,7 +4065,7 @@ class _PetSuppliesStoreDashboardState extends State<PetSuppliesStoreDashboard> {
                 padding: const EdgeInsets.only(bottom: 12),
                 child: _buildOfferCard(offer, index, false),
               );
-            }).toList(),
+            }),
 
           const SizedBox(height: 24),
 
