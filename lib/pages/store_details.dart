@@ -2550,18 +2550,29 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   // تعريف المتحكمات (Controllers) لجلب البيانات من الحقول
   final TextEditingController nameController = TextEditingController();
+  final TextEditingController phoneCountryCodeController = TextEditingController(
+    text: '+962',
+  );
+  final TextEditingController phoneNumberController = TextEditingController();
   final TextEditingController cityController = TextEditingController();
   final TextEditingController streetController = TextEditingController();
   final TextEditingController buildingController = TextEditingController();
-  final TextEditingController phoneController = TextEditingController();
+  final TextEditingController floorController = TextEditingController();
+  final TextEditingController apartmentController = TextEditingController();
+  final TextEditingController additionalDirectionsController =
+      TextEditingController();
   @override
   void dispose() {
     // تنظيف المتحكمات عند إغلاق الصفحة للحفاظ على الذاكرة
     nameController.dispose();
-    phoneController.dispose();
+    phoneCountryCodeController.dispose();
+    phoneNumberController.dispose();
     cityController.dispose();
     streetController.dispose();
     buildingController.dispose();
+    floorController.dispose();
+    apartmentController.dispose();
+    additionalDirectionsController.dispose();
     super.dispose();
   }
 
@@ -2608,25 +2619,102 @@ class _CheckoutPageState extends State<CheckoutPage> {
               icon: Icons.home_outlined,
               child: Column(
                 children: [
-                  _field("Full Name", "John Doe", nameController),
+                  _field(
+                    "Full Name",
+                    "John Doe",
+                    nameController,
+                    isRequired: true,
+                  ),
                   const SizedBox(height: 12),
-                  _field("Phone Number", "07XXXXXXXX", phoneController),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _fieldLabel("Phone Number", isRequired: true),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          SizedBox(
+                            width: 100,
+                            child: TextField(
+                              controller: phoneCountryCodeController,
+                              keyboardType: TextInputType.phone,
+                              decoration: _addressInputDecoration('+962'),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextField(
+                              controller: phoneNumberController,
+                              keyboardType: TextInputType.phone,
+                              decoration: _addressInputDecoration(
+                                '7X XXX XXXX',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      Expanded(child: _field("City", "Irbid", cityController)),
+                      Expanded(
+                        child: _field(
+                          "City",
+                          "Irbid",
+                          cityController,
+                          isRequired: true,
+                        ),
+                      ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: _field(
                           "Street",
                           "Abo rashed street",
                           streetController,
+                          isRequired: true,
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 12),
-                  _field("Building", "Building 15", buildingController),
+                  _field(
+                    "Building",
+                    "Building 15",
+                    buildingController,
+                    isRequired: true,
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _field(
+                          "Floor",
+                          "3",
+                          floorController,
+                          isOptional: true,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _field(
+                          "Apartment",
+                          "302",
+                          apartmentController,
+                          isOptional: true,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _field(
+                    "Additional Directions",
+                    "Any helpful directions for delivery...",
+                    additionalDirectionsController,
+                    isOptional: true,
+                    minLines: 2,
+                    maxLines: 3,
+                  ),
                 ],
               ),
             ),
@@ -2703,7 +2791,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 onPressed: () {
                   // تجهيز نص العنوان المدخل
                   String fullAddress =
-                      "${nameController.text}\nPhone: ${phoneController.text}\n${cityController.text}, ${streetController.text}\n${buildingController.text}";
+                      "${nameController.text}\nPhone: ${phoneCountryCodeController.text} ${phoneNumberController.text}\n${cityController.text}, ${streetController.text}\n${buildingController.text}\nFloor: ${floorController.text.isEmpty ? '-' : floorController.text} | Apartment: ${apartmentController.text.isEmpty ? '-' : apartmentController.text}\nNotes: ${additionalDirectionsController.text.isEmpty ? '-' : additionalDirectionsController.text}";
 
                   if (isCashOnDelivery) {
                     Navigator.push(
@@ -3225,35 +3313,85 @@ class _CheckoutPageState extends State<CheckoutPage> {
     );
   }
 
+  Widget _fieldLabel(
+    String label, {
+    bool isRequired = false,
+    bool isOptional = false,
+  }) {
+    return Row(
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            color: Color(0xFF5A3E2B),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        if (isRequired)
+          const Text(
+            " *",
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.red,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        if (isOptional)
+          const Text(
+            " (Optional)",
+            style: TextStyle(
+              fontSize: 12,
+              color: Color(0xFF6E7B8F),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+      ],
+    );
+  }
+
+  InputDecoration _addressInputDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      filled: true,
+      fillColor: const Color(0xFFFBFDFF),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 15,
+        vertical: 12,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: Colors.grey.shade200),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Color(0xFF5BA092)),
+      ),
+    );
+  }
+
   // الميثود المعدلة لاستقبال الـ Controller
-  Widget _field(String label, String hint, TextEditingController controller) {
+  Widget _field(
+    String label,
+    String hint,
+    TextEditingController controller, {
+    bool isRequired = false,
+    bool isOptional = false,
+    TextInputType keyboardType = TextInputType.text,
+    int minLines = 1,
+    int maxLines = 1,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+        _fieldLabel(label, isRequired: isRequired, isOptional: isOptional),
         const SizedBox(height: 5),
         TextField(
           controller: controller,
-          keyboardType: label.contains("Phone")
-              ? TextInputType.phone
-              : TextInputType.text,
-          decoration: InputDecoration(
-            hintText: hint,
-            filled: true,
-            fillColor: const Color(0xFFFBFDFF),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 15,
-              vertical: 12,
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Colors.grey.shade200),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFF5BA092)),
-            ),
-          ),
+          keyboardType: keyboardType,
+          minLines: minLines,
+          maxLines: maxLines,
+          decoration: _addressInputDecoration(hint),
         ),
       ],
     );
