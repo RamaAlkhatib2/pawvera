@@ -487,6 +487,16 @@ else {
                           // حاوية القلب والتقييم مع بعض
                           Row(
                             children: [
+                              // كادر التقييم الأخضر
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                    color: const Color(0xFF3AA78E),
+                                    borderRadius: BorderRadius.circular(8)),
+                                child: Text('★ $rating', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                              ),
+                              const SizedBox(width: 8), // مسافة بين الستار والقلب
+                              
                               // زر القلب التفاعلي
                               GestureDetector(
                                 onTap: () {
@@ -497,19 +507,9 @@ else {
                                 },
                                 child: Icon(
                                   isFavorite ? Icons.favorite : Icons.favorite_border,
-                                  color: isFavorite ? Colors.red : Colors.grey,
+                                  color: isFavorite ? Colors.red : const Color(0xFF3AA78E),
                                   size: 22,
                                 ),
-                              ),
-                              const SizedBox(width: 8), // مسافة بين القلب والستار
-                              
-                              // كادر التقييم الأخضر
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                    color: const Color(0xFF3AA78E),
-                                    borderRadius: BorderRadius.circular(8)),
-                                child: Text('★ $rating', style: const TextStyle(color: Colors.white, fontSize: 12)),
                               ),
                             ],
                           ),
