@@ -533,6 +533,22 @@ class _StoreDetailsState extends State<StoreDetails> {
                     isFav: favoriteStatus[product['title']] ?? false,
                     onFavTap: () => _toggleFavorite(product),
                     onAddToCart: () => _addToCart(product),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (_) => ProductDetailsPage(
+                                product: product,
+                                storeData: widget.storeData,
+                                isInitiallyFavorite:
+                                    favoriteStatus[product['title']] ?? false,
+                                onToggleFavorite: () => _toggleFavorite(product),
+                                onAddToCart: () => _addToCart(product),
+                              ),
+                        ),
+                      );
+                    },
                   );
                 }, childCount: filteredProducts.length),
               ),
@@ -1096,140 +1112,878 @@ class _StoreDetailsState extends State<StoreDetails> {
     required bool isFav,
     required VoidCallback onFavTap,
     required VoidCallback onAddToCart,
+    required VoidCallback onTap,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(20),
-                  ),
-                  child: _buildSafeImage(
-                    product['image'],
-                    fallbackIcon: Icons.pets,
-                  ),
-                ),
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: GestureDetector(
-                    onTap: onFavTap,
-                    child: CircleAvatar(
-                      radius: 16,
-                      backgroundColor: Colors.white.withOpacity(0.9),
-                      child: Icon(
-                        isFav ? Icons.favorite : Icons.favorite_border,
-                        color: isFav ? Colors.red : Colors.grey,
-                        size: 18,
-                      ),
-                    ),
-                  ),
-                ),
-                if (product['offer'] != null)
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF3AA78E),
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(20),
-                          bottomRight: Radius.circular(10),
-                        ),
-                      ),
-                      child: Text(
-                        product['offer']!,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  product['title']!,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    color: Color(0xFF5A3E2B),
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  product['desc'] ?? "",
-                  style: const TextStyle(color: Colors.grey, fontSize: 11),
-                  maxLines: 1,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  product['price']!,
-                  style: const TextStyle(
-                    color: Color(0xFF5BA092),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                GestureDetector(
-                  onTap: onAddToCart,
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF5BA092).withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(10),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(20),
                     ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.shopping_cart_outlined,
-                          color: Color(0xFF5BA092),
+                    child: _buildSafeImage(
+                      product['image'],
+                      fallbackIcon: Icons.pets,
+                    ),
+                  ),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: GestureDetector(
+                      onTap: onFavTap,
+                      child: CircleAvatar(
+                        radius: 16,
+                        backgroundColor: Colors.white.withOpacity(0.9),
+                        child: Icon(
+                          isFav ? Icons.favorite : Icons.favorite_border,
+                          color: isFav ? Colors.red : Colors.grey,
                           size: 18,
                         ),
-                        SizedBox(width: 8),
-                        Text(
-                          'Add to Cart',
-                          style: TextStyle(
-                            color: Color(0xFF5BA092),
+                      ),
+                    ),
+                  ),
+                  if (product['offer'] != null)
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF3AA78E),
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(20),
+                            bottomRight: Radius.circular(10),
+                          ),
+                        ),
+                        child: Text(
+                          product['offer']!,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
                             fontWeight: FontWeight.bold,
-                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    product['title']!,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: Color(0xFF5A3E2B),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    product['desc'] ?? "",
+                    style: const TextStyle(color: Colors.grey, fontSize: 11),
+                    maxLines: 1,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    product['price']!,
+                    style: const TextStyle(
+                      color: Color(0xFF5BA092),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  GestureDetector(
+                    onTap: onAddToCart,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF5BA092).withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.shopping_cart_outlined,
+                            color: Color(0xFF5BA092),
+                            size: 18,
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            'Add to Cart',
+                            style: TextStyle(
+                              color: Color(0xFF5BA092),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class ProductDetailsPage extends StatefulWidget {
+  final Map<String, String> product;
+  final Map<String, dynamic> storeData;
+  final bool isInitiallyFavorite;
+  final VoidCallback onToggleFavorite;
+  final VoidCallback onAddToCart;
+
+  const ProductDetailsPage({
+    super.key,
+    required this.product,
+    required this.storeData,
+    required this.isInitiallyFavorite,
+    required this.onToggleFavorite,
+    required this.onAddToCart,
+  });
+
+  @override
+  State<ProductDetailsPage> createState() => _ProductDetailsPageState();
+}
+
+class _ProductDetailsPageState extends State<ProductDetailsPage> {
+  int quantity = 1;
+  late bool isFavorite;
+  late List<Map<String, dynamic>> reviews;
+  late int ratingsCount;
+
+  @override
+  void initState() {
+    super.initState();
+    isFavorite = widget.isInitiallyFavorite;
+    final title = widget.product['title'] ?? 'Product';
+    reviews = _getProductReviews(title);
+    ratingsCount = 90 + (title.length * 14);
+  }
+
+  List<Map<String, dynamic>> _getProductReviews(String title) {
+    final reviewsByProduct = {
+      'Automatic Pet Feeder': [
+        {
+          'name': 'Dalal R.',
+          'initial': 'D',
+          'date': '2025-12-21',
+          'stars': 5,
+          'comment': "Game changer! I can feed my pets even when I'm away.",
+        },
+        {
+          'name': 'Andrew M.',
+          'initial': 'A',
+          'date': '2025-12-08',
+          'stars': 5,
+          'comment': 'Amazing feeder! Portion control is perfect and scheduling is easy.',
+        },
+      ],
+    };
+
+    return reviewsByProduct[title] ??
+        [
+          {
+            'name': 'Nora S.',
+            'initial': 'N',
+            'date': '2025-11-19',
+            'stars': 5,
+            'comment': 'Best purchase. Product quality is excellent and works as expected.',
+          },
+          {
+            'name': 'Lina H.',
+            'initial': 'L',
+            'date': '2025-10-30',
+            'stars': 4,
+            'comment': 'Very useful overall. Delivery was fast and packaging was great.',
+          },
+          {
+            'name': 'Omar K.',
+            'initial': 'O',
+            'date': '2025-10-12',
+            'stars': 5,
+            'comment': 'Exactly as described. Great value for money.',
+          },
+        ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final product = widget.product;
+    final title = product['title'] ?? 'Product';
+    final desc = product['desc'] ?? 'No description available.';
+    final price = product['price'] ?? '0 JOD';
+    final category = product['category'] ?? 'Accessories';
+    final image = product['image'];
+    final storeName = widget.storeData['name']?.toString() ?? 'Store';
+    final distance = widget.storeData['distance']?.toString() ?? '1.5 km';
+
+    final avgRating = (reviews.fold<double>(
+              0,
+              (sum, r) => sum + ((r['stars'] as int?)?.toDouble() ?? 5.0),
+            ) /
+            reviews.length)
+        .toStringAsFixed(1);
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFEFF6F7),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFEFF6F7),
+        elevation: 0,
+        leading: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFD6E5E8)),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Color(0xFF5A3E2B)),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
+        ),
+        title: const Text(
+          'Product Details',
+          style: TextStyle(
+            color: Color(0xFF5A3E2B),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            if (image != null && image.isNotEmpty)
+              SizedBox(
+                height: 270,
+                width: double.infinity,
+                child: Image.network(
+                  image,
+                  fit: BoxFit.cover,
+                  errorBuilder:
+                      (_, __, ___) => Container(
+                        color: const Color(0xFFDCEDEE),
+                        child: const Icon(Icons.pets, size: 60, color: Color(0xFF5BA092)),
+                      ),
+                ),
+              ),
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(top: 0),
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 22),
+              decoration: const BoxDecoration(
+                color: Color(0xFFF8FBFC),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              title,
+                              style: const TextStyle(
+                                fontSize: 40 / 2,
+                                color: Color(0xFF5A3E2B),
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              'by FeedSmart',
+                              style: const TextStyle(color: Color(0xFF5A6D8A), fontSize: 16 / 1.2),
+                            ),
+                          ],
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          widget.onToggleFavorite();
+                          setState(() => isFavorite = !isFavorite);
+                        },
+                        child: Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFFE2E5E8)),
+                          ),
+                          child: Icon(
+                            isFavorite ? Icons.favorite : Icons.favorite_border,
+                            color: isFavorite
+                                ? Colors.red
+                                : const Color(0xFF7A4B25),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      const Icon(Icons.star, color: Color(0xFFF3C000), size: 22),
+                      const SizedBox(width: 4),
+                      Text(
+                        avgRating,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF5A3E2B),
+                          fontSize: 17,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '($ratingsCount ratings)',
+                        style: const TextStyle(color: Color(0xFF5A6D8A), fontSize: 16),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF4E9E96),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          category,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    price,
+                    style: const TextStyle(
+                      color: Color(0xFF0BA141),
+                      fontWeight: FontWeight.w700,
+                      fontSize: 38 / 1.6,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Description',
+                    style: TextStyle(
+                      color: Color(0xFF5A3E2B),
+                      fontWeight: FontWeight.w700,
+                      fontSize: 32 / 1.6,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    desc,
+                    style: const TextStyle(
+                      color: Color(0xFF5A6D8A),
+                      fontSize: 18 / 1.2,
+                      height: 1.35,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  const Text(
+                    'Store',
+                    style: TextStyle(
+                      color: Color(0xFF5A3E2B),
+                      fontWeight: FontWeight.w700,
+                      fontSize: 26 / 1.6,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          storeName,
+                          style: const TextStyle(color: Color(0xFF5A6D8A), fontSize: 30 / 1.6),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: const Color(0xFFBDD9DE)),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '$distance away',
+                          style: const TextStyle(
+                            color: Color(0xFF7A4B25),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      const Text(
+                        'Availability',
+                        style: TextStyle(
+                          color: Color(0xFF5A3E2B),
+                          fontWeight: FontWeight.w700,
+                          fontSize: 30 / 1.6,
+                        ),
+                      ),
+                      const Spacer(),
+                      const Text('Qty:', style: TextStyle(color: Color(0xFF5A6D8A), fontSize: 18)),
+                      const SizedBox(width: 8),
+                      _qtyBtn(
+                        icon: Icons.remove,
+                        onTap: () {
+                          if (quantity > 1) {
+                            setState(() => quantity--);
+                          }
+                        },
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        '$quantity',
+                        style: const TextStyle(
+                          color: Color(0xFF5A3E2B),
+                          fontWeight: FontWeight.w700,
+                          fontSize: 22 / 1.6,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      _qtyBtn(
+                        icon: Icons.add,
+                        onTap: () => setState(() => quantity++),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF11B84A),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Text(
+                      'In Stock',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        widget.onAddToCart();
+                      },
+                      icon: const Icon(Icons.shopping_cart_outlined, color: Colors.white),
+                      label: const Text(
+                        'Add to Cart',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF5BA092),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Divider(color: Color(0xFFBCD4D9)),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      const Icon(Icons.star, color: Color(0xFFF3C000), size: 24),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Customer Reviews (${reviews.length})',
+                        style: const TextStyle(
+                          color: Color(0xFF5A3E2B),
+                          fontWeight: FontWeight.w700,
+                          fontSize: 30 / 1.6,
+                        ),
+                      ),
+                      const Spacer(),
+                      GestureDetector(
+                        onTap: () => _showWriteReviewDialog(title),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            border: Border.all(color: const Color(0xFFB9DADF)),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.chat_bubble_outline, color: Color(0xFF7A4B25), size: 20),
+                              SizedBox(width: 8),
+                              Text(
+                                'Write a Review',
+                                style: TextStyle(
+                                  color: Color(0xFF7A4B25),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  ...reviews.map((review) => _reviewCard(review)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showWriteReviewDialog(String productTitle) {
+    final reviewController = TextEditingController();
+    int selectedStars = 0;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return Dialog(
+              backgroundColor: const Color(0xFFEFF6F7),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Spacer(),
+                        const Text(
+                          'Write a Review',
+                          style: TextStyle(
+                            color: Color(0xFF7A4B25),
+                            fontWeight: FontWeight.w700,
+                            fontSize: 38 / 1.7,
+                          ),
+                        ),
+                        const Spacer(),
+                        GestureDetector(
+                          onTap: () => Navigator.pop(dialogContext),
+                          child: const Icon(Icons.close, color: Color(0xFF7A4B25)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Center(
+                      child: Text(
+                        'Share your experience with $productTitle',
+                        style: const TextStyle(
+                          color: Color(0xFF6A7688),
+                          fontSize: 30 / 1.8,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Your Rating',
+                      style: TextStyle(
+                        color: Color(0xFF7A4B25),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 20,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: List.generate(
+                        5,
+                        (index) => GestureDetector(
+                          onTap: () => setDialogState(() => selectedStars = index + 1),
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 4),
+                            child: Icon(
+                              index < selectedStars ? Icons.star : Icons.star_border,
+                              color: index < selectedStars
+                                  ? const Color(0xFFF3C000)
+                                  : const Color(0xFFBFC7D3),
+                              size: 40,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    const Text(
+                      'Your Review',
+                      style: TextStyle(
+                        color: Color(0xFF7A4B25),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 20,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: reviewController,
+                      minLines: 3,
+                      maxLines: 4,
+                      decoration: InputDecoration(
+                        hintText: 'Share your thoughts about this product...',
+                        hintStyle: const TextStyle(color: Color(0xFF7E8797)),
+                        filled: true,
+                        fillColor: Colors.white.withOpacity(0.8),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFBDD9DE)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFBDD9DE)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFF5BA092)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        OutlinedButton(
+                          onPressed: () => Navigator.pop(dialogContext),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFFB9DADF)),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            'Cancel',
+                            style: TextStyle(
+                              color: Color(0xFF7A4B25),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        ElevatedButton(
+                          onPressed: () {
+                            final comment = reviewController.text.trim();
+                            if (selectedStars == 0 || comment.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Please add rating and review text.'),
+                                  backgroundColor: Colors.redAccent,
+                                ),
+                              );
+                              return;
+                            }
+
+                            final now = DateTime.now();
+                            final dateText =
+                                '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
+                            setState(() {
+                              reviews.insert(0, {
+                                'name': 'You',
+                                'initial': 'Y',
+                                'date': dateText,
+                                'stars': selectedStars,
+                                'comment': comment,
+                              });
+                              ratingsCount += 1;
+                            });
+                            Navigator.pop(dialogContext);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Review submitted successfully.'),
+                                backgroundColor: Color(0xFF5BA092),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF4E9E96),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            'Submit Review',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
                       ],
                     ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _qtyBtn({required IconData icon, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 34,
+        height: 34,
+        decoration: BoxDecoration(
+          color: const Color(0xFFEAF5F6),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFBCDCE1)),
+        ),
+        child: Icon(icon, color: const Color(0xFF7A4B25)),
+      ),
+    );
+  }
+
+  Widget _reviewCard(Map<String, dynamic> review) {
+    final stars = (review['stars'] as int?) ?? 5;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFBCD9DF)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 22,
+                backgroundColor: const Color(0xFF4E9E96),
+                child: Text(
+                  review['initial']?.toString() ?? '',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          review['name']?.toString() ?? '',
+                          style: const TextStyle(
+                            color: Color(0xFF7A4B25),
+                            fontWeight: FontWeight.w700,
+                            fontSize: 18 / 1.2,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE9F7EF),
+                            border: Border.all(color: const Color(0xFFA8E0BE)),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.check_circle_outline, color: Color(0xFF0E9F47), size: 14),
+                              SizedBox(width: 4),
+                              Text(
+                                'Verified',
+                                style: TextStyle(
+                                  color: Color(0xFF0E9F47),
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: List.generate(
+                        5,
+                        (index) => Icon(
+                          index < stars ? Icons.star : Icons.star_border,
+                          color: const Color(0xFFF3C000),
+                          size: 16,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                review['date']?.toString() ?? '',
+                style: const TextStyle(color: Color(0xFF5A6D8A), fontSize: 13),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            review['comment']?.toString() ?? '',
+            style: const TextStyle(
+              color: Color(0xFF4C5C73),
+              fontSize: 16 / 1.2,
+              height: 1.35,
             ),
           ),
         ],
