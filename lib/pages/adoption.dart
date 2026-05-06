@@ -115,7 +115,7 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
         label: Text(label),
         selected: isSelected,
         onSelected: (bool value) {},
-        selectedColor: primaryTeal.withOpacity(0.2),
+        selectedColor: primaryTeal.withValues(alpha: 0.2),
         checkmarkColor: primaryTeal,
       ),
     );
@@ -232,7 +232,9 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
           ),
         ),
       ),
-    
+    );
+  }
+
   void _showMessagesSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
