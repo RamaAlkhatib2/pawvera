@@ -250,9 +250,10 @@ class _HomePageState extends State<Home> {
       GridView(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
+        clipBehavior: Clip.none,
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          mainAxisExtent: 130, 
+          mainAxisExtent: 130,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
         ),
@@ -265,17 +266,28 @@ class _HomePageState extends State<Home> {
             subtitle: 'Schedule pet tasks',
             icon: Icons.calendar_today,
             color: const Color(0xFFF4CFC6),
+            iconColor: const Color(0xFFCF755A),
             imagePath: 'assets/icons/reminders.icon.png',
+            imageWidth: 170,
+            imageHeight: 170,
+            imageRight: -18,
+            imageBottom: -18,
+            imageOffsetX: 40,
           ),
           // 2. Adoption
           _buildTappableServiceCard(
             context: context,
-            screen: const AdoptionScreen(),
+            screen: AdoptionScreen(),
             title: 'Adoption',
             subtitle: 'Find new friends',
             icon: Icons.favorite_border,
             color: const Color(0xFFDFF6EF),
+            iconColor: const Color(0xFF4C9B8C),
             imagePath: 'assets/icons/adoption.icon.png',
+            imageWidth: 112,
+            imageHeight: 112,
+            imageRight: 0,
+            imageBottom: -18,
           ),
           // 3. Pet Supplies
           _buildTappableServiceCard(
@@ -285,7 +297,13 @@ class _HomePageState extends State<Home> {
             subtitle: 'Shop Now',
             icon: Icons.shopping_bag_outlined,
             color: const Color(0xFFF7EACD),
+            iconColor: const Color(0xFFD09A3A),
             imagePath: 'assets/icons/pet_supplies.icon.png',
+            imageWidth: 138,
+            imageHeight: 138,
+            imageRight: -16,
+            imageBottom: -44,
+            imageOffsetX: 20,
           ),
           // 4. Pet Care
           _buildTappableServiceCard(
@@ -295,7 +313,13 @@ class _HomePageState extends State<Home> {
             subtitle: 'Book Services',
             icon: Icons.pets_outlined,
             color: const Color(0xFFFDE0C8),
+            iconColor: const Color(0xFFE08C52),
             imagePath: 'assets/icons/pet_care.icon.png',
+            imageWidth: 172,
+            imageHeight: 172,
+            imageRight: -16,
+            imageBottom: -34,
+            imageOffsetX: 20,
           ),
           // 5. Doctor Appointments (بدون استجابة عند الكبس)
           _serviceCard(
@@ -303,6 +327,7 @@ class _HomePageState extends State<Home> {
             subtitle: 'Book vet consults',
             icon: Icons.medical_services_outlined,
             color: const Color(0xFFD9F1F9),
+            iconColor: const Color(0xFF4A9BA4),
           ),
           // 6. Health Records
           _serviceCard(
@@ -310,7 +335,13 @@ class _HomePageState extends State<Home> {
             subtitle: 'Medical history',
             icon: Icons.receipt_long,
             color: const Color(0xFFE6F6F0),
+            iconColor: const Color(0xFF5FA399),
             imagePath: 'assets/icons/health_records.icon.png',
+            imageWidth: 148,
+            imageHeight: 148,
+            imageRight: -16,
+            imageBottom: -48,
+            imageOffsetX: 20,
           ),
         ],
       ),
@@ -324,30 +355,49 @@ Widget _serviceCard({
   required String subtitle,
   required IconData icon,
   required Color color,
+  Color iconColor = const Color(0xFF6B6B6B),
   String? imagePath,
+  double imageWidth = 92,
+  double imageHeight = 92,
+  double imageRight = -10,
+  double imageBottom = -8,
+  double imageOffsetX = 0,
+  double imageOffsetY = 0,
 }) {
   return Container(
-    padding: const EdgeInsets.all(12),
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
     decoration: BoxDecoration(
       color: color,
       borderRadius: BorderRadius.circular(16),
     ),
     child: Stack(
+      clipBehavior: Clip.none,
       children: [
         Align(
           alignment: Alignment.topLeft,
           child: Container(
             width: 36,
             height: 36,
-            decoration: const BoxDecoration(color: Colors.white70, shape: BoxShape.circle),
-            child: Icon(icon, size: 18, color: const Color(0xFF6B6B6B)),
+            decoration: BoxDecoration(
+              color: Colors.white70,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 18, color: iconColor),
           ),
         ),
         if (imagePath != null)
           Positioned(
-            bottom: -5,
-            right: -5,
-            child: Image.asset(imagePath, width: 70, height: 70, fit: BoxFit.contain),
+            bottom: imageBottom,
+            right: imageRight,
+            child: Transform.translate(
+              offset: Offset(imageOffsetX, imageOffsetY),
+              child: Image.asset(
+                imagePath,
+                width: imageWidth,
+                height: imageHeight,
+                fit: BoxFit.contain,
+              ),
+            ),
           ),
         Align(
           alignment: Alignment.bottomLeft,
@@ -355,9 +405,19 @@ Widget _serviceCard({
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF4B3B34))),
-              const SizedBox(height: 2),
-              Text(subtitle, style: const TextStyle(fontSize: 10, color: Color(0xFF6E6E6E))),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF6A4529),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: const TextStyle(fontSize: 13, color: Color(0xFF6E5C4D)),
+              ),
             ],
           ),
         ),
@@ -374,7 +434,14 @@ Widget _buildTappableServiceCard({
   required String subtitle,
   required IconData icon,
   required Color color,
+  Color iconColor = const Color(0xFF6B6B6B),
   String? imagePath,
+  double imageWidth = 92,
+  double imageHeight = 92,
+  double imageRight = -10,
+  double imageBottom = -8,
+  double imageOffsetX = 0,
+  double imageOffsetY = 0,
 }) {
   return GestureDetector(
     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => screen)),
@@ -383,7 +450,14 @@ Widget _buildTappableServiceCard({
       subtitle: subtitle,
       icon: icon,
       color: color,
+      iconColor: iconColor,
       imagePath: imagePath,
+      imageWidth: imageWidth,
+      imageHeight: imageHeight,
+      imageRight: imageRight,
+      imageBottom: imageBottom,
+      imageOffsetX: imageOffsetX,
+      imageOffsetY: imageOffsetY,
     ),
   );
 }
