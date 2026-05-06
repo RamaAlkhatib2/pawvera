@@ -2238,7 +2238,8 @@ class _MyCartPageState extends State<MyCartPage> {
   void initState() {
     super.initState();
     for (var item in widget.cartItems) {
-      quantities[item['title']!] = 1;
+      final parsedQty = int.tryParse(item['qty'] ?? '1') ?? 1;
+      quantities[item['title']!] = parsedQty;
     }
   }
 
@@ -2319,7 +2320,9 @@ class _MyCartPageState extends State<MyCartPage> {
                           children: [
                             ClipRRect(
                               borderRadius: BorderRadius.circular(15),
-                              child: Image.network(
+                              child: Stack(
+                                children: [
+                                  Image.network(
                                 item['image']!,
                                 width: 80,
                                 height: 80,
@@ -2341,6 +2344,34 @@ class _MyCartPageState extends State<MyCartPage> {
                                   );
                                 },
                               ),
+                                  if ((item['discount'] ?? '').isNotEmpty)
+                                    Positioned(
+                                      top: 0,
+                                      left: 0,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 2,
+                                        ),
+                                        decoration: const BoxDecoration(
+                                          color: Colors.red,
+                                          borderRadius: BorderRadius.only(
+                                            topLeft: Radius.circular(12),
+                                            bottomRight: Radius.circular(8),
+                                          ),
+                                        ),
+                                        child: Text(
+                                          item['discount']!,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -2355,9 +2386,9 @@ class _MyCartPageState extends State<MyCartPage> {
                                       color: Color(0xFF5A3E2B),
                                     ),
                                   ),
-                                  const Text(
-                                    "PetSmart",
-                                    style: TextStyle(
+                                  Text(
+                                    item['brand'] ?? "PetSmart",
+                                    style: const TextStyle(
                                       color: Colors.grey,
                                       fontSize: 12,
                                     ),

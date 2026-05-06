@@ -950,116 +950,81 @@ class MyOrdersPage extends StatelessWidget {
     );
   }
 
-  // 2. دالة نافذة إعادة الطلب (Reorder Sheet) - تظهر قبل الـ Checkout
-  void _showReorderSheet(BuildContext context, Map<String, dynamic> order) {
-    String productsText = order['products']?.toString() ?? "";
-    List<String> productList = productsText
-        .split('\n')
-        .where((item) => item.trim().isNotEmpty)
-        .toList();
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-      ),
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Center(child: Text("Reorder Items", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF5A3E2B)))),
-              const SizedBox(height: 5),
-              Center(child: Text("From ${order['store']}", style: const TextStyle(color: Colors.grey, fontSize: 14))),
-              const Divider(height: 30),
-              
-              const Text("Items to be added to cart:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              const SizedBox(height: 15),
-
-              Flexible(
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: productList.length,
-                  itemBuilder: (context, index) {
-                    String productName = productList[index].replaceAll('• ', '').trim();
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.check_circle_outline, size: 20, color: Color(0xFF5BA092)),
-                          const SizedBox(width: 12),
-                          Expanded(child: Text(productName, style: const TextStyle(fontSize: 15))),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-
-              const SizedBox(height: 25),
-              const Divider(),
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text("Total Price", style: TextStyle(color: Colors.grey, fontSize: 16)),
-                    Text(order['price'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.green)),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context); // إغلاق الـ BottomSheet
-
-                     // 1. استخراج القيمة الرقمية للـ subtotal من الطلب
-                    double subtotalValue = double.tryParse(order['price'].replaceAll(' JOD', '')) ?? 0.0;
-  
-                     // 2. تحديد رسوم التوصيل
-                     double deliveryValue = 5.0;
-
-                     // 3. الحساب المنطقي للمجموع النهائي
-                     double totalValue = subtotalValue + deliveryValue;
-             Map<String, dynamic> selectedStore = {
-    'name': order['store'],
-    'image': 'assets/images/pet_store.png', // حطي مسار صورة افتراضي أو من بيانات الطلب
-    'rating': 4.8,
-    'distance': '2.5 km',
-  };
-                     // 4. الانتقال وتمرير جميع القيم المطلوبة
-                     Navigator.push(
-                     context,
-                     MaterialPageRoute(
-                     builder: (context) => CheckoutPage(
-                      storeData: selectedStore,
-                     subtotal: subtotalValue,
-                     deliveryFee: deliveryValue,
-                     total: totalValue, // تمرير المجموع المحسوب
-        ),
-      ),
-    );
-  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF5BA092),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                    elevation: 0,
-                  ),
-                  child: const Text("Proceed to Checkout", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-                ),
-              ),
-              const SizedBox(height: 10),
-            ],
-          ),
-        );
+  List<Map<String, String>> _buildReorderCartItems(Map<String, dynamic> order) {
+    final productCatalog = <String, Map<String, String>>{
+      'Premium Dog Food 10kg': {
+        'title': 'Premium Dog Food 10kg',
+        'brand': 'NutriPet',
+        'price': '55 JOD',
+        'discount': '-20%',
+        'image':
+            'https://images.unsplash.com/photo-1589924691106-073b19f5538d?q=80&w=1000&auto=format&fit=crop',
       },
+      'Interactive Dog Ball Toy': {
+        'title': 'Interactive Dog Ball Toy',
+        'brand': 'PlayPaws',
+        'price': '18 JOD',
+        'discount': '-20%',
+        'image':
+            'https://images.unsplash.com/photo-1513284411132-47685382e39c?q=80&w=1000&auto=format&fit=crop',
+      },
+      'Premium Cat Food 3kg': {
+        'title': 'Premium Cat Food 3kg',
+        'brand': 'CatFuel',
+        'price': '70 JOD',
+        'image':
+            'https://images.unsplash.com/photo-1597848212624-a19eb35e2651?q=80&w=1000&auto=format&fit=crop',
+      },
+    };
+
+    final productsText = order['products']?.toString() ?? '';
+    final lines =
+        productsText
+            .split('\n')
+            .where((item) => item.trim().isNotEmpty)
+            .toList();
+
+    final items = <Map<String, String>>[];
+    for (final line in lines) {
+      final cleanLine = line.replaceAll('•', '').trim();
+      final parts = cleanLine.split(' x');
+      final productName = parts.first.trim();
+      final qtyText = parts.length > 1 ? parts.last.trim() : '1';
+      final qty = int.tryParse(qtyText) ?? 1;
+      final baseItem =
+          productCatalog[productName] ??
+          {
+            'title': productName,
+            'brand': 'Pet Supplies',
+            'price': '25 JOD',
+            'image':
+                'https://images.unsplash.com/photo-1450778869180-41d0601e046e?q=80&w=1000&auto=format&fit=crop',
+          };
+      items.add({...baseItem, 'qty': '$qty'});
+    }
+
+    return items;
+  }
+
+  // 2. فتح سلة إعادة الطلب مباشرة بشكل صفحة كاملة
+  void _showReorderSheet(BuildContext context, Map<String, dynamic> order) {
+    final cartItems = _buildReorderCartItems(order);
+    final selectedStore = {
+      'name': order['store'],
+      'image': 'assets/images/pet_store.png',
+      'rating': 4.8,
+      'distance': '1.5 km',
+    };
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder:
+            (context) => MyCartPage(
+              cartItems: cartItems,
+              storeData: selectedStore,
+            ),
+      ),
     );
-  }}
+  }
+}
