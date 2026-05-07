@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:pawvera/pages/login_view.dart';
+import 'package:pawvera/pages/sign_in_page.dart';
 import 'package:pawvera/pages/my_bookings_page.dart';
 import 'package:pawvera/pages/notifications_page.dart';
 import 'package:pawvera/services/database_service.dart';
@@ -181,7 +181,7 @@ class ProfileView extends StatelessWidget {
                       Navigator.pushAndRemoveUntil(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => const LoginView()),
+                            builder: (context) => const SignInPage()),
                         (route) => false,
                       );
                     }
