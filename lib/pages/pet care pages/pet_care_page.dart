@@ -177,7 +177,6 @@ class _PetCarePageState extends State<PetCarePage> {
             _buildFavoritesRow(),
             const SizedBox(height: 10),
             _buildCategoryFilter(),
-            _buildActionButtons(),
             Expanded(
               child: ListView.builder(
                 padding: const EdgeInsets.all(15),
@@ -214,15 +213,30 @@ class _PetCarePageState extends State<PetCarePage> {
                 ),
               ),
               child: Center(
-                child: Text(
-                  _categories[index],
-                  style: TextStyle(
-                    color: isSelected ? Colors.white : Colors.black87,
-                    fontSize: 12,
-                    fontWeight: isSelected
-                        ? FontWeight.bold
-                        : FontWeight.normal,
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_categories[index] == 'All') ...[
+                      Icon(
+                        Icons.tune_rounded,
+                        size: 13,
+                        color: isSelected
+                            ? Colors.white
+                            : const Color(0xFF5B9D8E),
+                      ),
+                      const SizedBox(width: 5),
+                    ],
+                    Text(
+                      _categories[index],
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : Colors.black87,
+                        fontSize: 12,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -342,8 +356,18 @@ class _PetCarePageState extends State<PetCarePage> {
     child: Row(
       children: [
         Expanded(child: _buildSortDrop()),
-        const SizedBox(width: 10),
+        const SizedBox(width: 8),
         Expanded(child: _buildDrop(_selectedPetType, isPetType: true)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _toggleBtn(
+            "Offers",
+            _showOffersOnly,
+            () => setState(() => _showOffersOnly = !_showOffersOnly),
+            Icons.local_offer,
+            compact: true,
+          ),
+        ),
       ],
     ),
   );
@@ -390,20 +414,6 @@ class _PetCarePageState extends State<PetCarePage> {
     ),
   );
 
-  Widget _buildActionButtons() => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-    child: Row(
-      children: [
-        _toggleBtn(
-          "Offers ${_providers.where((p) => p.hasOffer).length}",
-          _showOffersOnly,
-          () => setState(() => _showOffersOnly = !_showOffersOnly),
-          Icons.local_offer,
-        ),
-      ],
-    ),
-  );
-
   Widget _toggleBtn(
     String label,
     bool active,
@@ -430,12 +440,16 @@ class _PetCarePageState extends State<PetCarePage> {
         children: [
           Icon(icon, size: 16, color: active ? Colors.white : Colors.grey),
           const SizedBox(width: 8),
-          Text(
-            label,
-            style: TextStyle(
-              color: active ? Colors.white : Colors.black,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: active ? Colors.white : Colors.black,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ],
@@ -671,16 +685,20 @@ class _PetCarePageState extends State<PetCarePage> {
                 ),
                 const SizedBox(width: 4),
                 Expanded(
-                  child: Text(
-                    p.location,
-                    style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
+                  child: RichText(
                     overflow: TextOverflow.ellipsis,
+                    text: TextSpan(
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade700,
+                      ),
+                      children: [
+                        TextSpan(text: p.location),
+                        const TextSpan(text: '  •  '),
+                        TextSpan(text: p.distance),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  p.distance,
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
                 ),
               ],
             ),
