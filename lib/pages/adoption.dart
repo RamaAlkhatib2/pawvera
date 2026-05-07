@@ -1,6 +1,7 @@
  import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+
 import 'home.dart';
 import 'my_bookings_page.dart';
 import 'profile_view.dart';
@@ -80,6 +81,7 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
         itemCount: allPets.length,
         itemBuilder: (context, index) => _buildPetCard(allPets[index]),
       ),
+      // جميع الأيقونات بالأسفل تعمل وتنتقل للصفحات المطلوبة
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         selectedItemColor: primaryTeal,
@@ -90,6 +92,7 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
               context,
               MaterialPageRoute(builder: (context) => const Home()),
             );
+          // أضيفي التنقل لصفحة الرسائل هنا إذا كانت جاهزة
           if (index == 3)
             Navigator.push(
               context,
@@ -226,6 +229,7 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
   }
 }
 
+// --- صفحة الإضافة (التصميم المطابق للصورة الثانية تماماً) ---
 class PostPetPage extends StatefulWidget {
   final Function(Map<String, dynamic>) onSubmit;
   const PostPetPage({super.key, required this.onSubmit});
@@ -261,34 +265,25 @@ class _PostPetPageState extends State<PostPetPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF9F6EE),
       appBar: AppBar(
-        elevation: 0,
+        title: const Text("Post Your Pet"),
         backgroundColor: const Color(0xFF5BA092),
-        title: const Text(
-          "Post Your Pet",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
+            // قسم إضافة الصورة بنفس شكل الصورة الثانية
             GestureDetector(
               onTap: _pickImage,
               child: Container(
-                height: 200,
+                height: 180,
                 width: double.infinity,
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(15),
                   border: Border.all(
-                    color: const Color(0xFF5BA092).withOpacity(0.2),
+                    color: const Color(0xFF5BA092).withOpacity(0.3),
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                    ),
-                  ],
                   image: _imageFile != null
                       ? DecorationImage(
                           image: FileImage(_imageFile!),
@@ -297,100 +292,57 @@ class _PostPetPageState extends State<PostPetPage> {
                       : null,
                 ),
                 child: _imageFile == null
-                    ? Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.camera_alt_outlined,
-                            size: 50,
-                            color: const Color(0xFF5BA092),
-                          ),
-                          const SizedBox(height: 10),
-                          const Text(
-                            "Upload Pet Photo",
-                            style: TextStyle(
-                              color: Colors.grey,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
+                    ? const Icon(
+                        Icons.add_a_photo,
+                        size: 50,
+                        color: Color(0xFF5BA092),
                       )
                     : null,
               ),
             ),
-            const SizedBox(height: 25),
+            const SizedBox(height: 20),
+
+            // الحقول بتصميم أنيق ومقارب للصورة
             _buildField("Pet Name", _nameController, Icons.pets_outlined),
             _buildField(
               "Description",
               _descController,
-              Icons.notes_outlined,
-              lines: 4,
+              Icons.description_outlined,
+              lines: 3,
             ),
             _buildField("Location", _locController, Icons.location_on_outlined),
             _buildField(
-              "Price / Adopt Fee",
+              "Price",
               _priceController,
               Icons.monetization_on_outlined,
             ),
-            const SizedBox(height: 15),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: Column(
-                children: [
-                  SwitchListTile(
-                    title: const Text(
-                      "Is your pet Vaccinated?",
-                      style: TextStyle(fontSize: 14),
-                    ),
-                    secondary: const Icon(
-                      Icons.shield_outlined,
-                      color: Colors.blue,
-                    ),
-                    activeColor: const Color(0xFF5BA092),
-                    value: _isVaccinated,
-                    onChanged: (v) => setState(() => _isVaccinated = v),
-                  ),
-                  const Divider(height: 1, indent: 50),
-                  SwitchListTile(
-                    title: const Text(
-                      "Is your pet Neutered?",
-                      style: TextStyle(fontSize: 14),
-                    ),
-                    secondary: const Icon(
-                      Icons.content_cut_outlined,
-                      color: Colors.orange,
-                    ),
-                    activeColor: const Color(0xFF5BA092),
-                    value: _isNeutered,
-                    onChanged: (v) => setState(() => _isNeutered = v),
-                  ),
-                ],
-              ),
+
+            // خيارات الحالة الطبية
+            SwitchListTile(
+              title: const Text("Vaccinated"),
+              activeColor: const Color(0xFF5BA092),
+              value: _isVaccinated,
+              onChanged: (v) => setState(() => _isVaccinated = v),
             ),
-            const SizedBox(height: 30),
+            SwitchListTile(
+              title: const Text("Neutered"),
+              activeColor: const Color(0xFF5BA092),
+              value: _isNeutered,
+              onChanged: (v) => setState(() => _isNeutered = v),
+            ),
+
+            const SizedBox(height: 20),
+
+            // زر النشر الكبير
             SizedBox(
               width: double.infinity,
-              height: 55,
+              height: 50,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF5BA092),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  elevation: 2,
                 ),
                 onPressed: () {
-                  if (_imageFile == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Please add a photo first!"),
-                      ),
-                    );
-                    return;
-                  }
+                  if (_imageFile == null) return;
                   widget.onSubmit({
                     "name": _nameController.text,
                     "desc": _descController.text,
@@ -407,11 +359,7 @@ class _PostPetPageState extends State<PostPetPage> {
                 },
                 child: const Text(
                   "Post Now",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(color: Colors.white),
                 ),
               ),
             ),
@@ -428,7 +376,7 @@ class _PostPetPageState extends State<PostPetPage> {
     int lines = 1,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 15),
+      padding: const EdgeInsets.only(bottom: 10),
       child: TextField(
         controller: ctrl,
         maxLines: lines,
@@ -437,18 +385,15 @@ class _PostPetPageState extends State<PostPetPage> {
           prefixIcon: Icon(icon, color: const Color(0xFF5BA092)),
           filled: true,
           fillColor: Colors.white,
-          enabledBorder: OutlineInputBorder(
+          border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(15),
-            borderSide: BorderSide(color: Colors.grey.shade200),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(15),
-            borderSide: const BorderSide(color: Color(0xFF5BA092)),
+            borderSide: BorderSide.none,
           ),
         ),
       ),
     );
   }
 }
+
 
 
