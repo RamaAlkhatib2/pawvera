@@ -1,6 +1,5 @@
  import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'home.dart';
 import 'my_pets_page.dart';
 import 'my_bookings_page.dart';
@@ -21,6 +20,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
   List<Map<String, dynamic>> reminders = [];
   List<Map<String, dynamic>> filteredReminders = [];
   bool isLoading = true;
+  int _selectedIndex = 3;
 
   String selectedType = "All";
   String selectedPet = "All Pets";
@@ -164,28 +164,41 @@ class _ReminderScreenState extends State<ReminderScreen> {
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         selectedItemColor: primaryTeal,
-        currentIndex: 3,
+        currentIndex: _selectedIndex,
         onTap: (index) {
-          if (index == 0)
+          setState(() {
+            _selectedIndex = index;
+          });
+          if (index == 0) {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (context) => const Home()),
             );
-          if (index == 1)
+          }
+          if (index == 1) {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const MyPetsPage()),
             );
-          if (index == 3)
+          }
+          if (index == 2) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const HomeWithMessages()),
+            );
+          }
+          if (index == 3) {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const MyBookingsPage()),
             );
-          if (index == 4)
+          }
+          if (index == 4) {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const ProfileView()),
             );
+          }
         },
         items: const [
           BottomNavigationBarItem(
@@ -228,7 +241,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
         decoration: BoxDecoration(
           color: isSelected ? primaryTeal : Colors.white,
           borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: primaryTeal.withOpacity(0.1)),
+          border: Border.all(color: const Color.fromRGBO(91, 160, 146, 0.1)),
         ),
         child: Row(
           children: [
@@ -259,7 +272,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
+          const BoxShadow(color: Color.fromRGBO(0, 0, 0, 0.05), blurRadius: 10),
         ],
       ),
       child: Column(
@@ -358,7 +371,12 @@ class _ReminderScreenState extends State<ReminderScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: Color.fromRGBO(
+          color.r.round(),
+          color.g.round(),
+          color.b.round(),
+          0.1,
+        ),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
@@ -372,5 +390,6 @@ class _ReminderScreenState extends State<ReminderScreen> {
     );
   }
 }
+
 
 
