@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'supplies_store.dart';
@@ -187,7 +188,11 @@ class _HomePageState extends State<Home> {
         CircleAvatar(
           radius: 28,
           backgroundColor: color,
-          backgroundImage: hasImage ? FileImage(File(imagePath)) : null,
+          backgroundImage: hasImage
+              ? (kIsWeb
+                  ? NetworkImage(imagePath) as ImageProvider
+                  : FileImage(File(imagePath)))
+              : null,
           child: hasImage
               ? null
               : Text(

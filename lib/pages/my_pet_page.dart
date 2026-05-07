@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
@@ -564,12 +565,15 @@ class _MyPetPageState extends State<MyPetPage> {
                           ),
                           child: newImg != null
                               ? ClipOval(
-                                  child: Image.file(
-                                    File(newImg!),
-                                    width: 100,
-                                    height: 100,
-                                    fit: BoxFit.cover,
-                                  ),
+                                  child: kIsWeb
+                                      ? Image.network(newImg!,
+                                          width: 100,
+                                          height: 100,
+                                          fit: BoxFit.cover)
+                                      : Image.file(File(newImg!),
+                                          width: 100,
+                                          height: 100,
+                                          fit: BoxFit.cover),
                                 )
                               : Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
@@ -841,12 +845,11 @@ class _MyPetPageState extends State<MyPetPage> {
                 ),
                 child: ClipOval(
                   child: pet['imagePath'] != null
-                      ? Image.file(
-                          File(pet['imagePath']),
-                          width: 48,
-                          height: 48,
-                          fit: BoxFit.cover,
-                        )
+                      ? (kIsWeb
+                          ? Image.network(pet['imagePath'],
+                              width: 48, height: 48, fit: BoxFit.cover)
+                          : Image.file(File(pet['imagePath']),
+                              width: 48, height: 48, fit: BoxFit.cover))
                       : const Icon(Icons.pets, size: 24, color: Colors.grey),
                 ),
               ),

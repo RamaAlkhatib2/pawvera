@@ -1,6 +1,7 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 
 class ServicesTab extends StatefulWidget {
   const ServicesTab({super.key});
@@ -190,12 +191,19 @@ class _ServicesTabState extends State<ServicesTab> {
               padding: const EdgeInsets.only(bottom: 12),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: Image.file(
-                  service['image'],
-                  height: 150,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                ),
+                child: kIsWeb
+                    ? Image.network(
+                        (service['image'] as File).path,
+                        height: 150,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      )
+                    : Image.file(
+                        service['image'] as File,
+                        height: 150,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      ),
               ),
             ),
           Row(
@@ -314,11 +322,17 @@ class _ServicesTabState extends State<ServicesTab> {
                         children: [
                           ClipRRect(
                             borderRadius: BorderRadius.circular(10),
-                            child: Image.file(
-                              _selectedImage!,
-                              fit: BoxFit.cover,
-                              width: double.infinity,
-                            ),
+                            child: kIsWeb
+                                ? Image.network(
+                                    _selectedImage!.path,
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                  )
+                                : Image.file(
+                                    _selectedImage!,
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                  ),
                           ),
                           Positioned(
                             right: 5,

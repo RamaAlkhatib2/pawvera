@@ -1,4 +1,5 @@
- import 'dart:io';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -148,15 +149,15 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
         children: [
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            child: pet["isLocal"] == true
-                ? Image.file(
-                    File(pet["image"]),
+            child: (kIsWeb || pet["isLocal"] != true)
+                ? Image.network(
+                    pet["image"],
                     height: 200,
                     width: double.infinity,
                     fit: BoxFit.cover,
                   )
-                : Image.network(
-                    pet["image"],
+                : Image.file(
+                    File(pet["image"]),
                     height: 200,
                     width: double.infinity,
                     fit: BoxFit.cover,
@@ -322,7 +323,9 @@ class _PostPetPageState extends State<PostPetPage> {
                   ),
                   image: _imageFile != null
                       ? DecorationImage(
-                          image: FileImage(_imageFile!),
+                          image: kIsWeb
+                              ? NetworkImage(_imageFile!.path) as ImageProvider
+                              : FileImage(_imageFile!),
                           fit: BoxFit.cover,
                         )
                       : null,
