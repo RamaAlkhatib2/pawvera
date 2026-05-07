@@ -222,7 +222,7 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
           if (index == 4)
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const ProfileView()),
+              MaterialPageRoute(builder: (context) => ProfileView()),
             );
         },
         items: const [
