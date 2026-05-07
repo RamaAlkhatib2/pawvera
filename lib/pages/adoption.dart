@@ -1,5 +1,4 @@
-import 'dart:io';
-import 'package:flutter/foundation.dart';
+ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -11,13 +10,16 @@ class AdoptionScreen extends StatefulWidget {
   const AdoptionScreen({super.key});
 
   @override
-  State<AdoptionScreen> createState() => _AdoptionScreenState();
+  _AdoptionScreenState createState() => _AdoptionScreenState();
 }
 
 class _AdoptionScreenState extends State<AdoptionScreen> {
   final Color primaryTeal = const Color(0xFF5BA092);
   final Color backgroundCream = const Color(0xFFF9F6EE);
   int _selectedIndex = 1;
+
+  final TextEditingController _searchController = TextEditingController();
+  List<Map<String, dynamic>> filteredPets = [];
 
   List<Map<String, dynamic>> allPets = [
     {
@@ -27,14 +29,36 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
       "price": "Free",
       "isVaccinated": true,
       "isNeutered": true,
+      "age": "2",
+      "gender": "Male",
       "image": "https://images.unsplash.com/photo-1543466835-00a7907e9de1",
       "isLocal": false,
     },
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    filteredPets = allPets;
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  void _onSearchChanged() {
+    setState(() {
+      filteredPets = allPets
+          .where(
+            (pet) => pet["name"].toLowerCase().contains(
+              _searchController.text.toLowerCase(),
+            ),
+          )
+          .toList();
+    });
+  }
+
   void _addPet(Map<String, dynamic> pet) {
     setState(() {
       allPets.insert(0, pet);
+      _onSearchChanged();
     });
   }
 
@@ -79,11 +103,33 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
           ),
         ],
       ),
-      body: ListView.builder(
-        itemCount: allPets.length,
-        itemBuilder: (context, index) => _buildPetCard(allPets[index]),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: "Search here...",
+                prefixIcon: const Icon(Icons.search),
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: filteredPets.length,
+              itemBuilder: (context, index) =>
+                  _buildPetCard(filteredPets[index]),
+            ),
+          ),
+        ],
       ),
-      // جميع الأيقونات بالأسفل تعمل وتنتقل للصفحات المطلوبة
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         selectedItemColor: primaryTeal,
@@ -92,24 +138,21 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
           setState(() {
             _selectedIndex = index;
           });
-          if (index == 0) {
+          if (index == 0)
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (context) => const Home()),
             );
-          }
-          if (index == 3) {
+          if (index == 3)
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const MyBookingsPage()),
             );
-          }
-          if (index == 4) {
+          if (index == 4)
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => ProfileView()),
+              MaterialPageRoute(builder: (context) => const ProfileView()),
             );
-          }
         },
         items: const [
           BottomNavigationBarItem(
@@ -149,15 +192,15 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
         children: [
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            child: (kIsWeb || pet["isLocal"] != true)
-                ? Image.network(
-                    pet["image"],
+            child: pet["isLocal"] == true
+                ? Image.file(
+                    File(pet["image"]),
                     height: 200,
                     width: double.infinity,
                     fit: BoxFit.cover,
                   )
-                : Image.file(
-                    File(pet["image"]),
+                : Image.network(
+                    pet["image"],
                     height: 200,
                     width: double.infinity,
                     fit: BoxFit.cover,
@@ -197,6 +240,9 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
                       _buildTag("Vaccinated", Colors.blue),
                     if (pet["isNeutered"]) const SizedBox(width: 5),
                     if (pet["isNeutered"]) _buildTag("Neutered", Colors.orange),
+                    if (pet["gender"] != null) const SizedBox(width: 5),
+                    if (pet["gender"] != null)
+                      _buildTag(pet["gender"], Colors.purple),
                   ],
                 ),
                 const SizedBox(height: 10),
@@ -204,7 +250,7 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
                   children: [
                     const Icon(Icons.location_on, size: 16, color: Colors.grey),
                     Text(
-                      " ${pet["location"]}",
+                      " ${pet["location"]} ${pet["age"] != null ? '• ${pet["age"]} years' : ''}",
                       style: const TextStyle(color: Colors.grey),
                     ),
                   ],
@@ -251,7 +297,7 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
@@ -266,13 +312,12 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
   }
 }
 
-// --- صفحة الإضافة (التصميم المطابق للصورة الثانية تماماً) ---
 class PostPetPage extends StatefulWidget {
   final Function(Map<String, dynamic>) onSubmit;
   const PostPetPage({super.key, required this.onSubmit});
 
   @override
-  State<PostPetPage> createState() => _PostPetPageState();
+  _PostPetPageState createState() => _PostPetPageState();
 }
 
 class _PostPetPageState extends State<PostPetPage> {
@@ -280,6 +325,8 @@ class _PostPetPageState extends State<PostPetPage> {
   final _descController = TextEditingController();
   final _locController = TextEditingController();
   final _priceController = TextEditingController();
+  final _ageController = TextEditingController();
+  String _selectedGender = "Male";
 
   bool _isVaccinated = false;
   bool _isNeutered = false;
@@ -309,7 +356,6 @@ class _PostPetPageState extends State<PostPetPage> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            // قسم إضافة الصورة بنفس شكل الصورة الثانية
             GestureDetector(
               onTap: _pickImage,
               child: Container(
@@ -319,13 +365,11 @@ class _PostPetPageState extends State<PostPetPage> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(15),
                   border: Border.all(
-                    color: const Color(0xFF5BA092).withValues(alpha: 0.3),
+                    color: const Color(0xFF5BA092).withOpacity(0.3),
                   ),
                   image: _imageFile != null
                       ? DecorationImage(
-                          image: kIsWeb
-                              ? NetworkImage(_imageFile!.path) as ImageProvider
-                              : FileImage(_imageFile!),
+                          image: FileImage(_imageFile!),
                           fit: BoxFit.cover,
                         )
                       : null,
@@ -340,8 +384,6 @@ class _PostPetPageState extends State<PostPetPage> {
               ),
             ),
             const SizedBox(height: 20),
-
-            // الحقول بتصميم أنيق ومقارب للصورة
             _buildField("Pet Name", _nameController, Icons.pets_outlined),
             _buildField(
               "Description",
@@ -355,24 +397,60 @@ class _PostPetPageState extends State<PostPetPage> {
               _priceController,
               Icons.monetization_on_outlined,
             ),
+            _buildField(
+              "Age in years",
+              _ageController,
+              Icons.calendar_today,
+              inputType: TextInputType.number,
+            ),
 
-            // خيارات الحالة الطبية
+            Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.transgender, color: Color(0xFF5BA092)),
+                  const SizedBox(width: 12),
+                  const Text("Gender: "),
+                  Expanded(
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: _selectedGender,
+                        items: ["Male", "Female"].map((String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value),
+                          );
+                        }).toList(),
+                        onChanged: (newValue) {
+                          setState(() {
+                            _selectedGender = newValue!;
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
             SwitchListTile(
               title: const Text("Vaccinated"),
-              activeThumbColor: const Color(0xFF5BA092),
+              activeColor: const Color(0xFF5BA092),
               value: _isVaccinated,
               onChanged: (v) => setState(() => _isVaccinated = v),
             ),
             SwitchListTile(
               title: const Text("Neutered"),
-              activeThumbColor: const Color(0xFF5BA092),
+              activeColor: const Color(0xFF5BA092),
               value: _isNeutered,
               onChanged: (v) => setState(() => _isNeutered = v),
             ),
-
             const SizedBox(height: 20),
-
-            // زر النشر الكبير
             SizedBox(
               width: double.infinity,
               height: 50,
@@ -389,6 +467,8 @@ class _PostPetPageState extends State<PostPetPage> {
                     "price": _priceController.text.isEmpty
                         ? "Free"
                         : "${_priceController.text} JD",
+                    "age": _ageController.text,
+                    "gender": _selectedGender,
                     "isVaccinated": _isVaccinated,
                     "isNeutered": _isNeutered,
                     "image": _imageFile!.path,
@@ -413,12 +493,14 @@ class _PostPetPageState extends State<PostPetPage> {
     TextEditingController ctrl,
     IconData icon, {
     int lines = 1,
+    TextInputType inputType = TextInputType.text,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: TextField(
         controller: ctrl,
         maxLines: lines,
+        keyboardType: inputType,
         decoration: InputDecoration(
           labelText: label,
           prefixIcon: Icon(icon, color: const Color(0xFF5BA092)),
@@ -434,7 +516,6 @@ class _PostPetPageState extends State<PostPetPage> {
   }
 }
 
-/// Chat page for discussing adoption
 class ChatPage extends StatefulWidget {
   final String petName;
   final String petImage;
@@ -583,6 +664,7 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
 }
+
 
 
 
