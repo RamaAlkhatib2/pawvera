@@ -20,6 +20,7 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
 
   final TextEditingController _searchController = TextEditingController();
   List<Map<String, dynamic>> filteredPets = [];
+  String selectedCategory = "All";
 
   List<Map<String, dynamic>> allPets = [
     {
@@ -31,6 +32,7 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
       "isNeutered": true,
       "age": "2",
       "gender": "Male",
+      "category": "Dog",
       "image": "https://images.unsplash.com/photo-1543466835-00a7907e9de1",
       "isLocal": false,
     },
@@ -40,25 +42,25 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
   void initState() {
     super.initState();
     filteredPets = allPets;
-    _searchController.addListener(_onSearchChanged);
+    _searchController.addListener(_applyFilters);
   }
 
-  void _onSearchChanged() {
+  void _applyFilters() {
     setState(() {
-      filteredPets = allPets
-          .where(
-            (pet) => pet["name"].toLowerCase().contains(
-              _searchController.text.toLowerCase(),
-            ),
-          )
-          .toList();
+      filteredPets = allPets.where((pet) {
+        final matchesSearch = pet["name"]
+            .toLowerCase()
+            .contains(_searchController.text.toLowerCase());
+        final matchesCategory = selectedCategory == "All" || pet["category"] == selectedCategory;
+        return matchesSearch && matchesCategory;
+      }).toList();
     });
   }
 
   void _addPet(Map<String, dynamic> pet) {
     setState(() {
       allPets.insert(0, pet);
-      _onSearchChanged();
+      _applyFilters();
     });
   }
 
@@ -121,11 +123,23 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
               ),
             ),
           ),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                _buildCategoryChip("All", Icons.grid_view),
+                _buildCategoryChip("Dog", Icons.pets),
+                _buildCategoryChip("Cat", Icons.pets_outlined),
+                _buildCategoryChip("Bird", Icons.flutter_dash),
+                _buildCategoryChip("Rabbit", Icons.cruelty_free),
+              ],
+            ),
+          ),
           Expanded(
             child: ListView.builder(
               itemCount: filteredPets.length,
-              itemBuilder: (context, index) =>
-                  _buildPetCard(filteredPets[index]),
+              itemBuilder: (context, index) => _buildPetCard(filteredPets[index]),
             ),
           ),
         ],
@@ -176,6 +190,50 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
             label: "Profile",
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryChip(String label, IconData icon) {
+    bool isSelected = selectedCategory == label;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          selectedCategory = label;
+          _applyFilters();
+        });
+      },
+      child: Container(
+        margin: const EdgeInsets.only(right: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? primaryTeal : Colors.white,
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 5,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: isSelected ? Colors.white : primaryTeal,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.black87,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -241,8 +299,7 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
                     if (pet["isNeutered"]) const SizedBox(width: 5),
                     if (pet["isNeutered"]) _buildTag("Neutered", Colors.orange),
                     if (pet["gender"] != null) const SizedBox(width: 5),
-                    if (pet["gender"] != null)
-                      _buildTag(pet["gender"], Colors.purple),
+                    if (pet["gender"] != null) _buildTag(pet["gender"], Colors.purple),
                   ],
                 ),
                 const SizedBox(height: 10),
@@ -327,6 +384,7 @@ class _PostPetPageState extends State<PostPetPage> {
   final _priceController = TextEditingController();
   final _ageController = TextEditingController();
   String _selectedGender = "Male";
+  String _selectedCategory = "Dog";
 
   bool _isVaccinated = false;
   bool _isNeutered = false;
@@ -397,11 +455,40 @@ class _PostPetPageState extends State<PostPetPage> {
               _priceController,
               Icons.monetization_on_outlined,
             ),
-            _buildField(
-              "Age in years",
-              _ageController,
-              Icons.calendar_today,
-              inputType: TextInputType.number,
+            _buildField("Age in years", _ageController, Icons.calendar_today, inputType: TextInputType.number),
+            
+            Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.category_outlined, color: Color(0xFF5BA092)),
+                  const SizedBox(width: 12),
+                  const Text("Category: "),
+                  Expanded(
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: _selectedCategory,
+                        items: ["Dog", "Cat", "Bird", "Rabbit"].map((String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value),
+                          );
+                        }).toList(),
+                        onChanged: (newValue) {
+                          setState(() {
+                            _selectedCategory = newValue!;
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
 
             Container(
@@ -469,6 +556,7 @@ class _PostPetPageState extends State<PostPetPage> {
                         : "${_priceController.text} JD",
                     "age": _ageController.text,
                     "gender": _selectedGender,
+                    "category": _selectedCategory,
                     "isVaccinated": _isVaccinated,
                     "isNeutered": _isNeutered,
                     "image": _imageFile!.path,
