@@ -82,14 +82,28 @@ class _HomePageState extends State<Home> {
 
         return Row(
           children: [
-            Container(
-              width: 64,
-              height: 64,
-              decoration: const BoxDecoration(
-                color: Color(0xFFDFF3EE),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.pets, color: Color(0xFF3AA78E), size: 34),
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                CircleAvatar(
+                  radius: 32,
+                  backgroundColor: Colors.white,
+                  child: const Icon(Icons.pets, color: Color(0xFF5B9D8E), size: 32),
+                ),
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: Container(
+                    width: 18,
+                    height: 18,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFE53935),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.favorite, color: Colors.white, size: 10),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(width: 12),
             Column(
