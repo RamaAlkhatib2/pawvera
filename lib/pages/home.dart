@@ -39,7 +39,7 @@ class _HomePageState extends State<Home> {
       case 1:
         return const MyPetPage();
       case 3:
-        return const MyBookingsPage(); // عرض صفحة الحجوزات عند الضغط على My Bookings
+        return const MyBookingsPage(standalone: false);
       case 4:
         return ProfileView(
           onOpenMyBookings: () => setState(() => _selectedIndex = 3),
@@ -360,8 +360,8 @@ class _HomePageState extends State<Home> {
             title: 'Health Records',
             subtitle: 'Medical history',
             icon: Icons.receipt_long,
-            color: const Color(0xFFE6F6F0),
-            iconColor: const Color(0xFF5FA399),
+            color: const Color(0xFFD9F1F9),
+            iconColor: const Color(0xFF4A9BA4),
             imagePath: 'assets/icons/health_records.icon.png',
             imageWidth: 148,
             imageHeight: 148,

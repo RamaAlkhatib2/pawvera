@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'home.dart';
+import 'profile_view.dart';
 
 class MyBookingsPage extends StatefulWidget {
-  const MyBookingsPage({super.key});
+  final bool standalone;
+  const MyBookingsPage({super.key, this.standalone = true});
 
   @override
   State<MyBookingsPage> createState() => _MyBookingsPageState();
@@ -670,6 +673,40 @@ class _MyBookingsPageState extends State<MyBookingsPage>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFEAF5F1),
+      bottomNavigationBar: widget.standalone
+          ? BottomNavigationBar(
+              type: BottomNavigationBarType.fixed,
+              selectedItemColor: const Color(0xFF5B9D8E),
+              unselectedItemColor: const Color(0xFF9E9E9E),
+              currentIndex: 3,
+              onTap: (index) {
+                if (index == 0) {
+                  Navigator.pushReplacement(
+                      context, MaterialPageRoute(builder: (_) => const Home()));
+                } else if (index == 1) {
+                  Navigator.pushReplacement(
+                      context, MaterialPageRoute(builder: (_) => const Home()));
+                } else if (index == 4) {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => ProfileView()));
+                }
+              },
+              items: const [
+                BottomNavigationBarItem(
+                    icon: Icon(Icons.home_outlined), label: 'Home'),
+                BottomNavigationBarItem(
+                    icon: Icon(Icons.pets_outlined), label: 'My Pets'),
+                BottomNavigationBarItem(
+                    icon: Icon(Icons.message_outlined), label: 'Messages'),
+                BottomNavigationBarItem(
+                    icon: Icon(Icons.calendar_today_outlined),
+                    label: 'My Bookings'),
+                BottomNavigationBarItem(
+                    icon: Icon(Icons.person_outline), label: 'Profile'),
+              ],
+            )
+          : null,
       body: SafeArea(
         child: Column(
           children: [
