@@ -64,6 +64,42 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
     });
   }
 
+  void _showFilterMenu() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text("Sort By", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              ListTile(
+                leading: const Icon(Icons.sort_by_alpha),
+                title: const Text("Name"),
+                onTap: () {
+                  setState(() => filteredPets.sort((a, b) => a["name"].compareTo(b["name"])));
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.sell_outlined),
+                title: const Text("Price (Free first)"),
+                onTap: () {
+                  setState(() => filteredPets.sort((a, b) => a["price"].compareTo(b["price"])));
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -123,16 +159,37 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
               ),
             ),
           ),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
             child: Row(
               children: [
-                _buildCategoryChip("All", Icons.grid_view),
-                _buildCategoryChip("Dog", Icons.pets),
-                _buildCategoryChip("Cat", Icons.pets_outlined),
-                _buildCategoryChip("Bird", Icons.flutter_dash),
-                _buildCategoryChip("Rabbit", Icons.cruelty_free),
+                Expanded(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: [
+                        _buildCategoryChip("All", Icons.grid_view),
+                        _buildCategoryChip("Dog", Icons.pets),
+                        _buildCategoryChip("Cat", Icons.pets_outlined),
+                        _buildCategoryChip("Bird", Icons.flutter_dash),
+                        _buildCategoryChip("Rabbit", Icons.cruelty_free),
+                      ],
+                    ),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: _showFilterMenu,
+                  child: Container(
+                    margin: const EdgeInsets.only(right: 16),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: primaryTeal,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.tune, color: Colors.white, size: 20),
+                  ),
+                ),
               ],
             ),
           ),
