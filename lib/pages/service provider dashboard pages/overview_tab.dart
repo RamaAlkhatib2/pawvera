@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
 class OverviewTab extends StatefulWidget {
-  const OverviewTab({super.key});
+  final VoidCallback? onViewAllBookings;
+  final VoidCallback? onManageServices;
+
+  const OverviewTab({super.key, this.onViewAllBookings, this.onManageServices});
 
   @override
   State<OverviewTab> createState() => _OverviewTabState();
@@ -13,6 +16,12 @@ class _OverviewTabState extends State<OverviewTab> {
 
   static const Color primaryTeal = Color(0xFF2D6A64);
   static const Color textGrey = Color(0xFF757575);
+
+  // قائمة الخدمات النشطة (مؤقتة - سيتم ربطها لاحقاً)
+  final List<Map<String, dynamic>> activeServices = [
+    {'name': 'Full Grooming Package', 'duration': '2 hours'},
+    {'name': 'Basic Bath & Brush', 'duration': '1 hour'},
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +57,7 @@ class _OverviewTabState extends State<OverviewTab> {
             ),
             _buildStatCard(
               'Active Services',
-              '3/3',
+              '${activeServices.length}/${activeServices.length}',
               Icons.content_cut_outlined,
               Colors.orange[300]!,
             ),
@@ -118,11 +127,93 @@ class _OverviewTabState extends State<OverviewTab> {
             ],
           ),
         ),
+        const SizedBox(height: 20),
+
+        // 4. الخدمات النشطة (Active Services)
+        _buildSectionCard(
+          title: 'Active Services',
+          child: Column(
+            children: [
+              ...activeServices.map(
+                (service) => _buildServiceItem(
+                  service['name'] as String,
+                  service['duration'] as String,
+                ),
+              ),
+              const SizedBox(height: 8),
+              _buildManageServicesButton('Manage Services'),
+            ],
+          ),
+        ),
       ],
     );
   }
 
   // --- الويدجت الفرعية (الميثودات) ---
+
+  Widget _buildServiceItem(String name, String duration) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: primaryTeal.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(
+              Icons.content_cut_outlined,
+              color: primaryTeal,
+              size: 18,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Icon(Icons.access_time, size: 12, color: Colors.grey[400]),
+                    const SizedBox(width: 4),
+                    Text(
+                      duration,
+                      style: const TextStyle(color: textGrey, fontSize: 11),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.green.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: const Text(
+              'Active',
+              style: TextStyle(
+                color: Colors.green,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildStatCard(
     String title,
@@ -294,7 +385,9 @@ class _OverviewTabState extends State<OverviewTab> {
     return SizedBox(
       width: double.infinity,
       child: OutlinedButton(
-        onPressed: () {},
+        onPressed: () {
+          widget.onViewAllBookings?.call();
+        },
         style: OutlinedButton.styleFrom(
           side: const BorderSide(color: Color(0xFFE0F2F1)),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -302,6 +395,26 @@ class _OverviewTabState extends State<OverviewTab> {
         child: Text(
           text,
           style: const TextStyle(color: textGrey, fontSize: 12),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildManageServicesButton(String text) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () {
+          widget.onManageServices?.call();
+        },
+        icon: const Icon(Icons.settings_outlined, size: 16),
+        label: Text(
+          text,
+          style: const TextStyle(color: textGrey, fontSize: 12),
+        ),
+        style: OutlinedButton.styleFrom(
+          side: const BorderSide(color: Color(0xFFE0F2F1)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       ),
     );
