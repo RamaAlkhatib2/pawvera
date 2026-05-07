@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'supplies_store.dart';
@@ -165,6 +166,7 @@ class _HomePageState extends State<Home> {
                     (data['name'] as String? ?? 'P')[0].toUpperCase(),
                     data['name'] ?? 'Pet',
                     Colors.teal.shade300,
+                    imagePath: data['imagePath'] as String?,
                   );
                 }),
                 _addPetButton(),
@@ -176,21 +178,26 @@ class _HomePageState extends State<Home> {
     );
   }
 
-  Widget _petAvatar(String initial, String name, Color color) {
+  Widget _petAvatar(String initial, String name, Color color,
+      {String? imagePath}) {
+    final hasImage = imagePath != null && imagePath.isNotEmpty;
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         CircleAvatar(
           radius: 28,
           backgroundColor: color,
-          child: Text(
-            initial,
-            style: const TextStyle(
-              fontSize: 18,
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          backgroundImage: hasImage ? FileImage(File(imagePath)) : null,
+          child: hasImage
+              ? null
+              : Text(
+                  initial,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
         ),
         const SizedBox(height: 6),
         SizedBox(
