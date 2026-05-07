@@ -16,8 +16,9 @@ class _RegisterViewState extends State<RegisterView> {
   final emailController = TextEditingController();
   final phoneController = TextEditingController();
   final passwordController = TextEditingController();
+  final confirmPasswordController = TextEditingController();
 
-  String? selectedCountry;
+  String? selectedCountry = "Jordan";
   List<String> countries = [
     "Jordan",
     "Saudi Arabia",
@@ -34,6 +35,7 @@ class _RegisterViewState extends State<RegisterView> {
     emailController.dispose();
     phoneController.dispose();
     passwordController.dispose();
+    confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -69,22 +71,26 @@ class _RegisterViewState extends State<RegisterView> {
       });
 
       // إغلاق مؤشر التحميل
-      if (mounted) Navigator.pop(context);
-
-      // (اختياري) الانتقال للصفحة الرئيسية أو تسجيل الدخول
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Account created successfully!")),
-      );
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Account created successfully!")),
+        );
+      }
     } on FirebaseAuthException catch (e) {
-      if (mounted) Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message ?? "An error occurred")),
-      );
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message ?? "An error occurred")),
+        );
+      }
     } catch (e) {
-      if (mounted) Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
-      );
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $e")),
+        );
+      }
     }
   }
 
@@ -153,18 +159,6 @@ class _RegisterViewState extends State<RegisterView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Center(
-            child: Text(
-              "Create Account",
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF634732),
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-
           _buildLabel("Full Name"),
           buildTextField(
             controller: fullNameController,
@@ -233,7 +227,15 @@ class _RegisterViewState extends State<RegisterView> {
           _buildLabel("Password"),
           buildTextField(
             controller: passwordController,
-            hintText: "********",
+            hintText: "••••••••",
+            obscureText: true,
+          ),
+
+          const SizedBox(height: 15),
+          _buildLabel("Confirm Password"),
+          buildTextField(
+            controller: confirmPasswordController,
+            hintText: "••••••••",
             obscureText: true,
           ),
 
@@ -241,9 +243,35 @@ class _RegisterViewState extends State<RegisterView> {
 
           buildRegisterButton(
             onTap: registerUser,
-            text: "Register",
+            text: "Create Account",
           ),
-          const SizedBox(height: 20),
+
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              const Expanded(child: Divider()),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Text("OR", style: TextStyle(color: Colors.grey[500], fontSize: 13)),
+              ),
+              const Expanded(child: Divider()),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Center(
+            child: TextButton(
+              onPressed: () {},
+              child: const Text(
+                "Continue as Guest",
+                style: TextStyle(
+                  color: Color(0xFF5B9D8E),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
         ],
       ),
     );
