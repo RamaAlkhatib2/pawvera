@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'home.dart';
-import 'my_pet_page.dart';
 import 'my_bookings_page.dart';
 import 'profile_view.dart';
 
@@ -17,7 +16,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
   List<Map<String, dynamic>> reminders = [];
   List<Map<String, dynamic>> filteredReminders = [];
   bool isLoading = true;
-  int _selectedIndex = 3;
+  int _selectedIndex = 0;
 
   String selectedType = "All";
   String selectedPet = "All Pets";
@@ -221,7 +220,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         selectedItemColor: primaryTeal,
-        unselectedItemColor: Colors.grey,
+        unselectedItemColor: const Color(0xFF9E9E9E),
         currentIndex: _selectedIndex,
         onTap: (index) {
           setState(() => _selectedIndex = index);
@@ -230,8 +229,8 @@ class _ReminderScreenState extends State<ReminderScreen> {
                 context, MaterialPageRoute(builder: (_) => const Home()));
           }
           if (index == 1) {
-            Navigator.push(
-                context, MaterialPageRoute(builder: (_) => const MyPetPage()));
+            Navigator.pushReplacement(
+                context, MaterialPageRoute(builder: (_) => const Home()));
           }
           if (index == 3) {
             Navigator.push(
@@ -245,15 +244,15 @@ class _ReminderScreenState extends State<ReminderScreen> {
         },
         items: const [
           BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined), label: "Home"),
+              icon: Icon(Icons.home_outlined), label: 'Home'),
           BottomNavigationBarItem(
-              icon: Icon(Icons.favorite_outline), label: "My Pets"),
+              icon: Icon(Icons.pets_outlined), label: 'My Pets'),
           BottomNavigationBarItem(
-              icon: Icon(Icons.chat_bubble_outline), label: "Messages"),
+              icon: Icon(Icons.message_outlined), label: 'Messages'),
           BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_month_outlined), label: "My Bookings"),
+              icon: Icon(Icons.calendar_today_outlined), label: 'My Bookings'),
           BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline), label: "Profile"),
+              icon: Icon(Icons.person_outline), label: 'Profile'),
         ],
       ),
     );

@@ -1,6 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'home.dart';
+import 'my_bookings_page.dart';
+import 'profile_view.dart';
 
 class AdoptionScreen extends StatefulWidget {
   const AdoptionScreen({super.key});
@@ -194,6 +197,42 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
               itemBuilder: (context, index) => _buildPetCard(filteredPets[index]),
             ),
           ),
+        ],
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: primaryTeal,
+        unselectedItemColor: const Color(0xFF9E9E9E),
+        currentIndex: 0,
+        onTap: (index) {
+          if (index == 0) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const Home()),
+            );
+          } else if (index == 1) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const Home()),
+            );
+          } else if (index == 3) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const MyBookingsPage()),
+            );
+          } else if (index == 4) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => ProfileView()),
+            );
+          }
+        },
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.pets_outlined), label: 'My Pets'),
+          BottomNavigationBarItem(icon: Icon(Icons.message_outlined), label: 'Messages'),
+          BottomNavigationBarItem(icon: Icon(Icons.calendar_today_outlined), label: 'My Bookings'),
+          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
         ],
       ),
     );
