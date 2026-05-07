@@ -11,48 +11,95 @@ class _BookingsTabState extends State<BookingsTab> {
   // الحالة الحالية للفلتر والبحث
   String selectedFilter = 'All';
   String searchQuery = '';
+  DateTime? selectedDate;
 
-  // قائمة الحجوزات التفاعلية
+  // قائمة الحجوزات التفاعلية مع بيانات أكثر
   List<Map<String, dynamic>> allBookings = [
     {
       'name': 'Sarah Johnson',
       'pet': 'Max',
       'service': 'Full Grooming Package',
+      'phone': '+1 (555) 123-4567',
       'date': 'Jan 05, 2026',
       'time': '10:00 AM',
       'status': 'confirmed',
+      'notes': 'Please use hypoallergenic shampoo',
     },
     {
       'name': 'Mike Brown',
       'pet': 'Luna',
       'service': 'Basic Bath & Brush',
+      'phone': '+1 (555) 234-5678',
       'date': 'Jan 05, 2026',
       'time': '02:00 PM',
       'status': 'pending',
+      'notes': '',
     },
     {
       'name': 'Emily Davis',
       'pet': 'Charlie',
       'service': 'Nail Trim Only',
+      'phone': '+1 (555) 345-6789',
       'date': 'Jan 06, 2026',
       'time': '11:00 AM',
       'status': 'confirmed',
+      'notes': 'Nervous around other dogs',
     },
     {
       'name': 'David Wilson',
       'pet': 'Bella',
       'service': 'Full Grooming Package',
+      'phone': '+1 (555) 456-7890',
       'date': 'Jan 03, 2026',
       'time': '03:00 PM',
       'status': 'completed',
+      'notes': 'Prefers quiet environment',
     },
   ];
 
   static const Color primaryTeal = Color(0xFF2D6A64);
 
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: selectedDate ?? DateTime.now(),
+      firstDate: DateTime(2024),
+      lastDate: DateTime(2028),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(primary: Color(0xFF2D6A64)),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() => selectedDate = picked);
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return '${months[date.month - 1]} ${date.day.toString().padLeft(2, '0')}, ${date.year}';
+  }
+
   @override
   Widget build(BuildContext context) {
-    // منطق التصفية (فلتر الحالة + نص البحث)
+    // منطق التصفية (فلتر الحالة + نص البحث + التاريخ)
     final filteredList = allBookings.where((booking) {
       bool matchesFilter =
           selectedFilter == 'All' ||
@@ -63,7 +110,10 @@ class _BookingsTabState extends State<BookingsTab> {
           booking['pet'].toLowerCase().contains(searchQuery.toLowerCase()) ||
           booking['service'].toLowerCase().contains(searchQuery.toLowerCase());
 
-      return matchesFilter && matchesSearch;
+      bool matchesDate =
+          selectedDate == null || booking['date'] == _formatDate(selectedDate!);
+
+      return matchesFilter && matchesSearch && matchesDate;
     }).toList();
 
     return Column(
@@ -92,23 +142,86 @@ class _BookingsTabState extends State<BookingsTab> {
         ),
         const SizedBox(height: 16),
 
-        // 2. خانة البحث
-        TextField(
-          onChanged: (value) => setState(() => searchQuery = value),
-          decoration: InputDecoration(
-            hintText: 'Search by owner, pet, or service...',
-            prefixIcon: const Icon(Icons.search, color: Colors.grey),
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Colors.grey[200]!),
+        // 2. خانة البحث مع زر التقويم
+        Row(
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 48,
+                child: TextField(
+                  onChanged: (value) => setState(() => searchQuery = value),
+                  decoration: InputDecoration(
+                    hintText: 'Search by owner, pet, or service...',
+                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: Colors.grey[200]!),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: Colors.grey[200]!),
+                    ),
+                  ),
+                ),
+              ),
             ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: Colors.grey[200]!),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: _pickDate,
+              child: Container(
+                constraints: const BoxConstraints(minWidth: 120),
+                height: 48,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: selectedDate != null
+                      ? const Color(0xFF2D6A64)
+                      : Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: selectedDate != null
+                        ? const Color(0xFF2D6A64)
+                        : Colors.grey[200]!,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.calendar_today,
+                      color: selectedDate != null ? Colors.white : Colors.grey,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      selectedDate != null
+                          ? '${selectedDate!.month.toString().padLeft(2, '0')}/${selectedDate!.day.toString().padLeft(2, '0')}/${selectedDate!.year}'
+                          : 'mm/dd/yyyy',
+                      style: TextStyle(
+                        color: selectedDate != null
+                            ? Colors.white
+                            : Colors.grey[600],
+                        fontSize: 13,
+                      ),
+                    ),
+                    if (selectedDate != null) ...[
+                      const SizedBox(width: 6),
+                      GestureDetector(
+                        onTap: () => setState(() => selectedDate = null),
+                        child: Icon(
+                          Icons.close,
+                          size: 16,
+                          color: Colors.white70,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
             ),
-          ),
+          ],
         ),
         const SizedBox(height: 20),
 
@@ -121,7 +234,6 @@ class _BookingsTabState extends State<BookingsTab> {
                 itemCount: filteredList.length,
                 itemBuilder: (context, index) {
                   final booking = filteredList[index];
-                  // نحتاج نلاقي الاندكس الحقيقي في القائمة الأصلية عشان نعدل الحالة
                   int originalIndex = allBookings.indexOf(booking);
                   return _buildBookingItem(booking, originalIndex);
                 },
@@ -168,8 +280,7 @@ class _BookingsTabState extends State<BookingsTab> {
     );
   }
 
-  // ويدجت الحجز الفردي مع الأزرار التفاعلية
-  // ويدجت الحجز الفردي مع الأزرار التفاعلية المحدثة
+  // ويدجت الحجز الفردي مع بيانات تفصيلية
   Widget _buildBookingItem(Map<String, dynamic> booking, int index) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -180,122 +291,123 @@ class _BookingsTabState extends State<BookingsTab> {
         border: Border.all(color: const Color(0xFFE0F2F1)),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // الصف العلوي: الاسم + الحالة
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    booking['name'],
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  Text(
-                    '${booking['pet']} - ${booking['service']}',
-                    style: const TextStyle(color: Colors.grey, fontSize: 13),
-                  ),
-                ],
+              Text(
+                booking['name'],
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
               ),
               _buildStatusBadge(booking['status']),
             ],
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Icon(Icons.calendar_today, size: 14, color: Colors.grey[400]),
-              const SizedBox(width: 4),
-              Text(
-                booking['date'],
-                style: const TextStyle(color: Colors.grey, fontSize: 12),
-              ),
-              const SizedBox(width: 12),
-              Icon(Icons.access_time, size: 14, color: Colors.grey[400]),
-              const SizedBox(width: 4),
-              Text(
-                booking['time'],
-                style: const TextStyle(color: Colors.grey, fontSize: 12),
-              ),
-            ],
-          ),
+          const SizedBox(height: 8),
 
-          // منطقة الأزرار التفاعلية المحدثة
+          // معلومات الحجز (أيقونة + قيمة)
+          _buildDetailRow(Icons.pets, booking['pet']),
+          _buildDetailRow(Icons.content_cut, booking['service']),
+          _buildDetailRow(Icons.phone, booking['phone']),
+          _buildDetailRow(
+            Icons.calendar_today,
+            '${booking['date']} at ${booking['time']}',
+          ),
+          if (booking['notes'] != null &&
+              (booking['notes'] as String).isNotEmpty)
+            _buildDetailRow(Icons.notes, booking['notes']),
+
+          const Divider(height: 24),
+
+          // منطقة الأزرار التفاعلية
           if (booking['status'] == 'pending' ||
               booking['status'] == 'confirmed')
-            Padding(
-              padding: const EdgeInsets.only(top: 16),
-              child: Row(
-                children: [
-                  // الزر الأساسي (Confirm أو Complete)
-                  Expanded(
-                    flex: 2,
-                    child: SizedBox(
-                      height: 40,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          setState(() {
-                            if (booking['status'] == 'pending') {
-                              allBookings[index]['status'] = 'confirmed';
-                            } else if (booking['status'] == 'confirmed') {
-                              allBookings[index]['status'] = 'completed';
-                            }
-                          });
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryTeal,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          elevation: 0,
+            Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: SizedBox(
+                    height: 40,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          if (booking['status'] == 'pending') {
+                            allBookings[index]['status'] = 'confirmed';
+                          } else if (booking['status'] == 'confirmed') {
+                            allBookings[index]['status'] = 'completed';
+                          }
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryTeal,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Text(
-                          booking['status'] == 'pending'
-                              ? 'Confirm'
-                              : 'Complete',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
+                        elevation: 0,
+                      ),
+                      child: Text(
+                        booking['status'] == 'pending' ? 'Confirm' : 'Complete',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  // الزر الثانوي (Decline أو Cancel)
-                  Expanded(
-                    flex: 1,
-                    child: SizedBox(
-                      height: 40,
-                      child: OutlinedButton(
-                        onPressed: () {
-                          setState(() {
-                            allBookings[index]['status'] = 'cancelled';
-                          });
-                        },
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Colors.redAccent),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 1,
+                  child: SizedBox(
+                    height: 40,
+                    child: OutlinedButton(
+                      onPressed: () {
+                        setState(() {
+                          allBookings[index]['status'] = 'cancelled';
+                        });
+                      },
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.redAccent),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Text(
-                          booking['status'] == 'pending' ? 'Decline' : 'Cancel',
-                          style: const TextStyle(
-                            color: Colors.redAccent,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
+                      ),
+                      child: Text(
+                        booking['status'] == 'pending' ? 'Decline' : 'Cancel',
+                        style: const TextStyle(
+                          color: Colors.redAccent,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
                         ),
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(IconData icon, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: Colors.grey[400]),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(color: Colors.black87, fontSize: 13),
+            ),
+          ),
         ],
       ),
     );

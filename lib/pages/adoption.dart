@@ -240,20 +240,31 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
           } else if (index == 4) {
             Navigator.push(
               context,
-<<<<<<< HEAD
               MaterialPageRoute(builder: (context) => ProfileView()),
-=======
-              MaterialPageRoute(builder: (_) => ProfileView()),
->>>>>>> a6767e21559929926d1cac038aece099d716510c
             );
           }
         },
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.pets_outlined), label: 'My Pets'),
-          BottomNavigationBarItem(icon: Icon(Icons.message_outlined), label: 'Messages'),
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_today_outlined), label: 'My Bookings'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_outlined),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.pets_outlined),
+            label: 'My Pets',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.message_outlined),
+            label: 'Messages',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_today_outlined),
+            label: 'My Bookings',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            label: 'Profile',
+          ),
         ],
       ),
     );
