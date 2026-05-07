@@ -1,22 +1,17 @@
- import 'dart:io';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-
-import 'home.dart';
-import 'my_bookings_page.dart';
-import 'profile_view.dart';
 
 class AdoptionScreen extends StatefulWidget {
   const AdoptionScreen({super.key});
 
   @override
-  _AdoptionScreenState createState() => _AdoptionScreenState();
+  State<AdoptionScreen> createState() => _AdoptionScreenState();
 }
 
 class _AdoptionScreenState extends State<AdoptionScreen> {
   final Color primaryTeal = const Color(0xFF5BA092);
   final Color backgroundCream = const Color(0xFFF9F6EE);
-  int _selectedIndex = 1;
 
   final TextEditingController _searchController = TextEditingController();
   List<Map<String, dynamic>> filteredPets = [];
@@ -201,53 +196,6 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: primaryTeal,
-        currentIndex: _selectedIndex,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-          if (index == 0)
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const Home()),
-            );
-          if (index == 3)
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const MyBookingsPage()),
-            );
-          if (index == 4)
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => ProfileView()),
-            );
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            label: "Home",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.favorite_outline),
-            label: "My Pets",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.chat_bubble_outline),
-            label: "Messages",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_month_outlined),
-            label: "My Bookings",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            label: "Profile",
-          ),
-        ],
-      ),
     );
   }
 
@@ -268,7 +216,7 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
           borderRadius: BorderRadius.circular(15),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 5,
               offset: const Offset(0, 2),
             ),
@@ -411,7 +359,7 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
@@ -431,7 +379,7 @@ class PostPetPage extends StatefulWidget {
   const PostPetPage({super.key, required this.onSubmit});
 
   @override
-  _PostPetPageState createState() => _PostPetPageState();
+  State<PostPetPage> createState() => _PostPetPageState();
 }
 
 class _PostPetPageState extends State<PostPetPage> {
@@ -480,7 +428,7 @@ class _PostPetPageState extends State<PostPetPage> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(15),
                   border: Border.all(
-                    color: const Color(0xFF5BA092).withOpacity(0.3),
+                    color: const Color(0xFF5BA092).withValues(alpha: 0.3),
                   ),
                   image: _imageFile != null
                       ? DecorationImage(
@@ -584,13 +532,13 @@ class _PostPetPageState extends State<PostPetPage> {
 
             SwitchListTile(
               title: const Text("Vaccinated"),
-              activeColor: const Color(0xFF5BA092),
+              activeThumbColor: const Color(0xFF5BA092),
               value: _isVaccinated,
               onChanged: (v) => setState(() => _isVaccinated = v),
             ),
             SwitchListTile(
               title: const Text("Neutered"),
-              activeColor: const Color(0xFF5BA092),
+              activeThumbColor: const Color(0xFF5BA092),
               value: _isNeutered,
               onChanged: (v) => setState(() => _isNeutered = v),
             ),
