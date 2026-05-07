@@ -1,4 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:pawvera/services/database_service.dart';
 import 'home.dart';
 import 'my_bookings_page.dart';
 import 'profile_view.dart';
@@ -12,26 +15,38 @@ class ReminderScreen extends StatefulWidget {
 
 class _ReminderScreenState extends State<ReminderScreen> {
   final Color primaryTeal = const Color(0xFF5BA092);
+  final DatabaseService _db = DatabaseService();
 
   List<Map<String, dynamic>> reminders = [];
   List<Map<String, dynamic>> filteredReminders = [];
+  List<String> _userPetNames = [];
   bool isLoading = true;
   int _selectedIndex = 0;
 
   String selectedType = "All";
   String selectedPet = "All Pets";
   final TextEditingController searchController = TextEditingController();
+  StreamSubscription<QuerySnapshot>? _petsSubscription;
 
   @override
   void initState() {
     super.initState();
     _loadReminders();
     searchController.addListener(applyFilters);
+    _petsSubscription = _db.userPets.listen((snap) {
+      setState(() {
+        _userPetNames = snap.docs
+            .map((d) => (d.data() as Map<String, dynamic>)['name'] as String? ?? '')
+            .where((n) => n.isNotEmpty)
+            .toList();
+      });
+    });
   }
 
   @override
   void dispose() {
     searchController.dispose();
+    _petsSubscription?.cancel();
     super.dispose();
   }
 
@@ -58,10 +73,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
     });
   }
 
-  List<String> get petNames {
-    final names = reminders.map((r) => r['petName'] as String).toSet().toList();
-    return ['All Pets', ...names];
-  }
+  List<String> get petNames => ['All Pets', ..._userPetNames];
 
   void applyFilters() {
     setState(() {
@@ -491,15 +503,21 @@ class _ReminderScreenState extends State<ReminderScreen> {
 
   // ── New Reminder sheet ──────────────────────────────────────────────────────
 
-  void _showNewReminderSheet(BuildContext context) {
+  Future<void> _showNewReminderSheet(BuildContext context) async {
+    final QuerySnapshot snap = await _db.userPets.first;
+    final List<String> pets = snap.docs
+        .map((d) => (d.data() as Map<String, dynamic>)['name'] as String? ?? '')
+        .where((n) => n.isNotEmpty)
+        .toList();
+
+    if (!mounted) return;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _NewReminderSheet(
         primaryTeal: primaryTeal,
-        availablePets:
-            petNames.where((n) => n != 'All Pets').toList(),
+        availablePets: pets,
         onAdd: _addReminder,
       ),
     );

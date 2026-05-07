@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:pawvera/pages/pet%20care%20pages/confirm_booking_page.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:pawvera/services/database_service.dart';
 
 class BookingPage extends StatefulWidget {
   final String serviceName;
@@ -26,6 +27,7 @@ class BookingPage extends StatefulWidget {
 class _BookingPageState extends State<BookingPage> {
   final Color primaryGreen = const Color(0xFF5B9D8E);
   final Color bgCream = const Color(0xFFE8F4F1);
+  final DatabaseService _db = DatabaseService();
 
   // Controllers لجمع بيانات اليوزر
   final _nameController = TextEditingController();
@@ -595,13 +597,21 @@ class _BookingPageState extends State<BookingPage> {
   }
 
   Widget _buildPetSelector() {
-    return ValueListenableBuilder(
-      valueListenable: Hive.box('myBox').listenable(),
-      builder: (context, Box box, _) {
-        final List petsData = box.get('pets', defaultValue: []);
-        if (petsData.isEmpty) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: _db.userPets,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox(
+            height: 48,
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+          );
+        }
+
+        final pets = snapshot.data?.docs ?? [];
+
+        if (pets.isEmpty) {
           return const Text(
-            "No pets found.",
+            "No pets found. Add a pet first.",
             style: TextStyle(color: Colors.red, fontSize: 12),
           );
         }
@@ -618,14 +628,13 @@ class _BookingPageState extends State<BookingPage> {
               value: _selectedPet,
               hint: const Text("Choose pet", style: TextStyle(fontSize: 13)),
               isExpanded: true,
-              items: petsData
-                  .map(
-                    (pet) => DropdownMenuItem<String>(
-                      value: pet['name'].toString(),
-                      child: Text(pet['name'].toString()),
-                    ),
-                  )
-                  .toList(),
+              items: pets.map((doc) {
+                final name = (doc.data() as Map<String, dynamic>)['name'] as String? ?? '';
+                return DropdownMenuItem<String>(
+                  value: name,
+                  child: Text(name),
+                );
+              }).toList(),
               onChanged: (val) => setState(() => _selectedPet = val),
             ),
           ),
