@@ -42,7 +42,7 @@ class _ServicesTabState extends State<ServicesTab> {
   final TextEditingController _descController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _durationController = TextEditingController();
-  File? _selectedImage;
+  bool _activateImmediately = true;
 
   // دالة البحث (تعيد القائمة المصفاة فقط)
   List<Map<String, dynamic>> get _filteredServices {
@@ -56,14 +56,6 @@ class _ServicesTabState extends State<ServicesTab> {
         .toList();
   }
 
-  Future<void> _pickImage(StateSetter setModalState) async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setModalState(() => _selectedImage = File(pickedFile.path));
-    }
-  }
-
   void _openServiceForm({
     Map<String, dynamic>? serviceToEdit,
     int? originalIndex,
@@ -73,13 +65,13 @@ class _ServicesTabState extends State<ServicesTab> {
       _descController.text = serviceToEdit['description'];
       _priceController.text = serviceToEdit['price'];
       _durationController.text = serviceToEdit['duration'];
-      _selectedImage = serviceToEdit['image'];
+      _activateImmediately = serviceToEdit['isActive'] ?? true;
     } else {
       _nameController.clear();
       _descController.clear();
       _priceController.clear();
       _durationController.clear();
-      _selectedImage = null;
+      _activateImmediately = true;
     }
 
     showModalBottomSheet(
@@ -186,26 +178,6 @@ class _ServicesTabState extends State<ServicesTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (service['image'] != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: kIsWeb
-                    ? Image.network(
-                        (service['image'] as File).path,
-                        height: 150,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                      )
-                    : Image.file(
-                        service['image'] as File,
-                        height: 150,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                      ),
-              ),
-            ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -279,7 +251,7 @@ class _ServicesTabState extends State<ServicesTab> {
     );
   }
 
-  // واجهة الـ Form (نفس السابقة بدون تغيير في التصميم)
+  // واجهة الـ Form المحدثة (بدون صورة + تفعيل فوري + زر إلغاء)
   Widget _buildServiceFormUI(
     StateSetter setModalState, {
     required bool isEdit,
@@ -305,67 +277,7 @@ class _ServicesTabState extends State<ServicesTab> {
               isEdit ? "Edit Service" : "Add New Service",
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 15),
-            _buildLabel("Service Photo *"),
-            GestureDetector(
-              onTap: () => _pickImage(setModalState),
-              child: Container(
-                width: double.infinity,
-                height: 120,
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.grey[300]!),
-                ),
-                child: _selectedImage != null
-                    ? Stack(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: kIsWeb
-                                ? Image.network(
-                                    _selectedImage!.path,
-                                    fit: BoxFit.cover,
-                                    width: double.infinity,
-                                  )
-                                : Image.file(
-                                    _selectedImage!,
-                                    fit: BoxFit.cover,
-                                    width: double.infinity,
-                                  ),
-                          ),
-                          Positioned(
-                            right: 5,
-                            top: 5,
-                            child: GestureDetector(
-                              onTap: () =>
-                                  setModalState(() => _selectedImage = null),
-                              child: const CircleAvatar(
-                                radius: 12,
-                                backgroundColor: Colors.red,
-                                child: Icon(
-                                  Icons.close,
-                                  size: 16,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      )
-                    : const Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.upload_outlined, color: Colors.grey),
-                          Text(
-                            "Click to upload photo",
-                            style: TextStyle(fontSize: 12, color: Colors.grey),
-                          ),
-                        ],
-                      ),
-              ),
-            ),
-            const SizedBox(height: 15),
+            const SizedBox(height: 20),
             _buildLabel("Service Name *"),
             _buildTextField(_nameController, "e.g., Full Grooming Package"),
             const SizedBox(height: 15),
@@ -399,39 +311,114 @@ class _ServicesTabState extends State<ServicesTab> {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
-            SizedBox(
+            const SizedBox(height: 18),
+
+            // تفعيل الخدمة فوراً
+            Container(
               width: double.infinity,
-              height: 48,
-              child: ElevatedButton(
-                onPressed: () {
-                  if (_nameController.text.isNotEmpty) {
-                    setState(() {
-                      final data = {
-                        'name': _nameController.text,
-                        'description': _descController.text,
-                        'price': _priceController.text,
-                        'duration': _durationController.text,
-                        'isActive': isEdit
-                            ? services[index!]['isActive']
-                            : true,
-                        'image': _selectedImage,
-                      };
-                      isEdit ? services[index!] = data : services.add(data);
-                    });
-                    Navigator.pop(context);
-                  }
-                },
-                style: ElevatedButton.styleFrom(backgroundColor: primaryTeal),
-                child: Text(
-                  isEdit ? "Update Service" : "Add Service",
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.grey[200]!),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    _activateImmediately
+                        ? Icons.check_circle
+                        : Icons.radio_button_unchecked,
+                    color: _activateImmediately
+                        ? primaryTeal
+                        : Colors.grey[400],
+                    size: 22,
                   ),
-                ),
+                  const SizedBox(width: 10),
+                  const Text(
+                    "Activate service immediately",
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  ),
+                  const Spacer(),
+                  Switch(
+                    value: _activateImmediately,
+                    onChanged: (value) =>
+                        setModalState(() => _activateImmediately = value),
+                    activeColor: primaryTeal,
+                  ),
+                ],
               ),
             ),
+            const SizedBox(height: 20),
+
+            // الأزرار: Add Service + Cancel
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 48,
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Colors.grey[300]!),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: Text(
+                        "Cancel",
+                        style: TextStyle(
+                          color: Colors.grey[700],
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: SizedBox(
+                    height: 48,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        if (_nameController.text.isNotEmpty) {
+                          setState(() {
+                            final data = {
+                              'name': _nameController.text,
+                              'description': _descController.text,
+                              'price': _priceController.text,
+                              'duration': _durationController.text,
+                              'isActive': isEdit
+                                  ? services[index!]['isActive']
+                                  : _activateImmediately,
+                              'image': null,
+                            };
+                            isEdit
+                                ? services[index!] = data
+                                : services.add(data);
+                          });
+                          Navigator.pop(context);
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryTeal,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: Text(
+                        isEdit ? "Update Service" : "Add Service",
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
           ],
         ),
       ),
