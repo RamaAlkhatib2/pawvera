@@ -59,47 +59,53 @@ class _LoginViewState extends State<LoginView> {
       // إغلاق مؤشر التحميل
       if (mounted) Navigator.pop(context);
 
-      if (userDoc.exists) {
-        // التحقق من توافق الدور المختار مع الدور في قاعدة البيانات (اختياري)
-        // String dbRole = userDoc.get('role');
+      if (mounted) {
+        if (userDoc.exists) {
+          // التحقق من توافق الدور المختار مع الدور في قاعدة البيانات (اختياري)
+          // String dbRole = userDoc.get('role');
 
-        if (activeRole == "Pet Owner") {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const Home()),
-          );
-        } else if (activeRole == "Provider") {
-          if (selectedProviderType == "Pet Supplies Store") {
+          if (activeRole == "Pet Owner") {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(
-                  builder: (context) => const PetSuppliesStoreDashboard()),
+              MaterialPageRoute(builder: (context) => const Home()),
             );
-          } else {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => ServiceProviderDashboard(
-                    providerType: selectedProviderType!,
-                  )),
-            );
+          } else if (activeRole == "Provider") {
+            if (selectedProviderType == "Pet Supplies Store") {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => const PetSuppliesStoreDashboard()),
+              );
+            } else {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => ServiceProviderDashboard(
+                      providerType: selectedProviderType!,
+                    )),
+              );
+            }
           }
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("User data not found")),
+          );
         }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("User data not found")),
-        );
       }
     } on FirebaseAuthException catch (e) {
-      if (mounted) Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message ?? "Authentication failed")),
-      );
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message ?? "Authentication failed")),
+        );
+      }
     } catch (e) {
-      if (mounted) Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
-      );
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $e")),
+        );
+      }
     }
   }
 

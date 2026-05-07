@@ -271,7 +271,7 @@ class _OffersTabState extends State<OffersTab> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: offer['isShopWide']
-            ? primaryTeal.withOpacity(0.05)
+            ? primaryTeal.withValues(alpha: 0.05)
             : Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(

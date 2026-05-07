@@ -323,7 +323,7 @@ class _StoreDetailsState extends State<StoreDetails> {
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 10,
                   ),
                 ],
@@ -440,7 +440,7 @@ class _StoreDetailsState extends State<StoreDetails> {
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.04),
+                            color: Colors.black.withValues(alpha: 0.04),
                             blurRadius: 12,
                             offset: const Offset(0, 4),
                           ),
@@ -730,7 +730,7 @@ class _StoreDetailsState extends State<StoreDetails> {
                 Expanded(
                   child: ListView.separated(
                     itemCount: reviews.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    separatorBuilder: (_, _) => const SizedBox(height: 10),
                     itemBuilder:
                         (context, index) =>
                             _buildStoreReviewCard(reviews[index]),
@@ -1122,7 +1122,7 @@ class _StoreDetailsState extends State<StoreDetails> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -1150,7 +1150,7 @@ class _StoreDetailsState extends State<StoreDetails> {
                       onTap: onFavTap,
                       child: CircleAvatar(
                         radius: 16,
-                        backgroundColor: Colors.white.withOpacity(0.9),
+                        backgroundColor: Colors.white.withValues(alpha: 0.9),
                         child: Icon(
                           isFav ? Icons.favorite : Icons.favorite_border,
                           color: isFav ? Colors.red : Colors.grey,
@@ -1224,7 +1224,7 @@ class _StoreDetailsState extends State<StoreDetails> {
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF5BA092).withOpacity(0.15),
+                        color: const Color(0xFF5BA092).withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: const Row(
@@ -1395,7 +1395,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                   image,
                   fit: BoxFit.cover,
                   errorBuilder:
-                      (_, __, ___) => Container(
+                      (_, _, _) => Container(
                         color: const Color(0xFFDCEDEE),
                         child: const Icon(Icons.pets, size: 60, color: Color(0xFF5BA092)),
                       ),
@@ -1773,7 +1773,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                         hintText: 'Share your thoughts about this product...',
                         hintStyle: const TextStyle(color: Color(0xFF7E8797)),
                         filled: true,
-                        fillColor: Colors.white.withOpacity(0.8),
+                        fillColor: Colors.white.withValues(alpha: 0.8),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(color: Color(0xFFBDD9DE)),
@@ -2051,7 +2051,7 @@ class MyWishlistPage extends StatelessWidget {
                 color: Colors.white,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 10,
                     offset: const Offset(0, -5),
                   ),
@@ -2109,7 +2109,7 @@ class MyWishlistPage extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 5),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 5),
         ],
       ),
       child: Column(
@@ -2191,7 +2191,7 @@ class MyWishlistPage extends StatelessWidget {
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF5BA092).withOpacity(0.1),
+                      backgroundColor: const Color(0xFF5BA092).withValues(alpha: 0.1),
                       foregroundColor: const Color(0xFF5BA092),
                       elevation: 0,
                       shape: RoundedRectangleBorder(
@@ -2527,7 +2527,7 @@ class _MyCartPageState extends State<MyCartPage> {
       child: Container(
         padding: const EdgeInsets.all(2),
         decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFF5BA092).withOpacity(0.3)),
+          border: Border.all(color: const Color(0xFF5BA092).withValues(alpha: 0.3)),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(icon, size: 18, color: const Color(0xFF5BA092)),
@@ -2919,7 +2919,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       color: const Color(0xFFE8F5F3),
                       borderRadius: BorderRadius.circular(15),
                       border: Border.all(
-                        color: const Color(0xFF3AA78E).withOpacity(0.1),
+                        color: const Color(0xFF3AA78E).withValues(alpha: 0.1),
                       ),
                     ),
                     child: Row(

@@ -1,12 +1,9 @@
  import 'dart:io';
 import 'package:flutter/material.dart';
 import 'home.dart';
-import 'my_pets_page.dart';
+import 'my_pet_page.dart';
 import 'my_bookings_page.dart';
 import 'profile_view.dart';
-import 'edit_info_page.dart';
-import 'qr_page.dart';
-import 'add_pet_page.dart';
 
 class ReminderScreen extends StatefulWidget {
   const ReminderScreen({super.key});
@@ -152,12 +149,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
 
       floatingActionButton: FloatingActionButton(
         backgroundColor: primaryTeal,
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => AddPetPage(onAdd: _addNewReminder),
-          ),
-        ),
+        onPressed: () => _showAddReminderSheet(context),
         child: const Icon(Icons.add, color: Colors.white, size: 30),
       ),
 
@@ -178,13 +170,13 @@ class _ReminderScreenState extends State<ReminderScreen> {
           if (index == 1) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const MyPetsPage()),
+              MaterialPageRoute(builder: (context) => const MyPetPage()),
             );
           }
           if (index == 2) {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (context) => const HomeWithMessages()),
+              MaterialPageRoute(builder: (context) => const Home()),
             );
           }
           if (index == 3) {
@@ -196,7 +188,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
           if (index == 4) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const ProfileView()),
+              MaterialPageRoute(builder: (context) => ProfileView()),
             );
           }
         },
@@ -320,10 +312,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
                   color: Colors.blue,
                   size: 20,
                 ),
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const EditInfoPage()),
-                ),
+                onPressed: () => _showEditReminderSheet(context, r),
               ),
               IconButton(
                 icon: const Icon(
@@ -353,13 +342,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
                   ),
                 ],
               ),
-              GestureDetector(
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => QrPage()),
-                ),
-                child: _buildTag(r['type'], primaryTeal),
-              ),
+              _buildTag(r['type'], primaryTeal),
             ],
           ),
         ],
@@ -389,6 +372,192 @@ class _ReminderScreenState extends State<ReminderScreen> {
       ),
     );
   }
+
+  void _showAddReminderSheet(BuildContext context) {
+    final titleCtrl = TextEditingController();
+    final petCtrl = TextEditingController();
+    final descCtrl = TextEditingController();
+    String type = "Medication";
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+            left: 20, right: 20, top: 24,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("Add Reminder",
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: primaryTeal)),
+                const SizedBox(height: 16),
+                _sheetLabel("Title"),
+                TextField(
+                  controller: titleCtrl,
+                  decoration: _sheetInputDecoration("e.g. Heartworm Pill"),
+                ),
+                const SizedBox(height: 12),
+                _sheetLabel("Pet Name"),
+                TextField(
+                  controller: petCtrl,
+                  decoration: _sheetInputDecoration("e.g. Buddy"),
+                ),
+                const SizedBox(height: 12),
+                _sheetLabel("Type"),
+                DropdownButtonFormField<String>(
+                  initialValue: type,
+                  decoration: _sheetInputDecoration(""),
+                  items: ["Medication", "Vaccination", "Grooming", "Checkup"]
+                      .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+                      .toList(),
+                  onChanged: (v) => setModalState(() => type = v!),
+                ),
+                const SizedBox(height: 12),
+                _sheetLabel("Description"),
+                TextField(
+                  controller: descCtrl,
+                  maxLines: 2,
+                  decoration: _sheetInputDecoration("Optional notes..."),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryTeal,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: () {
+                      if (titleCtrl.text.trim().isEmpty) return;
+                      _addNewReminder({
+                        'title': titleCtrl.text.trim(),
+                        'petName': petCtrl.text.trim().isEmpty
+                            ? 'Unknown'
+                            : petCtrl.text.trim(),
+                        'time': '08:00 AM',
+                        'date': 'TBD',
+                        'description': descCtrl.text.trim(),
+                        'type': type,
+                        'image':
+                            'https://images.unsplash.com/photo-1543466835-00a7907e9de1',
+                        'isLocal': false,
+                      });
+                      Navigator.pop(ctx);
+                    },
+                    child: const Text("Add Reminder"),
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showEditReminderSheet(BuildContext context, Map<String, dynamic> r) {
+    final titleCtrl = TextEditingController(text: r['title']);
+    final petCtrl = TextEditingController(text: r['petName']);
+    final descCtrl = TextEditingController(text: r['description'] ?? '');
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          left: 20, right: 20, top: 24,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("Edit Reminder",
+                  style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: primaryTeal)),
+              const SizedBox(height: 16),
+              _sheetLabel("Title"),
+              TextField(
+                controller: titleCtrl,
+                decoration: _sheetInputDecoration("Title"),
+              ),
+              const SizedBox(height: 12),
+              _sheetLabel("Pet Name"),
+              TextField(
+                controller: petCtrl,
+                decoration: _sheetInputDecoration("Pet Name"),
+              ),
+              const SizedBox(height: 12),
+              _sheetLabel("Description"),
+              TextField(
+                controller: descCtrl,
+                maxLines: 2,
+                decoration: _sheetInputDecoration("Description"),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryTeal,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      r['title'] = titleCtrl.text.trim();
+                      r['petName'] = petCtrl.text.trim();
+                      r['description'] = descCtrl.text.trim();
+                    });
+                    Navigator.pop(ctx);
+                  },
+                  child: const Text("Save Changes"),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _sheetLabel(String text) => Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Text(text,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+      );
+
+  InputDecoration _sheetInputDecoration(String hint) => InputDecoration(
+        hintText: hint,
+        filled: true,
+        fillColor: Colors.grey[100],
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide.none,
+        ),
+      );
 }
 
 

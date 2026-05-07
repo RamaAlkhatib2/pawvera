@@ -118,7 +118,7 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
             decoration: InputDecoration(
               isDense: true,
               filled: true,
-              fillColor: primaryTeal.withOpacity(0.05),
+              fillColor: primaryTeal.withValues(alpha: 0.05),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide.none,

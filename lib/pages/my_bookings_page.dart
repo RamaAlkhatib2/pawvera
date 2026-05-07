@@ -764,8 +764,9 @@ class _MyBookingsPageState extends State<MyBookingsPage>
       valueListenable: Hive.box('myBox').listenable(),
       builder: (context, Box box, _) {
         List all = box.get('all_bookings', defaultValue: []);
-        if (all.isEmpty && isCurrent)
+        if (all.isEmpty && isCurrent) {
           return const Center(child: Text("No current bookings."));
+        }
         if (!isCurrent) return const Center(child: Text("No past bookings."));
 
         return ListView.builder(
@@ -791,7 +792,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
         border: Border.all(color: const Color(0xFFE3EEE7)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 18,
             offset: const Offset(0, 10),
           ),
@@ -877,7 +878,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                   onPressed: () => _showRescheduleSheet(data, actualIndex),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: primaryGreen,
-                    side: BorderSide(color: primaryGreen.withOpacity(0.4)),
+                    side: BorderSide(color: primaryGreen.withValues(alpha: 0.4)),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),

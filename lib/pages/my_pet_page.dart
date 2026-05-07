@@ -144,8 +144,9 @@ class _MyPetPageState extends State<MyPetPage> {
                       final img = await ImagePicker().pickImage(
                         source: ImageSource.gallery,
                       );
-                      if (img != null)
+                      if (img != null) {
                         setSheetState(() => imagePath = img.path);
+                      }
                     },
                     icon: Icon(Icons.image, color: primaryGreen),
                     label: Text(
@@ -163,7 +164,7 @@ class _MyPetPageState extends State<MyPetPage> {
                         style: OutlinedButton.styleFrom(
                           foregroundColor: primaryGreen,
                           side: BorderSide(
-                            color: primaryGreen.withOpacity(0.3),
+                            color: primaryGreen.withValues(alpha: 0.3),
                           ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -313,7 +314,7 @@ class _MyPetPageState extends State<MyPetPage> {
                           value: isCodeActive,
                           onChanged: (v) =>
                               setDialogState(() => isCodeActive = v),
-                          activeColor: primaryGreen,
+                          activeThumbColor: primaryGreen,
                         ),
                       ],
                     ),
@@ -449,7 +450,7 @@ class _MyPetPageState extends State<MyPetPage> {
                       onPressed: () => Navigator.pop(context),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: primaryGreen,
-                        side: BorderSide(color: primaryGreen.withOpacity(0.3)),
+                        side: BorderSide(color: primaryGreen.withValues(alpha: 0.3)),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
@@ -549,8 +550,9 @@ class _MyPetPageState extends State<MyPetPage> {
                           final img = await ImagePicker().pickImage(
                             source: ImageSource.gallery,
                           );
-                          if (img != null)
+                          if (img != null) {
                             setDialogState(() => newImg = img.path);
+                          }
                         },
                         child: Container(
                           width: 100,
@@ -670,7 +672,7 @@ class _MyPetPageState extends State<MyPetPage> {
                         style: OutlinedButton.styleFrom(
                           foregroundColor: primaryGreen,
                           side: BorderSide(
-                            color: primaryGreen.withOpacity(0.3),
+                            color: primaryGreen.withValues(alpha: 0.3),
                           ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),

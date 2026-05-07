@@ -10,7 +10,7 @@ class AdoptionScreen extends StatefulWidget {
   const AdoptionScreen({super.key});
 
   @override
-  _AdoptionScreenState createState() => _AdoptionScreenState();
+  State<AdoptionScreen> createState() => _AdoptionScreenState();
 }
 
 class _AdoptionScreenState extends State<AdoptionScreen> {
@@ -91,21 +91,24 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
           setState(() {
             _selectedIndex = index;
           });
-          if (index == 0)
+          if (index == 0) {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (context) => const Home()),
             );
-          if (index == 3)
+          }
+          if (index == 3) {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const MyBookingsPage()),
             );
-          if (index == 4)
+          }
+          if (index == 4) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const ProfileView()),
+              MaterialPageRoute(builder: (context) => ProfileView()),
             );
+          }
         },
         items: const [
           BottomNavigationBarItem(
@@ -247,7 +250,7 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
@@ -268,7 +271,7 @@ class PostPetPage extends StatefulWidget {
   const PostPetPage({super.key, required this.onSubmit});
 
   @override
-  _PostPetPageState createState() => _PostPetPageState();
+  State<PostPetPage> createState() => _PostPetPageState();
 }
 
 class _PostPetPageState extends State<PostPetPage> {
@@ -315,7 +318,7 @@ class _PostPetPageState extends State<PostPetPage> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(15),
                   border: Border.all(
-                    color: const Color(0xFF5BA092).withOpacity(0.3),
+                    color: const Color(0xFF5BA092).withValues(alpha: 0.3),
                   ),
                   image: _imageFile != null
                       ? DecorationImage(
@@ -353,13 +356,13 @@ class _PostPetPageState extends State<PostPetPage> {
             // خيارات الحالة الطبية
             SwitchListTile(
               title: const Text("Vaccinated"),
-              activeColor: const Color(0xFF5BA092),
+              activeThumbColor: const Color(0xFF5BA092),
               value: _isVaccinated,
               onChanged: (v) => setState(() => _isVaccinated = v),
             ),
             SwitchListTile(
               title: const Text("Neutered"),
-              activeColor: const Color(0xFF5BA092),
+              activeThumbColor: const Color(0xFF5BA092),
               value: _isNeutered,
               onChanged: (v) => setState(() => _isNeutered = v),
             ),

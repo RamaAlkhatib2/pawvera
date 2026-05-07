@@ -109,7 +109,7 @@ class _BookingPageState extends State<BookingPage> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.05),
+                color: Colors.blue.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
@@ -142,7 +142,7 @@ class _BookingPageState extends State<BookingPage> {
                   decoration: InputDecoration(
                     hintText: "000000",
                     hintStyle: TextStyle(
-                      color: Colors.grey.withOpacity(0.3),
+                      color: Colors.grey.withValues(alpha: 0.3),
                       fontSize: 16,
                       letterSpacing: 6,
                     ),
@@ -333,7 +333,7 @@ class _BookingPageState extends State<BookingPage> {
         border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -434,7 +434,7 @@ class _BookingPageState extends State<BookingPage> {
             shape: BoxShape.circle,
           ),
           todayDecoration: BoxDecoration(
-            color: primaryGreen.withOpacity(0.2),
+            color: primaryGreen.withValues(alpha: 0.2),
             shape: BoxShape.circle,
           ),
         ),
@@ -599,11 +599,12 @@ class _BookingPageState extends State<BookingPage> {
       valueListenable: Hive.box('myBox').listenable(),
       builder: (context, Box box, _) {
         final List petsData = box.get('pets', defaultValue: []);
-        if (petsData.isEmpty)
+        if (petsData.isEmpty) {
           return const Text(
             "No pets found.",
             style: TextStyle(color: Colors.red, fontSize: 12),
           );
+        }
 
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 15),

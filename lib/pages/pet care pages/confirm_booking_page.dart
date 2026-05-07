@@ -44,7 +44,7 @@ class ConfirmBookingPage extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.05),
+                color: Colors.green.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
@@ -160,7 +160,7 @@ class ConfirmBookingPage extends StatelessWidget {
             await box.put('all_bookings', updatedList);
 
             // 4. إظهار نافذة النجاح
-            _showSuccessDialog(context);
+            if (context.mounted) _showSuccessDialog(context);
           },
         ),
         title: const Text(
@@ -319,9 +319,9 @@ class ConfirmBookingPage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.05),
+        color: color.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
@@ -340,7 +340,7 @@ class ConfirmBookingPage extends StatelessWidget {
               ),
               Text(
                 subtitle,
-                style: TextStyle(color: color.withOpacity(0.7), fontSize: 11),
+                style: TextStyle(color: color.withValues(alpha: 0.7), fontSize: 11),
               ),
             ],
           ),
