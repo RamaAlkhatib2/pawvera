@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:pawvera/services/database_service.dart';
 
@@ -16,16 +18,18 @@ class _MyPetPageState extends State<MyPetPage> {
   final Color primaryGreen = const Color(0xFF5B9D8E);
   final Color bgCream = const Color(0xFFEAF5F1);
   final DatabaseService _db = DatabaseService();
+  final List<String> _ageUnits = const ['Weeks', 'Months', 'Years'];
 
   // --- 1. ميثود الإضافة (Add Pet) - Integrated with Firestore ---
   void _showAddPetSheet() {
     final nameCtrl = TextEditingController();
     final breedCtrl = TextEditingController();
-    final ageCtrl = TextEditingController();
+    final ageValueCtrl = TextEditingController();
     final weightCtrl = TextEditingController();
     final colorCtrl = TextEditingController();
     String selectedType = 'Dog';
     String selectedGender = 'Male';
+    String selectedAgeUnit = 'Years';
     String? imagePath;
 
     showModalBottomSheet(
@@ -111,7 +115,25 @@ class _MyPetPageState extends State<MyPetPage> {
                 ),
 
                 _buildLabel("Age"),
-                _buildTextField(ageCtrl, "Age"),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildTextField(
+                        ageValueCtrl,
+                        "Age number",
+                        keyboardType: TextInputType.number,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _buildDropdown(
+                        _ageUnits,
+                        selectedAgeUnit,
+                        (v) => setSheetState(() => selectedAgeUnit = v!),
+                      ),
+                    ),
+                  ],
+                ),
                 _buildLabel("Color"),
                 _buildTextField(colorCtrl, "Color"),
 
@@ -133,46 +155,73 @@ class _MyPetPageState extends State<MyPetPage> {
                 ),
 
                 const SizedBox(height: 10),
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      if (nameCtrl.text.isNotEmpty) {
-                        final newPet = {
-                          'name': nameCtrl.text,
-                          'type': selectedType,
-                          'breed': breedCtrl.text,
-                          'gender': selectedGender,
-                          'age': ageCtrl.text,
-                          'weight': weightCtrl.text,
-                          'color': colorCtrl.text,
-                          'imagePath': imagePath, // Note: Should ideally be uploaded to Firebase Storage
-                          'ownerName': '',
-                          'ownerPhone': '',
-                          'ownerEmail': '',
-                          'medicalInfo': '',
-                          'allergies': '',
-                        };
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: primaryGreen,
+                          side: BorderSide(
+                            color: primaryGreen.withOpacity(0.3),
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text("Cancel"),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: SizedBox(
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            if (nameCtrl.text.isNotEmpty) {
+                              final ageValue = ageValueCtrl.text.trim();
+                              final newPet = {
+                                'name': nameCtrl.text,
+                                'type': selectedType,
+                                'breed': breedCtrl.text,
+                                'gender': selectedGender,
+                                'age': ageValue.isEmpty
+                                    ? ''
+                                    : '$ageValue $selectedAgeUnit',
+                                'ageValue': ageValue,
+                                'ageUnit': selectedAgeUnit,
+                                'weight': weightCtrl.text,
+                                'color': colorCtrl.text,
+                                'imagePath':
+                                    imagePath, // Note: Should ideally be uploaded to Firebase Storage
+                                'ownerName': '',
+                                'ownerPhone': '',
+                                'ownerEmail': '',
+                                'medicalInfo': '',
+                                'allergies': '',
+                              };
 
-                        await _db.addPet(newPet);
-                        if (context.mounted) Navigator.pop(context);
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryGreen,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                              await _db.addPet(newPet);
+                              if (context.mounted) Navigator.pop(context);
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryGreen,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            "Add Pet",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                    child: const Text(
-                      "Add Pet",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                  ],
                 ),
               ],
             ),
@@ -270,10 +319,7 @@ class _MyPetPageState extends State<MyPetPage> {
                     ),
                   ),
                   const SizedBox(height: 15),
-                  QrImageView(
-                    data: "Pet: ${pet['name']}, Info: ${pet['breed']}",
-                    size: 180,
-                  ),
+                  QrImageView(data: _buildPetQrData(pet), size: 180),
                   const SizedBox(height: 10),
                   const Text(
                     "Scan this QR code to view your pet's information",
@@ -319,7 +365,7 @@ class _MyPetPageState extends State<MyPetPage> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: () {},
+                          onPressed: () => _printPetQrTag(pet),
                           child: const Text(
                             "Print QR",
                             style: TextStyle(fontSize: 12),
@@ -450,11 +496,12 @@ class _MyPetPageState extends State<MyPetPage> {
   void _showEditPetDialog(Map pet, String petId) {
     final nameCtrl = TextEditingController(text: pet['name']);
     final breedCtrl = TextEditingController(text: pet['breed']);
-    final ageCtrl = TextEditingController(text: pet['age']);
+    final ageValueCtrl = TextEditingController(text: _extractAgeValue(pet));
     final weightCtrl = TextEditingController(text: pet['weight']);
     final colorCtrl = TextEditingController(text: pet['color']);
     String selectedType = pet['type'] as String? ?? 'Dog';
     String selectedGender = pet['gender'] as String? ?? 'Male';
+    String selectedAgeUnit = _extractAgeUnit(pet);
     String? newImg = pet['imagePath'];
 
     showDialog(
@@ -577,7 +624,26 @@ class _MyPetPageState extends State<MyPetPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _buildLabel("Age"),
-                          _buildEditField(ageCtrl),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildEditField(
+                                  ageValueCtrl,
+                                  keyboardType: TextInputType.number,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _buildEditDropdown(
+                                  _ageUnits,
+                                  selectedAgeUnit,
+                                  (value) => setDialogState(
+                                    () => selectedAgeUnit = value!,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
                     ),
@@ -618,12 +684,17 @@ class _MyPetPageState extends State<MyPetPage> {
                     Expanded(
                       child: ElevatedButton(
                         onPressed: () async {
+                          final ageValue = ageValueCtrl.text.trim();
                           await _db.updatePet(petId, {
                             'name': nameCtrl.text,
                             'type': selectedType,
                             'breed': breedCtrl.text,
                             'gender': selectedGender,
-                            'age': ageCtrl.text,
+                            'age': ageValue.isEmpty
+                                ? ''
+                                : '$ageValue $selectedAgeUnit',
+                            'ageValue': ageValue,
+                            'ageUnit': selectedAgeUnit,
                             'weight': weightCtrl.text,
                             'color': colorCtrl.text,
                             'imagePath': newImg,
@@ -805,7 +876,7 @@ class _MyPetPageState extends State<MyPetPage> {
                       runSpacing: 4,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        _buildTag("${pet['age']} yrs"),
+                        _buildTag(_formatAgeLabel(pet)),
                         _buildTag(pet['type']),
                         _buildTag(pet['color']),
                         _buildTag("${pet['weight']}kg"),
@@ -901,8 +972,13 @@ class _MyPetPageState extends State<MyPetPage> {
       ),
     ),
   );
-  Widget _buildTextField(TextEditingController c, String h) => TextField(
+  Widget _buildTextField(
+    TextEditingController c,
+    String h, {
+    TextInputType? keyboardType,
+  }) => TextField(
     controller: c,
+    keyboardType: keyboardType,
     decoration: InputDecoration(
       hintText: h,
       filled: true,
@@ -914,8 +990,12 @@ class _MyPetPageState extends State<MyPetPage> {
       isDense: true,
     ),
   );
-  Widget _buildEditField(TextEditingController c) => TextField(
+  Widget _buildEditField(
+    TextEditingController c, {
+    TextInputType? keyboardType,
+  }) => TextField(
     controller: c,
+    keyboardType: keyboardType,
     decoration: InputDecoration(
       isDense: true,
       contentPadding: const EdgeInsets.all(10),
@@ -931,6 +1011,27 @@ class _MyPetPageState extends State<MyPetPage> {
     decoration: BoxDecoration(
       color: const Color(0xFFF0F4F3),
       borderRadius: BorderRadius.circular(12),
+    ),
+    child: DropdownButtonHideUnderline(
+      child: DropdownButton<String>(
+        value: val,
+        isExpanded: true,
+        items: items
+            .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+            .toList(),
+        onChanged: onCh,
+      ),
+    ),
+  );
+  Widget _buildEditDropdown(
+    List<String> items,
+    String val,
+    Function(String?) onCh,
+  ) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 12),
+    decoration: BoxDecoration(
+      border: Border.all(color: Colors.grey.shade400),
+      borderRadius: BorderRadius.circular(10),
     ),
     child: DropdownButtonHideUnderline(
       child: DropdownButton<String>(
@@ -959,4 +1060,85 @@ class _MyPetPageState extends State<MyPetPage> {
       ),
     ),
   );
+
+  String _extractAgeValue(Map pet) {
+    final storedAgeValue = (pet['ageValue'] as String?)?.trim() ?? '';
+    if (storedAgeValue.isNotEmpty) return storedAgeValue;
+
+    final ageText = (pet['age'] as String?)?.trim() ?? '';
+    if (ageText.isEmpty) return '';
+    final match = RegExp(r'\d+').firstMatch(ageText);
+    return match?.group(0) ?? ageText;
+  }
+
+  String _extractAgeUnit(Map pet) {
+    final storedUnit = (pet['ageUnit'] as String?)?.trim() ?? '';
+    if (_ageUnits.contains(storedUnit)) return storedUnit;
+
+    final ageText = (pet['age'] as String?)?.toLowerCase() ?? '';
+    if (ageText.contains('week')) return 'Weeks';
+    if (ageText.contains('month')) return 'Months';
+    return 'Years';
+  }
+
+  String _formatAgeLabel(Map pet) {
+    final value = _extractAgeValue(pet);
+    if (value.isEmpty) return 'Age N/A';
+    return '$value ${_extractAgeUnit(pet)}';
+  }
+
+  String _buildPetQrData(Map pet) {
+    return [
+      'Pet: ${pet['name'] ?? ''}',
+      'Type: ${pet['type'] ?? ''}',
+      'Breed: ${pet['breed'] ?? ''}',
+      'Age: ${_formatAgeLabel(pet)}',
+      'Owner: ${pet['ownerName'] ?? ''}',
+      'Phone: ${pet['ownerPhone'] ?? ''}',
+      'Medical Info: ${pet['medicalInfo'] ?? ''}',
+      'Allergies: ${pet['allergies'] ?? ''}',
+    ].join('\n');
+  }
+
+  Future<void> _printPetQrTag(Map pet) async {
+    try {
+      final doc = pw.Document();
+      final qrData = _buildPetQrData(pet);
+
+      doc.addPage(
+        pw.Page(
+          build: (context) => pw.Center(
+            child: pw.Column(
+              mainAxisSize: pw.MainAxisSize.min,
+              children: [
+                pw.Text(
+                  'Pet QR Tag - ${pet['name'] ?? ''}',
+                  style: pw.TextStyle(
+                    fontSize: 20,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.SizedBox(height: 20),
+                pw.BarcodeWidget(
+                  barcode: pw.Barcode.qrCode(),
+                  data: qrData,
+                  width: 200,
+                  height: 200,
+                ),
+                pw.SizedBox(height: 16),
+                pw.Text('Scan this code to view pet details.'),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      await Printing.layoutPdf(onLayout: (format) async => doc.save());
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to print QR tag right now.')),
+      );
+    }
+  }
 }
