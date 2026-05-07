@@ -46,10 +46,11 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
   void _applyFilters() {
     setState(() {
       filteredPets = allPets.where((pet) {
-        final matchesSearch = pet["name"]
-            .toLowerCase()
-            .contains(_searchController.text.toLowerCase());
-        final matchesCategory = selectedCategory == "All" || pet["category"] == selectedCategory;
+        final matchesSearch = pet["name"].toLowerCase().contains(
+          _searchController.text.toLowerCase(),
+        );
+        final matchesCategory =
+            selectedCategory == "All" || pet["category"] == selectedCategory;
         return matchesSearch && matchesCategory;
       }).toList();
     });
@@ -74,12 +75,19 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text("Sort By", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const Text(
+                "Sort By",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
               ListTile(
                 leading: const Icon(Icons.sort_by_alpha),
                 title: const Text("Name"),
                 onTap: () {
-                  setState(() => filteredPets.sort((a, b) => a["name"].compareTo(b["name"])));
+                  setState(
+                    () => filteredPets.sort(
+                      (a, b) => a["name"].compareTo(b["name"]),
+                    ),
+                  );
                   Navigator.pop(context);
                 },
               ),
@@ -87,7 +95,11 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
                 leading: const Icon(Icons.sell_outlined),
                 title: const Text("Price (Free first)"),
                 onTap: () {
-                  setState(() => filteredPets.sort((a, b) => a["price"].compareTo(b["price"])));
+                  setState(
+                    () => filteredPets.sort(
+                      (a, b) => a["price"].compareTo(b["price"]),
+                    ),
+                  );
                   Navigator.pop(context);
                 },
               ),
@@ -185,7 +197,11 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
                       color: primaryTeal,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.tune, color: Colors.white, size: 20),
+                    child: const Icon(
+                      Icons.tune,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                   ),
                 ),
               ],
@@ -194,7 +210,8 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
           Expanded(
             child: ListView.builder(
               itemCount: filteredPets.length,
-              itemBuilder: (context, index) => _buildPetCard(filteredPets[index]),
+              itemBuilder: (context, index) =>
+                  _buildPetCard(filteredPets[index]),
             ),
           ),
         ],
@@ -223,7 +240,11 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
           } else if (index == 4) {
             Navigator.push(
               context,
+<<<<<<< HEAD
+              MaterialPageRoute(builder: (context) => ProfileView()),
+=======
               MaterialPageRoute(builder: (_) => ProfileView()),
+>>>>>>> a6767e21559929926d1cac038aece099d716510c
             );
           }
         },
@@ -343,7 +364,8 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
                     if (pet["isNeutered"]) const SizedBox(width: 5),
                     if (pet["isNeutered"]) _buildTag("Neutered", Colors.orange),
                     if (pet["gender"] != null) const SizedBox(width: 5),
-                    if (pet["gender"] != null) _buildTag(pet["gender"], Colors.purple),
+                    if (pet["gender"] != null)
+                      _buildTag(pet["gender"], Colors.purple),
                   ],
                 ),
                 const SizedBox(height: 10),
@@ -499,8 +521,13 @@ class _PostPetPageState extends State<PostPetPage> {
               _priceController,
               Icons.monetization_on_outlined,
             ),
-            _buildField("Age in years", _ageController, Icons.calendar_today, inputType: TextInputType.number),
-            
+            _buildField(
+              "Age in years",
+              _ageController,
+              Icons.calendar_today,
+              inputType: TextInputType.number,
+            ),
+
             Container(
               margin: const EdgeInsets.only(bottom: 10),
               padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -517,7 +544,9 @@ class _PostPetPageState extends State<PostPetPage> {
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
                         value: _selectedCategory,
-                        items: ["Dog", "Cat", "Bird", "Rabbit"].map((String value) {
+                        items: ["Dog", "Cat", "Bird", "Rabbit"].map((
+                          String value,
+                        ) {
                           return DropdownMenuItem<String>(
                             value: value,
                             child: Text(value),
@@ -796,8 +825,3 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
 }
-
-
-
-
-
