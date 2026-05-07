@@ -123,11 +123,46 @@ class _BookingPageState extends State<BookingPage> {
               ),
             ),
             const SizedBox(height: 20),
-            _buildInputField(
-              label: "Verification Code",
-              hint: "000000",
-              controller: codeController,
-              keyboardType: TextInputType.number,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Enter Verification Code",
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.black87,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: codeController,
+                  keyboardType: TextInputType.number,
+                  textAlign: TextAlign.center,
+                  decoration: InputDecoration(
+                    hintText: "000000",
+                    hintStyle: TextStyle(
+                      color: Colors.grey.withOpacity(0.3),
+                      fontSize: 16,
+                      letterSpacing: 6,
+                    ),
+                    filled: true,
+                    fillColor: const Color(0xFFFBFBFB),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 15,
+                      vertical: 15,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFF5B9D8E)),
+                    ),
+                  ),
+                ),
+              ],
             ),
             TextButton(
               onPressed: () {},
@@ -473,13 +508,17 @@ class _BookingPageState extends State<BookingPage> {
             hint: "Full Name",
             controller: _nameController,
           ),
-          const Text(
-            "Phone Number",
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey,
-              fontWeight: FontWeight.bold,
-            ),
+          Row(
+            children: [
+              const Text(
+                "Phone Number",
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
           Row(
@@ -487,7 +526,7 @@ class _BookingPageState extends State<BookingPage> {
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
-                  vertical: 14,
+                  vertical: 15,
                 ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFBFBFB),
@@ -496,20 +535,36 @@ class _BookingPageState extends State<BookingPage> {
                 ),
                 child: const Text(
                   "+962",
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: _buildInputField(
-                  label: "",
-                  hint: "7XXXXXXXX",
+                child: TextField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
+                  decoration: InputDecoration(
+                    hintText: "7XXXXXXXX",
+                    filled: true,
+                    fillColor: const Color(0xFFFBFBFB),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 15,
+                      vertical: 15,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: primaryGreen),
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
+          const SizedBox(height: 15),
           _buildInputField(
             label: "Email Address",
             hint: "example@mail.com",
