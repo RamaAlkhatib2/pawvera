@@ -2,8 +2,12 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'home.dart';
-import 'adoption.dart';
+import 'my_pets_page.dart';
+import 'my_bookings_page.dart';
 import 'profile_view.dart';
+import 'edit_info_page.dart';
+import 'qr_page.dart';
+import 'add_pet_page.dart';
 
 class ReminderScreen extends StatefulWidget {
   const ReminderScreen({super.key});
@@ -17,7 +21,9 @@ class _ReminderScreenState extends State<ReminderScreen> {
   List<Map<String, dynamic>> reminders = [];
   List<Map<String, dynamic>> filteredReminders = [];
   bool isLoading = true;
+
   String selectedType = "All";
+  String selectedPet = "All Pets";
   TextEditingController searchController = TextEditingController();
 
   @override
@@ -36,6 +42,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
           'petName': 'Buddy',
           'time': '08:00 AM',
           'date': 'Jan 18, 2026',
+          'description': 'Monthly heartworm prevention pill',
           'type': 'Medication',
           'image': 'https://images.unsplash.com/photo-1543466835-00a7907e9de1',
           'isLocal': false,
@@ -50,10 +57,12 @@ class _ReminderScreenState extends State<ReminderScreen> {
     setState(() {
       filteredReminders = reminders.where((r) {
         final matchesType = selectedType == "All" || r['type'] == selectedType;
+        final matchesPet =
+            selectedPet == "All Pets" || r['petName'] == selectedPet;
         final matchesSearch = r['title'].toLowerCase().contains(
           searchController.text.toLowerCase(),
         );
-        return matchesType && matchesSearch;
+        return matchesType && matchesPet && matchesSearch;
       }).toList();
     });
   }
@@ -76,22 +85,32 @@ class _ReminderScreenState extends State<ReminderScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          "My Reminders",
-          style: TextStyle(
-            color: Color(0xFF5D4037),
-            fontWeight: FontWeight.bold,
-          ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "My Reminders",
+              style: TextStyle(
+                color: Color(0xFF5D4037),
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
+            ),
+            Text(
+              "${filteredReminders.length} reminder total",
+              style: const TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+          ],
         ),
       ),
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: TextField(
               controller: searchController,
               decoration: InputDecoration(
-                hintText: 'Search...',
+                hintText: 'Search reminders...',
                 prefixIcon: const Icon(Icons.search),
                 fillColor: Colors.white,
                 filled: true,
@@ -102,11 +121,27 @@ class _ReminderScreenState extends State<ReminderScreen> {
               ),
             ),
           ),
+
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                _buildIconFilter("All", Icons.grid_view, "All"),
+                _buildIconFilter("Vaccination", Icons.vaccines, "Vaccination"),
+                _buildIconFilter("Medication", Icons.medication, "Medication"),
+                _buildIconFilter("Grooming", Icons.content_cut, "Grooming"),
+                _buildIconFilter("Checkup", Icons.medical_services, "Checkup"),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+
           Expanded(
             child: isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.all(16),
                     itemCount: filteredReminders.length,
                     itemBuilder: (context, index) =>
                         _buildReminderCard(filteredReminders[index]),
@@ -114,16 +149,18 @@ class _ReminderScreenState extends State<ReminderScreen> {
           ),
         ],
       ),
+
       floatingActionButton: FloatingActionButton(
         backgroundColor: primaryTeal,
         onPressed: () => Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => AddReminderPage(onAdd: _addNewReminder),
+            builder: (context) => AddPetPage(onAdd: _addNewReminder),
           ),
         ),
         child: const Icon(Icons.add, color: Colors.white, size: 30),
       ),
+
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         selectedItemColor: primaryTeal,
@@ -137,12 +174,17 @@ class _ReminderScreenState extends State<ReminderScreen> {
           if (index == 1)
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const AdoptionScreen()),
+              MaterialPageRoute(builder: (context) => const MyPetsPage()),
+            );
+          if (index == 3)
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const MyBookingsPage()),
             );
           if (index == 4)
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => ProfileView()),
+              MaterialPageRoute(builder: (context) => const ProfileView()),
             );
         },
         items: const [
@@ -171,179 +213,36 @@ class _ReminderScreenState extends State<ReminderScreen> {
     );
   }
 
-  Widget _buildReminderCard(Map<String, dynamic> r) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 15),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
-        ],
-      ),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(15),
-            child: r['isLocal'] == true
-                ? Image.file(
-                    File(r['image']),
-                    width: 80,
-                    height: 80,
-                    fit: BoxFit.cover,
-                  )
-                : Image.network(
-                    r['image'],
-                    width: 80,
-                    height: 80,
-                    fit: BoxFit.cover,
-                  ),
-          ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  r['title'],
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  "Pet: ${r['petName']}",
-                  style: const TextStyle(color: Colors.grey, fontSize: 13),
-                ),
-                const SizedBox(height: 5),
-                Row(
-                  children: [
-                    Icon(Icons.access_time, size: 14, color: primaryTeal),
-                    Text(
-                      " ${r['time']} | ${r['date']}",
-                      style: TextStyle(
-                        color: primaryTeal,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-        ],
-      ),
-    );
-  }
-}
-
-class AddReminderPage extends StatefulWidget {
-  final Function(Map<String, dynamic>) onAdd;
-  const AddReminderPage({super.key, required this.onAdd});
-
-  @override
-  State<AddReminderPage> createState() => _AddReminderPageState();
-}
-
-class _AddReminderPageState extends State<AddReminderPage> {
-  final _titleController = TextEditingController();
-  final _petController = TextEditingController();
-  final _dateController = TextEditingController();
-  final _timeController = TextEditingController();
-  File? _selectedImage;
-
-  Future<void> _pickImage() async {
-    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (picked != null) setState(() => _selectedImage = File(picked.path));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF9F6EE),
-      appBar: AppBar(
-        title: const Text("New Reminder"),
-        backgroundColor: const Color(0xFF5BA092),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
+  Widget _buildIconFilter(String label, IconData icon, String type) {
+    bool isSelected = selectedType == type;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          selectedType = type;
+          applyFilters();
+        });
+      },
+      child: Container(
+        margin: const EdgeInsets.only(right: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? primaryTeal : Colors.white,
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: primaryTeal.withOpacity(0.1)),
+        ),
+        child: Row(
           children: [
-            GestureDetector(
-              onTap: _pickImage,
-              child: Container(
-                height: 150,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.teal.withOpacity(0.3)),
-                  image: _selectedImage != null
-                      ? DecorationImage(
-                          image: FileImage(_selectedImage!),
-                          fit: BoxFit.cover,
-                        )
-                      : null,
-                ),
-                child: _selectedImage == null
-                    ? const Icon(
-                        Icons.camera_alt_outlined,
-                        size: 40,
-                        color: Color(0xFF5BA092),
-                      )
-                    : null,
-              ),
+            Icon(
+              icon,
+              size: 18,
+              color: isSelected ? Colors.white : primaryTeal,
             ),
-            const SizedBox(height: 20),
-            _buildInput(
-              "Reminder Title",
-              _titleController,
-              Icons.notifications_none,
-            ),
-            _buildInput("Pet Name", _petController, Icons.pets),
-            _buildInput(
-              "Date (e.g. May 10, 2026)",
-              _dateController,
-              Icons.calendar_today,
-            ),
-            _buildInput(
-              "Time (e.g. 10:00 AM)",
-              _timeController,
-              Icons.access_time,
-            ),
-            const SizedBox(height: 30),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF5BA092),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                ),
-                onPressed: () {
-                  if (_titleController.text.isEmpty || _selectedImage == null)
-                    return;
-                  widget.onAdd({
-                    'title': _titleController.text,
-                    'petName': _petController.text,
-                    'time': _timeController.text,
-                    'date': _dateController.text,
-                    'type': 'General',
-                    'image': _selectedImage!.path,
-                    'isLocal': true,
-                  });
-                  Navigator.pop(context);
-                },
-                child: const Text(
-                  "Save Reminder",
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.black87,
+                fontWeight: FontWeight.bold,
               ),
             ),
           ],
@@ -352,27 +251,126 @@ class _AddReminderPageState extends State<AddReminderPage> {
     );
   }
 
-  Widget _buildInput(
-    String label,
-    TextEditingController controller,
-    IconData icon,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 15),
-      child: TextField(
-        controller: controller,
-        decoration: InputDecoration(
-          labelText: label,
-          prefixIcon: Icon(icon, color: const Color(0xFF5BA092)),
-          filled: true,
-          fillColor: Colors.white,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(15),
-            borderSide: BorderSide.none,
+  Widget _buildReminderCard(Map<String, dynamic> r) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(15),
+                child: r['isLocal'] == true
+                    ? Image.file(
+                        File(r['image']),
+                        width: 60,
+                        height: 60,
+                        fit: BoxFit.cover,
+                      )
+                    : Image.network(
+                        r['image'],
+                        width: 60,
+                        height: 60,
+                        fit: BoxFit.cover,
+                      ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      r['title'],
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    Text(
+                      r['petName'],
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: const Icon(
+                  Icons.edit_outlined,
+                  color: Colors.blue,
+                  size: 20,
+                ),
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const EditInfoPage()),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(
+                  Icons.delete_outline,
+                  color: Colors.red,
+                  size: 20,
+                ),
+                onPressed: () {
+                  setState(() {
+                    reminders.remove(r);
+                    applyFilters();
+                  });
+                },
+              ),
+            ],
           ),
+          const Divider(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.access_time, size: 16, color: Colors.grey),
+                  Text(
+                    " ${r['date']} at ${r['time']}",
+                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                ],
+              ),
+              GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => QrPage()),
+                ),
+                child: _buildTag(r['type'], primaryTeal),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTag(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
         ),
       ),
     );
   }
 }
+
 
