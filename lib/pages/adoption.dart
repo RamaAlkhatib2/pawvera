@@ -16,6 +16,7 @@ class AdoptionScreen extends StatefulWidget {
 class _AdoptionScreenState extends State<AdoptionScreen> {
   final Color primaryTeal = const Color(0xFF5BA092);
   final Color backgroundCream = const Color(0xFFF9F6EE);
+  int _selectedIndex = 1;
 
   List<Map<String, dynamic>> allPets = [
     {
@@ -85,14 +86,16 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         selectedItemColor: primaryTeal,
-        currentIndex: 1,
+        currentIndex: _selectedIndex,
         onTap: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
           if (index == 0)
-            Navigator.push(
+            Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (context) => const Home()),
             );
-          // أضيفي التنقل لصفحة الرسائل هنا إذا كانت جاهزة
           if (index == 3)
             Navigator.push(
               context,
@@ -101,7 +104,7 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
           if (index == 4)
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => ProfileView()),
+              MaterialPageRoute(builder: (context) => const ProfileView()),
             );
         },
         items: const [
@@ -201,6 +204,36 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
                       style: const TextStyle(color: Colors.grey),
                     ),
                   ],
+                ),
+                const SizedBox(height: 15),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ChatPage(
+                            petName: pet["name"],
+                            petImage: pet["image"],
+                            ownerId: pet["ownerId"] ?? "owner_${pet["name"]}",
+                          ),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryTeal,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: const Text(
+                      "Interested to Adopt",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -394,6 +427,157 @@ class _PostPetPageState extends State<PostPetPage> {
     );
   }
 }
+
+/// Chat page for discussing adoption
+class ChatPage extends StatefulWidget {
+  final String petName;
+  final String petImage;
+  final String ownerId;
+
+  const ChatPage({
+    super.key,
+    required this.petName,
+    required this.petImage,
+    required this.ownerId,
+  });
+
+  @override
+  State<ChatPage> createState() => _ChatPageState();
+}
+
+class _ChatPageState extends State<ChatPage> {
+  final TextEditingController _messageController = TextEditingController();
+  final List<Map<String, dynamic>> _messages = [
+    {
+      'id': '1',
+      'sender': 'owner',
+      'message': 'Hi! Thanks for your interest! 🐾',
+      'timestamp': DateTime.now().subtract(const Duration(hours: 1)),
+    },
+  ];
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    super.dispose();
+  }
+
+  void _sendMessage() {
+    if (_messageController.text.trim().isEmpty) return;
+
+    setState(() {
+      _messages.add({
+        'id': _messages.length.toString(),
+        'sender': 'user',
+        'message': _messageController.text,
+        'timestamp': DateTime.now(),
+      });
+      _messageController.clear();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.petName,
+              style: const TextStyle(
+                color: Color(0xFF5D4037),
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
+            const Text(
+              'Pet Owner',
+              style: TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16),
+              reverse: true,
+              itemCount: _messages.length,
+              itemBuilder: (context, index) {
+                final message = _messages[_messages.length - 1 - index];
+                final isUser = message['sender'] == 'user';
+                return Align(
+                  alignment: isUser
+                      ? Alignment.centerRight
+                      : Alignment.centerLeft,
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isUser
+                          ? const Color(0xFF5BA092)
+                          : Colors.grey.shade200,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      message['message'],
+                      style: TextStyle(
+                        color: isUser ? Colors.white : Colors.black87,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _messageController,
+                    decoration: InputDecoration(
+                      hintText: 'Type your message...',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(25),
+                        borderSide: const BorderSide(color: Colors.grey),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                FloatingActionButton(
+                  onPressed: _sendMessage,
+                  mini: true,
+                  backgroundColor: const Color(0xFF5BA092),
+                  child: const Icon(Icons.send, size: 18),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 
 
 
