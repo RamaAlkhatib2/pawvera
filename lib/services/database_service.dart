@@ -1,9 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:typed_data';
 
 class DatabaseService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseStorage _storage = FirebaseStorage.instance;
 
   String get _uid {
     final user = _auth.currentUser;
@@ -264,6 +267,12 @@ class DatabaseService {
     });
   }
 
+  Stream<DocumentSnapshot<Map<String, dynamic>>> streamProductById(
+    String productId,
+  ) {
+    return _products.doc(productId).snapshots();
+  }
+
   // --- Online Store: Cart & Wishlist ---
 
   Stream<QuerySnapshot<Map<String, dynamic>>> streamMyCart() {
@@ -357,6 +366,18 @@ class DatabaseService {
       }
     } catch (_) {
       throw Exception('Unable to update wishlist. Please try again.');
+    }
+  }
+
+  Future<void> removeWishlistItem(String productId) async {
+    try {
+      await _usersCart
+          .doc(_uid)
+          .collection('wishlist_items')
+          .doc(productId)
+          .delete();
+    } catch (_) {
+      throw Exception('Unable to remove wishlist item right now.');
     }
   }
 
@@ -581,6 +602,65 @@ class DatabaseService {
     } catch (_) {
       throw Exception('Unable to update store status.');
     }
+  }
+
+  Stream<List<Map<String, dynamic>>> streamProductsForStoreOwner(
+    String storeId, {
+    bool includeInactive = true,
+  }) {
+    Query<Map<String, dynamic>> query = _products.where(
+      'storeId',
+      isEqualTo: storeId,
+    );
+    if (!includeInactive) {
+      query = query.where('isActive', isEqualTo: true);
+    }
+    query = query.orderBy('updatedAt', descending: true);
+    return query.snapshots().map(
+      (snapshot) => snapshot.docs
+          .map((doc) => {'id': doc.id, ...doc.data()})
+          .toList(),
+    );
+  }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> streamOrdersForStoreOwner(
+    String storeId,
+  ) {
+    return _orders
+        .where('storeId', isEqualTo: storeId)
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+  }
+
+  Future<void> updateOrderStatus({
+    required String orderId,
+    required String status,
+  }) async {
+    final orderDoc = await _orders.doc(orderId).get();
+    if (!orderDoc.exists) {
+      throw Exception('Order not found.');
+    }
+    final orderData = orderDoc.data() ?? const {};
+    final storeId = (orderData['storeId'] ?? '').toString();
+    await _assertStoreOwner(storeId);
+    await _orders.doc(orderId).update({
+      'status': status,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<String> uploadProductImageBytes({
+    required String storeId,
+    required Uint8List bytes,
+    required String fileName,
+  }) async {
+    await _assertStoreOwner(storeId);
+    final safeFileName = fileName.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
+    final ref = _storage.ref().child(
+      'stores/$storeId/products/${DateTime.now().millisecondsSinceEpoch}_$safeFileName',
+    );
+    await ref.putData(bytes);
+    return ref.getDownloadURL();
   }
 
   Future<void> _assertStoreOwner(String storeId) async {

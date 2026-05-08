@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pawvera/pages/home.dart';
 import 'package:pawvera/pages/service%20provider%20dashboard%20pages/service_provider_dashboard.dart';
-import 'package:pawvera/pages/pet_supplies_store_dashboard.dart';
+import 'package:pawvera/pages/pet_supplies_store_owner_dashboard.dart';
 import '../components/role_button.dart';
 
 class LoginView extends StatefulWidget {
@@ -153,7 +153,7 @@ class _LoginViewState extends State<LoginView> {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-                builder: (context) => const PetSuppliesStoreDashboard()),
+                builder: (context) => const PetSuppliesStoreOwnerDashboard()),
           );
         } else {
           Navigator.pushReplacement(
