@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/database_service.dart';
 import 'supplies_store.dart'; // مسار صفحة المتاجر (تأكدي من الاسم)ٍ
 
 class StoreDetails extends StatefulWidget {
@@ -11,6 +12,7 @@ class StoreDetails extends StatefulWidget {
 }
 
 class _StoreDetailsState extends State<StoreDetails> {
+  final DatabaseService _databaseService = DatabaseService();
   // --- 1. إدارة الحالة (State Management) للمفضلة والسلة ---
   final Map<String, bool> favoriteStatus = {};
   final List<Map<String, String>> favoritesList = [];
@@ -221,6 +223,7 @@ class _StoreDetailsState extends State<StoreDetails> {
         favoritesList.add(product);
       }
     });
+    _syncWishlist(product);
   }
 
   void _addToCart(Map<String, String> product) {
@@ -235,26 +238,111 @@ class _StoreDetailsState extends State<StoreDetails> {
         backgroundColor: const Color(0xFF5BA092),
       ),
     );
+    _syncCart(product);
+  }
+
+  Future<void> _syncWishlist(Map<String, String> product) async {
+    try {
+      final storeId = (widget.storeData['id'] ?? '').toString();
+      if (storeId.isEmpty) return;
+      await _databaseService.toggleWishlistItem(
+        storeId: storeId,
+        productId: (product['title'] ?? '').replaceAll(' ', '_').toLowerCase(),
+        productSnapshot: {
+          'title': product['title'],
+          'price': double.tryParse((product['price'] ?? '0').replaceAll(' JOD', '')) ?? 0,
+          'image': product['image'],
+        },
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    }
+  }
+
+  Future<void> _syncCart(Map<String, String> product) async {
+    try {
+      final storeId = (widget.storeData['id'] ?? '').toString();
+      if (storeId.isEmpty) return;
+      await _databaseService.addOrUpdateCartItem(
+        storeId: storeId,
+        productId: (product['title'] ?? '').replaceAll(' ', '_').toLowerCase(),
+        quantity: 1,
+        productSnapshot: {
+          'title': product['title'],
+          'price': double.tryParse((product['price'] ?? '0').replaceAll(' JOD', '')) ?? 0,
+          'image': product['image'],
+        },
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    }
+  }
+
+  List<Map<String, String>> _normalizeProducts(
+    List<Map<String, dynamic>> products,
+  ) {
+    return products.map((product) {
+      final priceValue = product['price'];
+      String priceText;
+      if (priceValue is num) {
+        priceText = '${priceValue.toStringAsFixed(2)} JOD';
+      } else {
+        final raw = (priceValue ?? '0').toString();
+        priceText = raw.contains('JOD') ? raw : '$raw JOD';
+      }
+      return {
+        'id': (product['id'] ?? '').toString(),
+        'title': (product['title'] ?? '').toString(),
+        'desc': (product['description'] ?? product['desc'] ?? '').toString(),
+        'price': priceText,
+        'category': (product['category'] ?? '').toString(),
+        'image': (product['image'] ?? '').toString(),
+        'offer': (product['offer'] ?? '').toString(),
+      };
+    }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
     final String storeName = widget.storeData['name'] ?? "Store";
-    final storeProducts = allProducts[storeName] ?? [];
-    final filteredProducts = _sortProducts(_filterProducts(storeProducts));
-    final categories = [
-      'All',
-      ...storeProducts
-          .map((p) => p['category'])
-          .whereType<String>()
-          .toSet()
-          ,
-    ];
+    final String storeId = (widget.storeData['id'] ?? '').toString();
+    final fallbackProducts = allProducts[storeName] ?? [];
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7FBFB),
-      body: CustomScrollView(
-        slivers: [
+      body: StreamBuilder<List<Map<String, dynamic>>>(
+        stream: storeId.isEmpty
+            ? null
+            : _databaseService.streamStoreProducts(
+                storeId,
+                searchQuery: searchQuery,
+                category: selectedCategory,
+                onSaleOnly: onSaleOnly,
+              ),
+        builder: (context, snapshot) {
+          final normalizedProducts = snapshot.hasData
+              ? _normalizeProducts(snapshot.data!)
+              : fallbackProducts;
+          final filteredProducts = _sortProducts(
+            _filterProducts(normalizedProducts),
+          );
+          final categories = [
+            'All',
+            ...normalizedProducts
+                .map((p) => p['category'])
+                .whereType<String>()
+                .where((c) => c.isNotEmpty)
+                .toSet(),
+          ];
+
+          return CustomScrollView(
+            slivers: [
           // --- 3. AppBar (مع الـ Badges للقلب والسلة) ---
           SliverAppBar(
             expandedHeight: 220,
@@ -323,7 +411,7 @@ class _StoreDetailsState extends State<StoreDetails> {
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
+                    color: Colors.black.withOpacity(0.05),
                     blurRadius: 10,
                   ),
                 ],
@@ -440,7 +528,7 @@ class _StoreDetailsState extends State<StoreDetails> {
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.04),
+                            color: Colors.black.withOpacity(0.04),
                             blurRadius: 12,
                             offset: const Offset(0, 4),
                           ),
@@ -503,7 +591,24 @@ class _StoreDetailsState extends State<StoreDetails> {
           ),
 
           // --- 6. شبكة المنتجات (المعدلة) ---
-          if (filteredProducts.isEmpty)
+          if (snapshot.connectionState == ConnectionState.waiting &&
+              storeId.isNotEmpty)
+            const SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(
+                child: CircularProgressIndicator(color: Color(0xFF5BA092)),
+              ),
+            ),
+          if (snapshot.hasError && storeId.isNotEmpty)
+            const SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(
+                child: Text('Could not load products. Please try again.'),
+              ),
+            ),
+          if (filteredProducts.isEmpty &&
+              !(snapshot.connectionState == ConnectionState.waiting &&
+                  storeId.isNotEmpty))
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(
@@ -554,7 +659,9 @@ class _StoreDetailsState extends State<StoreDetails> {
               ),
             ),
           const SliverToBoxAdapter(child: SizedBox(height: 30)),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
@@ -726,6 +833,24 @@ class _StoreDetailsState extends State<StoreDetails> {
                     ],
                   ),
                 ),
+                const SizedBox(height: 10),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: ElevatedButton.icon(
+                    onPressed: _showRateStoreDialog,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF5BA092),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    icon: const Icon(Icons.rate_review, color: Colors.white, size: 18),
+                    label: const Text(
+                      'Rate Store',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 12),
                 Expanded(
                   child: ListView.separated(
@@ -740,6 +865,98 @@ class _StoreDetailsState extends State<StoreDetails> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Future<void> _showRateStoreDialog() async {
+    final storeId = (widget.storeData['id'] ?? '').toString();
+    if (storeId.isEmpty) return;
+
+    int selectedStars = 0;
+    final commentController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Text('Rate Store'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(
+                    5,
+                    (index) => IconButton(
+                      onPressed: () =>
+                          setDialogState(() => selectedStars = index + 1),
+                      icon: Icon(
+                        index < selectedStars ? Icons.star : Icons.star_border,
+                        color: Colors.amber,
+                      ),
+                    ),
+                  ),
+                ),
+                TextField(
+                  controller: commentController,
+                  minLines: 2,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    hintText: 'Write your store review...',
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  if (selectedStars == 0) {
+                    ScaffoldMessenger.of(dialogContext).showSnackBar(
+                      const SnackBar(content: Text('Please select a rating.')),
+                    );
+                    return;
+                  }
+                  try {
+                    final canRate = await _databaseService.canRateStore(storeId);
+                    if (!canRate) {
+                      throw Exception(
+                        'You can rate this store only after completing an order.',
+                      );
+                    }
+                    await _databaseService.rateStore(
+                      storeId: storeId,
+                      stars: selectedStars,
+                      comment: commentController.text.trim(),
+                    );
+                    if (!dialogContext.mounted) return;
+                    Navigator.pop(dialogContext);
+                    ScaffoldMessenger.of(dialogContext).showSnackBar(
+                      const SnackBar(
+                        content: Text('Store rating submitted successfully.'),
+                        backgroundColor: Color(0xFF5BA092),
+                      ),
+                    );
+                  } catch (e) {
+                    if (!dialogContext.mounted) return;
+                    ScaffoldMessenger.of(dialogContext).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          e.toString().replaceFirst('Exception: ', ''),
+                        ),
+                      ),
+                    );
+                  }
+                },
+                child: const Text('Submit'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -1122,7 +1339,7 @@ class _StoreDetailsState extends State<StoreDetails> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
+              color: Colors.black.withOpacity(0.04),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -1150,7 +1367,7 @@ class _StoreDetailsState extends State<StoreDetails> {
                       onTap: onFavTap,
                       child: CircleAvatar(
                         radius: 16,
-                        backgroundColor: Colors.white.withValues(alpha: 0.9),
+                        backgroundColor: Colors.white.withOpacity(0.9),
                         child: Icon(
                           isFav ? Icons.favorite : Icons.favorite_border,
                           color: isFav ? Colors.red : Colors.grey,
@@ -1224,7 +1441,7 @@ class _StoreDetailsState extends State<StoreDetails> {
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF5BA092).withValues(alpha: 0.15),
+                        color: const Color(0xFF5BA092).withOpacity(0.15),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: const Row(
@@ -1279,6 +1496,7 @@ class ProductDetailsPage extends StatefulWidget {
 }
 
 class _ProductDetailsPageState extends State<ProductDetailsPage> {
+  final DatabaseService _databaseService = DatabaseService();
   int quantity = 1;
   late bool isFavorite;
   late List<Map<String, dynamic>> reviews;
@@ -1773,7 +1991,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                         hintText: 'Share your thoughts about this product...',
                         hintStyle: const TextStyle(color: Color(0xFF7E8797)),
                         filled: true,
-                        fillColor: Colors.white.withValues(alpha: 0.8),
+                        fillColor: Colors.white.withOpacity(0.8),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(color: Color(0xFFBDD9DE)),
@@ -1814,7 +2032,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                         ),
                         const SizedBox(width: 10),
                         ElevatedButton(
-                          onPressed: () {
+                          onPressed: () async {
                             final comment = reviewController.text.trim();
                             if (selectedStars == 0 || comment.isEmpty) {
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -1830,23 +2048,48 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                             final dateText =
                                 '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
 
-                            setState(() {
-                              reviews.insert(0, {
-                                'name': 'You',
-                                'initial': 'Y',
-                                'date': dateText,
-                                'stars': selectedStars,
-                                'comment': comment,
+                            try {
+                              final storeId = (widget.storeData['id'] ?? '').toString();
+                              final productId =
+                                  (widget.product['id'] ?? widget.product['title'] ?? '')
+                                      .replaceAll(' ', '_')
+                                      .toLowerCase();
+                              if (storeId.isNotEmpty && productId.isNotEmpty) {
+                                await _databaseService.rateProduct(
+                                  storeId: storeId,
+                                  productId: productId,
+                                  stars: selectedStars,
+                                  comment: comment,
+                                );
+                              }
+                              if (!dialogContext.mounted) return;
+                              setState(() {
+                                reviews.insert(0, {
+                                  'name': 'You',
+                                  'initial': 'Y',
+                                  'date': dateText,
+                                  'stars': selectedStars,
+                                  'comment': comment,
+                                });
+                                ratingsCount += 1;
                               });
-                              ratingsCount += 1;
-                            });
-                            Navigator.pop(dialogContext);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Review submitted successfully.'),
-                                backgroundColor: Color(0xFF5BA092),
-                              ),
-                            );
+                              Navigator.pop(dialogContext);
+                              ScaffoldMessenger.of(dialogContext).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Review submitted successfully.'),
+                                  backgroundColor: Color(0xFF5BA092),
+                                ),
+                              );
+                            } catch (e) {
+                              if (!dialogContext.mounted) return;
+                              ScaffoldMessenger.of(dialogContext).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    e.toString().replaceFirst('Exception: ', ''),
+                                  ),
+                                ),
+                              );
+                            }
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF4E9E96),
@@ -2051,7 +2294,7 @@ class MyWishlistPage extends StatelessWidget {
                 color: Colors.white,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
+                    color: Colors.black.withOpacity(0.05),
                     blurRadius: 10,
                     offset: const Offset(0, -5),
                   ),
@@ -2109,7 +2352,7 @@ class MyWishlistPage extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 5),
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 5),
         ],
       ),
       child: Column(
@@ -2191,7 +2434,7 @@ class MyWishlistPage extends StatelessWidget {
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF5BA092).withValues(alpha: 0.1),
+                      backgroundColor: const Color(0xFF5BA092).withOpacity(0.1),
                       foregroundColor: const Color(0xFF5BA092),
                       elevation: 0,
                       shape: RoundedRectangleBorder(
@@ -2485,17 +2728,35 @@ class _MyCartPageState extends State<MyCartPage> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => CheckoutPage(
-                            subtotal: subtotal,
-                            deliveryFee: deliveryFee,
-                            total: total,
-                            storeData: widget.storeData,
+                      onPressed: () {
+                        final orderItems = widget.cartItems.map((item) {
+                          final unitPrice = double.tryParse(
+                                (item['price'] ?? '0').replaceAll(' JOD', ''),
+                              ) ??
+                              0;
+                          final title = item['title'] ?? '';
+                          return <String, dynamic>{
+                            'productId': title.replaceAll(' ', '_').toLowerCase(),
+                            'title': title,
+                            'price': unitPrice,
+                            'quantity': quantities[title] ?? 1,
+                            'image': item['image'] ?? '',
+                          };
+                        }).toList();
+
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CheckoutPage(
+                              subtotal: subtotal,
+                              deliveryFee: deliveryFee,
+                              total: total,
+                              storeData: widget.storeData,
+                              orderItems: orderItems,
+                            ),
                           ),
-                        ),
-                      ),
+                        );
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF5BA092),
                         padding: const EdgeInsets.symmetric(vertical: 15),
@@ -2527,7 +2788,7 @@ class _MyCartPageState extends State<MyCartPage> {
       child: Container(
         padding: const EdgeInsets.all(2),
         decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFF5BA092).withValues(alpha: 0.3)),
+          border: Border.all(color: const Color(0xFF5BA092).withOpacity(0.3)),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(icon, size: 18, color: const Color(0xFF5BA092)),
@@ -2563,6 +2824,7 @@ class _MyCartPageState extends State<MyCartPage> {
 class CheckoutPage extends StatefulWidget {
   final double subtotal, deliveryFee, total;
   final Map<String, dynamic> storeData;
+  final List<Map<String, dynamic>> orderItems;
 
   const CheckoutPage({
     super.key,
@@ -2570,6 +2832,7 @@ class CheckoutPage extends StatefulWidget {
     required this.deliveryFee,
     required this.total,
     required this.storeData,
+    required this.orderItems,
   });
 
   @override
@@ -2577,7 +2840,9 @@ class CheckoutPage extends StatefulWidget {
 }
 
 class _CheckoutPageState extends State<CheckoutPage> {
+  final DatabaseService _databaseService = DatabaseService();
   bool isCashOnDelivery = false;
+  bool _isPlacingOrder = false;
 
   // تعريف المتحكمات (Controllers) لجلب البيانات من الحقول
   final TextEditingController nameController = TextEditingController();
@@ -2819,21 +3084,17 @@ class _CheckoutPageState extends State<CheckoutPage> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
+                onPressed: _isPlacingOrder
+                    ? null
+                    : () async {
                   // تجهيز نص العنوان المدخل
                   String fullAddress =
                       "${nameController.text}\nPhone: ${phoneCountryCodeController.text} ${phoneNumberController.text}\n${cityController.text}, ${streetController.text}\n${buildingController.text}\nFloor: ${floorController.text.isEmpty ? '-' : floorController.text} | Apartment: ${apartmentController.text.isEmpty ? '-' : apartmentController.text}\nNotes: ${additionalDirectionsController.text.isEmpty ? '-' : additionalDirectionsController.text}";
 
                   if (isCashOnDelivery) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => SuccessPage(
-                          amount: widget.total,
-                          orderID: "#ORD005",
-                          userAddress: fullAddress, // تمرير العنوان
-                        ),
-                      ),
+                    await _placeOrder(
+                      paymentMethod: 'cash',
+                      addressText: fullAddress,
                     );
                   } else {
                     _showSecurePaymentSheet(context, fullAddress);
@@ -2846,13 +3107,22 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: const Text(
-                  "Place Order",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                child: _isPlacingOrder
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text(
+                        "Place Order",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
               ),
             ),
           ],
@@ -2919,7 +3189,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       color: const Color(0xFFE8F5F3),
                       borderRadius: BorderRadius.circular(15),
                       border: Border.all(
-                        color: const Color(0xFF3AA78E).withValues(alpha: 0.1),
+                        color: const Color(0xFF3AA78E).withOpacity(0.1),
                       ),
                     ),
                     child: Row(
@@ -3307,17 +3577,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () {
+                      onPressed: () async {
                         Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => SuccessPage(
-                              amount: widget.total,
-                              orderID: "#ORD004",
-                              userAddress: address,
-                            ),
-                          ),
+                        await _placeOrder(
+                          paymentMethod: 'credit',
+                          addressText: address,
                         );
                       },
                       style: ElevatedButton.styleFrom(
@@ -3379,6 +3643,60 @@ class _CheckoutPageState extends State<CheckoutPage> {
           ),
       ],
     );
+  }
+
+  Future<void> _placeOrder({
+    required String paymentMethod,
+    required String addressText,
+  }) async {
+    if (_isPlacingOrder) return;
+    final storeId = (widget.storeData['id'] ?? '').toString();
+    if (storeId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Store is invalid. Please try again.')),
+      );
+      return;
+    }
+
+    setState(() => _isPlacingOrder = true);
+    try {
+      final orderId = await _databaseService.setOrder(
+        storeId: storeId,
+        items: widget.orderItems,
+        deliveryAddress: {
+          'fullName': nameController.text.trim(),
+          'countryCode': phoneCountryCodeController.text.trim(),
+          'phone': phoneNumberController.text.trim(),
+          'city': cityController.text.trim(),
+          'street': streetController.text.trim(),
+          'building': buildingController.text.trim(),
+          'floor': floorController.text.trim(),
+          'apartment': apartmentController.text.trim(),
+          'notes': additionalDirectionsController.text.trim(),
+          'formatted': addressText,
+        },
+        paymentMethod: paymentMethod,
+      );
+
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SuccessPage(
+            amount: widget.total,
+            orderID: '#${orderId.substring(0, orderId.length > 8 ? 8 : orderId.length).toUpperCase()}',
+            userAddress: addressText,
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+      );
+    } finally {
+      if (mounted) setState(() => _isPlacingOrder = false);
+    }
   }
 
   InputDecoration _addressInputDecoration(String hint) {
