@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../components/role_button.dart';
 
 class RegisterView extends StatefulWidget {
   const RegisterView({super.key});
@@ -20,8 +19,6 @@ class _RegisterViewState extends State<RegisterView> {
   final confirmPasswordController = TextEditingController();
 
   String? selectedCountry = "Jordan";
-  String activeRole = "Pet Owner";
-  String? selectedProviderType;
 
   static const Map<String, String> _countryCodes = {
     "Jordan": "+962",
@@ -39,20 +36,11 @@ class _RegisterViewState extends State<RegisterView> {
     "Palestine",
   ];
 
-  final List<String> providerTypes = [
-    "Pet Supplies Store",
-    "Services Provider Shop",
-    "Vet Clinic Admin",
-    "Doctor Staff",
-  ];
-
-  // Validation error messages
   String? _fullNameError;
   String? _userNameError;
   String? _emailError;
   String? _passwordError;
   String? _confirmPasswordError;
-  String? _providerTypeError;
 
   @override
   void dispose() {
@@ -74,7 +62,6 @@ class _RegisterViewState extends State<RegisterView> {
       _emailError = null;
       _passwordError = null;
       _confirmPasswordError = null;
-      _providerTypeError = null;
 
       if (fullNameController.text.trim().isEmpty) {
         _fullNameError = "Full name is required";
@@ -115,11 +102,6 @@ class _RegisterViewState extends State<RegisterView> {
         _confirmPasswordError = "Passwords do not match";
         isValid = false;
       }
-
-      if (activeRole == "Provider" && selectedProviderType == null) {
-        _providerTypeError = "Please select a provider type";
-        isValid = false;
-      }
     });
     return isValid;
   }
@@ -140,25 +122,20 @@ class _RegisterViewState extends State<RegisterView> {
         password: passwordController.text.trim(),
       );
 
-      final Map<String, dynamic> userData = {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCredential.user!.uid)
+          .set({
         'uid': userCredential.user!.uid,
         'fullName': fullNameController.text.trim(),
         'userName': userNameController.text.trim(),
         'email': emailController.text.trim(),
-        'phone': '${countryCodeController.text.trim()} ${phoneController.text.trim()}',
+        'phone':
+            '${countryCodeController.text.trim()} ${phoneController.text.trim()}',
         'country': selectedCountry,
-        'role': activeRole == "Pet Owner" ? 'pet_owner' : 'provider',
+        'role': 'pet_owner',
         'createdAt': FieldValue.serverTimestamp(),
-      };
-
-      if (activeRole == "Provider") {
-        userData['providerType'] = selectedProviderType;
-      }
-
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userCredential.user!.uid)
-          .set(userData);
+      });
 
       if (mounted) {
         Navigator.pop(context);
@@ -172,24 +149,21 @@ class _RegisterViewState extends State<RegisterView> {
     } on FirebaseAuthException catch (e) {
       if (mounted) {
         Navigator.pop(context);
-        String message;
         switch (e.code) {
           case 'email-already-in-use':
-            message = "This email is already registered. Please login instead.";
-            setState(() => _emailError = message);
+            setState(() => _emailError =
+                "This email is already registered. Please login instead.");
             break;
           case 'invalid-email':
-            message = "The email address is not valid.";
-            setState(() => _emailError = message);
+            setState(() => _emailError = "The email address is not valid.");
             break;
           case 'weak-password':
-            message = "Password is too weak. Use at least 6 characters with letters and numbers.";
-            setState(() => _passwordError = message);
+            setState(() => _passwordError =
+                "Password is too weak. Use at least 6 characters with letters and numbers.");
             break;
           default:
-            message = e.message ?? "An error occurred";
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(message)),
+              SnackBar(content: Text(e.message ?? "An error occurred")),
             );
         }
       }
@@ -232,7 +206,8 @@ class _RegisterViewState extends State<RegisterView> {
             hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
             filled: true,
             fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
@@ -242,7 +217,8 @@ class _RegisterViewState extends State<RegisterView> {
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: errorText != null ? Colors.red : const Color(0xFF5B9D8E),
+                color:
+                    errorText != null ? Colors.red : const Color(0xFF5B9D8E),
                 width: 2,
               ),
             ),
@@ -297,7 +273,8 @@ class _RegisterViewState extends State<RegisterView> {
                 value: selectedCountry,
                 isExpanded: true,
                 items: countries.map((String value) {
-                  return DropdownMenuItem<String>(value: value, child: Text(value));
+                  return DropdownMenuItem<String>(
+                      value: value, child: Text(value));
                 }).toList(),
                 onChanged: (newValue) {
                   setState(() {
@@ -337,7 +314,6 @@ class _RegisterViewState extends State<RegisterView> {
             ),
             child: Row(
               children: [
-                // Country code field
                 SizedBox(
                   width: 75,
                   child: TextField(
@@ -352,13 +328,7 @@ class _RegisterViewState extends State<RegisterView> {
                     ),
                   ),
                 ),
-                // Vertical divider
-                Container(
-                  width: 1,
-                  height: 28,
-                  color: Colors.grey[300],
-                ),
-                // Local number field
+                Container(width: 1, height: 28, color: Colors.grey[300]),
                 Expanded(
                   child: TextField(
                     controller: phoneController,
@@ -367,7 +337,8 @@ class _RegisterViewState extends State<RegisterView> {
                     decoration: const InputDecoration(
                       border: InputBorder.none,
                       hintText: '7X XXX XXXX',
-                      hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
+                      hintStyle:
+                          TextStyle(color: Colors.grey, fontSize: 14),
                       contentPadding:
                           EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                     ),
@@ -401,91 +372,6 @@ class _RegisterViewState extends State<RegisterView> {
             obscureText: true,
             errorText: _confirmPasswordError,
           ),
-
-          const SizedBox(height: 20),
-
-          // Role selection
-          const Text(
-            "Register as",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: RoleButton(
-                  role: "Pet Owner",
-                  isSelected: activeRole == "Pet Owner",
-                  onTap: () {
-                    setState(() {
-                      activeRole = "Pet Owner";
-                      selectedProviderType = null;
-                      _providerTypeError = null;
-                    });
-                  },
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: RoleButton(
-                  role: "Provider",
-                  isSelected: activeRole == "Provider",
-                  onTap: () {
-                    setState(() {
-                      activeRole = "Provider";
-                    });
-                  },
-                ),
-              ),
-            ],
-          ),
-
-          if (activeRole == "Provider") ...[
-            const SizedBox(height: 15),
-            const Text(
-              "Provider Type",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: _providerTypeError != null ? Colors.red : Colors.grey[300]!,
-                ),
-                borderRadius: BorderRadius.circular(12),
-                color: Colors.white,
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: selectedProviderType,
-                  hint: const Text(
-                    "Select Provider Type",
-                    style: TextStyle(fontSize: 14, color: Colors.grey),
-                  ),
-                  isExpanded: true,
-                  icon: const Icon(Icons.keyboard_arrow_down),
-                  items: providerTypes.map((String value) {
-                    return DropdownMenuItem<String>(value: value, child: Text(value));
-                  }).toList(),
-                  onChanged: (newValue) {
-                    setState(() {
-                      selectedProviderType = newValue;
-                      _providerTypeError = null;
-                    });
-                  },
-                ),
-              ),
-            ),
-            if (_providerTypeError != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 4, left: 4),
-                child: Text(
-                  _providerTypeError!,
-                  style: const TextStyle(color: Colors.red, fontSize: 12),
-                ),
-              ),
-          ],
 
           const SizedBox(height: 25),
 
