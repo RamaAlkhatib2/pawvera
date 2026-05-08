@@ -225,7 +225,7 @@ class _BookingPageState extends State<BookingPage> {
                       final bookingInfo = {
                         'service': widget.serviceName,
                         'provider': widget.providerName,
-                        'price': "21.25", // السعر بعد الخصم كما في الصورة
+                        'price': widget.price,
                         'date':
                             "${_selectedDay?.day}/${_selectedDay?.month}/${_selectedDay?.year}",
                         'time': _selectedTime,
