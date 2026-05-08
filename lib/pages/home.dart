@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'supplies_store.dart';
@@ -37,7 +39,7 @@ class _HomePageState extends State<Home> {
       case 1:
         return const MyPetPage();
       case 3:
-        return const MyBookingsPage(); // عرض صفحة الحجوزات عند الضغط على My Bookings
+        return const MyBookingsPage(standalone: false);
       case 4:
         return ProfileView(
           onOpenMyBookings: () => setState(() => _selectedIndex = 3),
@@ -80,14 +82,28 @@ class _HomePageState extends State<Home> {
 
         return Row(
           children: [
-            Container(
-              width: 64,
-              height: 64,
-              decoration: const BoxDecoration(
-                color: Color(0xFFDFF3EE),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.pets, color: Color(0xFF3AA78E), size: 34),
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                CircleAvatar(
+                  radius: 32,
+                  backgroundColor: Colors.white,
+                  child: const Icon(Icons.pets, color: Color(0xFF5B9D8E), size: 32),
+                ),
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: Container(
+                    width: 18,
+                    height: 18,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFE53935),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.favorite, color: Colors.white, size: 10),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(width: 12),
             Column(
@@ -165,6 +181,7 @@ class _HomePageState extends State<Home> {
                     (data['name'] as String? ?? 'P')[0].toUpperCase(),
                     data['name'] ?? 'Pet',
                     Colors.teal.shade300,
+                    imagePath: data['imagePath'] as String?,
                   );
                 }),
                 _addPetButton(),
@@ -176,21 +193,30 @@ class _HomePageState extends State<Home> {
     );
   }
 
-  Widget _petAvatar(String initial, String name, Color color) {
+  Widget _petAvatar(String initial, String name, Color color,
+      {String? imagePath}) {
+    final hasImage = imagePath != null && imagePath.isNotEmpty;
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         CircleAvatar(
           radius: 28,
           backgroundColor: color,
-          child: Text(
-            initial,
-            style: const TextStyle(
-              fontSize: 18,
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          backgroundImage: hasImage
+              ? (kIsWeb
+                  ? NetworkImage(imagePath) as ImageProvider
+                  : FileImage(File(imagePath)))
+              : null,
+          child: hasImage
+              ? null
+              : Text(
+                  initial,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
         ),
         const SizedBox(height: 6),
         SizedBox(
@@ -334,8 +360,8 @@ class _HomePageState extends State<Home> {
             title: 'Health Records',
             subtitle: 'Medical history',
             icon: Icons.receipt_long,
-            color: const Color(0xFFE6F6F0),
-            iconColor: const Color(0xFF5FA399),
+            color: const Color(0xFFD9F1F9),
+            iconColor: const Color(0xFF4A9BA4),
             imagePath: 'assets/icons/health_records.icon.png',
             imageWidth: 148,
             imageHeight: 148,

@@ -58,7 +58,6 @@ class DatabaseService {
     return _db
         .collection('bookings')
         .where('userId', isEqualTo: _auth.currentUser!.uid)
-        .orderBy('createdAt', descending: true)
         .snapshots();
   }
 
@@ -87,12 +86,37 @@ class DatabaseService {
   // Update a pet's metadata
   Future<void> updatePet(String petId, Map<String, dynamic> data) async {
     String uid = _auth.currentUser!.uid;
-    await _db.collection('users').doc(uid).collection('pets').doc(petId).update(data);
+    await _db
+        .collection('users')
+        .doc(uid)
+        .collection('pets')
+        .doc(petId)
+        .update(data);
   }
 
   // Delete a pet
   Future<void> deletePet(String petId) async {
     String uid = _auth.currentUser!.uid;
-    await _db.collection('users').doc(uid).collection('pets').doc(petId).delete();
+    await _db
+        .collection('users')
+        .doc(uid)
+        .collection('pets')
+        .doc(petId)
+        .delete();
+  }
+
+  // --- Bookings update/delete ---
+
+  // Update a booking
+  Future<void> updateBooking(
+    String bookingId,
+    Map<String, dynamic> data,
+  ) async {
+    await _db.collection('bookings').doc(bookingId).update(data);
+  }
+
+  // Delete a booking
+  Future<void> deleteBooking(String bookingId) async {
+    await _db.collection('bookings').doc(bookingId).delete();
   }
 }

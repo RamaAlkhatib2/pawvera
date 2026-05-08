@@ -118,7 +118,7 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
             decoration: InputDecoration(
               isDense: true,
               filled: true,
-              fillColor: primaryTeal.withOpacity(0.05),
+              fillColor: primaryTeal.withValues(alpha: 0.05),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide.none,
@@ -179,31 +179,54 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
                     ),
                   ),
 
-                  // الأزرار مرتبة عمودياً (يمين)
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      _buildHeaderButton(
-                        Icons.person_outline,
-                        'Profile',
-                        onTap: _showProfileDialog,
-                      ),
-                      const SizedBox(height: 8),
-                      _buildHeaderButton(
-                        Icons.logout,
-                        'Logout',
-                        onTap: () {
-                          // الحل المباشر إذا كان Navigator.pushReplacementNamed لا يعمل:
-                          Navigator.pushAndRemoveUntil(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const SignInPage(),
+                  // زر النقاط الثلاث (يمين)
+                  PopupMenuButton<String>(
+                    icon: const Icon(
+                      Icons.more_vert,
+                      color: Color(0xFF2D6A64),
+                      size: 28,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 2,
+                    onSelected: (value) {
+                      if (value == 'profile') {
+                        _showProfileDialog();
+                      } else if (value == 'logout') {
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const SignInPage(),
+                          ),
+                          (route) => false,
+                        );
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem<String>(
+                        value: 'profile',
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.person_outline,
+                              size: 20,
+                              color: Colors.black87,
                             ),
-                            (route) =>
-                                false, // يمسح كل الصفحات السابقة ويمنع الرجوع
-                          );
-                        },
+                            SizedBox(width: 10),
+                            Text('Profile', style: TextStyle(fontSize: 14)),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem<String>(
+                        value: 'logout',
+                        child: Row(
+                          children: [
+                            Icon(Icons.logout, size: 20, color: Colors.black87),
+                            SizedBox(width: 10),
+                            Text('Logout', style: TextStyle(fontSize: 14)),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -311,7 +334,18 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
   Widget _buildCurrentTabContent() {
     switch (_selectedTab) {
       case 'Overview':
-        return const OverviewTab();
+        return OverviewTab(
+          onViewAllBookings: () {
+            setState(() {
+              _selectedTab = 'Bookings';
+            });
+          },
+          onManageServices: () {
+            setState(() {
+              _selectedTab = 'Services';
+            });
+          },
+        );
       case 'Bookings':
         return const BookingsTab();
       case 'Services':

@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pawvera/pages/home.dart';
 import 'package:pawvera/pages/service%20provider%20dashboard%20pages/service_provider_dashboard.dart';
 import 'package:pawvera/pages/pet_supplies_store_dashboard.dart';
-import '../components/role_button.dart'; // تأكد أن هذا الملف لا يزال موجوداً
+import '../components/role_button.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -20,7 +20,11 @@ class _LoginViewState extends State<LoginView> {
   String activeRole = "Pet Owner";
   String? selectedProviderType;
 
-  List<String> providerTypes = [
+  String? _emailError;
+  String? _passwordError;
+  String? _providerTypeError;
+
+  final List<String> providerTypes = [
     "Pet Supplies Store",
     "Services Provider Shop",
     "Vet Clinic Admin",
@@ -34,128 +38,217 @@ class _LoginViewState extends State<LoginView> {
     super.dispose();
   }
 
-  // دالة تسجيل الدخول عبر Firebase
+  bool _validateInputs() {
+    bool isValid = true;
+    setState(() {
+      _emailError = null;
+      _passwordError = null;
+      _providerTypeError = null;
+
+      if (userEmailController.text.trim().isEmpty) {
+        _emailError = "Email is required";
+        isValid = false;
+      } else if (!RegExp(r'^[\w\.\-]+@[\w\-]+\.[a-zA-Z]{2,}$')
+          .hasMatch(userEmailController.text.trim())) {
+        _emailError = "Enter a valid email address";
+        isValid = false;
+      }
+
+      if (passwordController.text.isEmpty) {
+        _passwordError = "Password is required";
+        isValid = false;
+      } else if (passwordController.text.length < 6) {
+        _passwordError = "Password must be at least 6 characters";
+        isValid = false;
+      }
+
+      if (activeRole == "Provider" && selectedProviderType == null) {
+        _providerTypeError = "Please select a provider type";
+        isValid = false;
+      }
+    });
+    return isValid;
+  }
+
   Future<void> loginUser() async {
-    // إظهار مؤشر تحميل
+    if (!_validateInputs()) return;
+
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) => const Center(child: CircularProgressIndicator()),
     );
 
     try {
-      // 1. تسجيل الدخول في Firebase Auth
       UserCredential userCredential = await FirebaseAuth.instance
           .signInWithEmailAndPassword(
         email: userEmailController.text.trim(),
         password: passwordController.text.trim(),
       );
 
-      // 2. التحقق من دور المستخدم في Firestore للتأكد من صلاحياته
       DocumentSnapshot userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(userCredential.user!.uid)
           .get();
 
-      // إغلاق مؤشر التحميل
       if (mounted) Navigator.pop(context);
 
-      if (userDoc.exists) {
-        // التحقق من توافق الدور المختار مع الدور في قاعدة البيانات (اختياري)
-        // String dbRole = userDoc.get('role');
+      if (!mounted) return;
 
-        if (activeRole == "Pet Owner") {
+      if (!userDoc.exists) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("User data not found. Please register again.")),
+        );
+        return;
+      }
+
+      final String dbRole = (userDoc.data() as Map<String, dynamic>)['role'] ?? '';
+      final String? dbProviderType =
+          (userDoc.data() as Map<String, dynamic>)['providerType'];
+
+      // Verify the selected role matches what was registered
+      if (activeRole == "Pet Owner" && dbRole != 'pet_owner') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("This account is registered as a Provider. Please select Provider."),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      if (activeRole == "Provider" && dbRole != 'provider') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("This account is registered as a Pet Owner. Please select Pet Owner."),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Verify provider type matches
+      if (activeRole == "Provider" &&
+          dbProviderType != null &&
+          dbProviderType != selectedProviderType) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                "This account is registered as '$dbProviderType'. Please select that type."),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Navigate based on verified role
+      if (dbRole == 'pet_owner') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const Home()),
+        );
+      } else if (dbRole == 'provider') {
+        final String providerType = dbProviderType ?? selectedProviderType ?? '';
+        if (providerType == "Pet Supplies Store") {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const Home()),
+            MaterialPageRoute(
+                builder: (context) => const PetSuppliesStoreDashboard()),
           );
-        } else if (activeRole == "Provider") {
-          if (selectedProviderType == "Pet Supplies Store") {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => const PetSuppliesStoreDashboard()),
-            );
-          } else {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => ServiceProviderDashboard(
-                    providerType: selectedProviderType!,
-                  )),
-            );
-          }
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+                builder: (context) =>
+                    ServiceProviderDashboard(providerType: providerType)),
+          );
         }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("User data not found")),
-        );
       }
     } on FirebaseAuthException catch (e) {
-      if (mounted) Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message ?? "Authentication failed")),
-      );
+      if (mounted) {
+        Navigator.pop(context);
+        String message;
+        switch (e.code) {
+          case 'user-not-found':
+          case 'invalid-credential':
+            message = "No account found with these credentials.";
+            break;
+          case 'wrong-password':
+            message = "Incorrect password. Please try again.";
+            setState(() => _passwordError = "Incorrect password");
+            break;
+          case 'invalid-email':
+            message = "The email address is not valid.";
+            setState(() => _emailError = "Invalid email address");
+            break;
+          case 'user-disabled':
+            message = "This account has been disabled.";
+            break;
+          case 'too-many-requests':
+            message = "Too many failed attempts. Please try again later.";
+            break;
+          default:
+            message = e.message ?? "Authentication failed";
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message), backgroundColor: Colors.red),
+        );
+      }
     } catch (e) {
-      if (mounted) Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
-      );
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $e")),
+        );
+      }
     }
   }
 
-  // --- Widget بديل لـ MyTextfields المحذوف ---
-  Widget buildTextField({
+  Widget _buildTextField({
     required TextEditingController controller,
     required String hintText,
     required bool obscureText,
+    String? errorText,
+    TextInputType? keyboardType,
   }) {
-    return TextField(
-      controller: controller,
-      obscureText: obscureText,
-      decoration: InputDecoration(
-        hintText: hintText,
-        hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
-        filled: true,
-        fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 12,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey[300]!),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF5B9D8E), width: 2),
-        ),
-      ),
-    );
-  }
-
-  // --- Widget بديل لـ MyButton المحذوف ---
-  Widget buildLoginButton({required VoidCallback onTap, required String text}) {
-    return SizedBox(
-      width: double.infinity,
-      height: 55,
-      child: ElevatedButton(
-        onPressed: onTap,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF5B9D8E), // اللون الأخضر حسب Figma
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          elevation: 0,
-        ),
-        child: Text(
-          text,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          controller: controller,
+          obscureText: obscureText,
+          keyboardType: keyboardType,
+          decoration: InputDecoration(
+            hintText: hintText,
+            hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
+            filled: true,
+            fillColor: Colors.white,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: errorText != null ? Colors.red : Colors.grey[300]!,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: errorText != null ? Colors.red : const Color(0xFF5B9D8E),
+                width: 2,
+              ),
+            ),
           ),
         ),
-      ),
+        if (errorText != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 4, left: 4),
+            child: Text(
+              errorText,
+              style: const TextStyle(color: Colors.red, fontSize: 12),
+            ),
+          ),
+      ],
     );
   }
 
@@ -165,47 +258,49 @@ class _LoginViewState extends State<LoginView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Center(
-            child: Text(
-              "Welcome",
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF634732),
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // Email
           const Text(
             "Email",
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
           ),
           const SizedBox(height: 8),
-          buildTextField(
+          _buildTextField(
             controller: userEmailController,
             hintText: "your@email.com",
             obscureText: false,
+            errorText: _emailError,
+            keyboardType: TextInputType.emailAddress,
+          ),
+          const Padding(
+            padding: EdgeInsets.only(top: 4, left: 4),
+            child: Text(
+              "Must be a valid email (e.g. user@example.com)",
+              style: TextStyle(color: Colors.grey, fontSize: 11),
+            ),
           ),
 
           const SizedBox(height: 15),
 
-          // Password
           const Text(
             "Password",
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
           ),
           const SizedBox(height: 8),
-          buildTextField(
+          _buildTextField(
             controller: passwordController,
-            hintText: '********',
+            hintText: '••••••••',
             obscureText: true,
+            errorText: _passwordError,
+          ),
+          const Padding(
+            padding: EdgeInsets.only(top: 4, left: 4),
+            child: Text(
+              "Min 6 characters · Must contain letters and numbers",
+              style: TextStyle(color: Colors.grey, fontSize: 11),
+            ),
           ),
 
           const SizedBox(height: 20),
 
-          // Login as Title
           const Text(
             "Login as",
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
@@ -222,6 +317,7 @@ class _LoginViewState extends State<LoginView> {
                     setState(() {
                       activeRole = "Pet Owner";
                       selectedProviderType = null;
+                      _providerTypeError = null;
                     });
                   },
                 ),
@@ -251,7 +347,11 @@ class _LoginViewState extends State<LoginView> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey[300]!),
+                border: Border.all(
+                  color: _providerTypeError != null
+                      ? Colors.red
+                      : Colors.grey[300]!,
+                ),
                 borderRadius: BorderRadius.circular(12),
                 color: Colors.white,
               ),
@@ -273,18 +373,45 @@ class _LoginViewState extends State<LoginView> {
                   onChanged: (newValue) {
                     setState(() {
                       selectedProviderType = newValue;
+                      _providerTypeError = null;
                     });
                   },
                 ),
               ),
             ),
+            if (_providerTypeError != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 4, left: 4),
+                child: Text(
+                  _providerTypeError!,
+                  style: const TextStyle(color: Colors.red, fontSize: 12),
+                ),
+              ),
           ],
 
           const SizedBox(height: 25),
 
-          buildLoginButton(
-            text: "Login",
-            onTap: loginUser,
+          SizedBox(
+            width: double.infinity,
+            height: 55,
+            child: ElevatedButton(
+              onPressed: loginUser,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF5B9D8E),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
+              child: const Text(
+                "Login",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
           ),
 
           const SizedBox(height: 20),

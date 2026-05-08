@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:pawvera/services/database_service.dart';
+import 'home.dart';
+import 'profile_view.dart';
 
 class MyBookingsPage extends StatefulWidget {
-  const MyBookingsPage({super.key});
+  final bool standalone;
+  const MyBookingsPage({super.key, this.standalone = true});
 
   @override
   State<MyBookingsPage> createState() => _MyBookingsPageState();
@@ -12,11 +16,26 @@ class _MyBookingsPageState extends State<MyBookingsPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final Color primaryGreen = const Color(0xFF5B9D8E);
+  final DatabaseService _db = DatabaseService();
+
+  List<DocumentSnapshot> _allDocs = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _loadBookings();
+  }
+
+  void _loadBookings() {
+    _db.myBookings.listen((snapshot) {
+      if (!mounted) return;
+      setState(() {
+        _allDocs = snapshot.docs;
+        _isLoading = false;
+      });
+    });
   }
 
   @override
@@ -25,23 +44,21 @@ class _MyBookingsPageState extends State<MyBookingsPage>
     super.dispose();
   }
 
-  // --- دالة الحذف النهائي من Hive ---
-  void _confirmDeletion(int actualIndex) {
-    var box = Hive.box('myBox');
-    List allBookings = List.from(box.get('all_bookings', defaultValue: []));
-    allBookings.removeAt(actualIndex);
-    box.put('all_bookings', allBookings);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Booking cancelled successfully")),
-    );
+  // --- دالة الحذف النهائي من Firestore ---
+  void _confirmDeletion(String bookingId) async {
+    await _db.deleteBooking(bookingId);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Booking cancelled successfully")),
+      );
+    }
   }
 
   // --- نافذة الإلغاء الاحترافية (نفس أول مرة) ---
   void _showCancelDialog(
     BuildContext context,
-    Map<dynamic, dynamic> bookingData,
-    int actualIndex,
+    Map<String, dynamic> bookingData,
+    String bookingId,
   ) {
     String selectedReason = "";
 
@@ -249,7 +266,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                                   onPressed: selectedReason.isEmpty
                                       ? null
                                       : () {
-                                          _confirmDeletion(actualIndex);
+                                          _confirmDeletion(bookingId);
                                           Navigator.pop(context);
                                         },
                                   style: ElevatedButton.styleFrom(
@@ -341,7 +358,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
   }
 
   // --- نافذة إعادة الجدولة (Reschedule) ---
-  void _showRescheduleSheet(Map<dynamic, dynamic> data, int actualIndex) {
+  void _showRescheduleSheet(Map<String, dynamic> data, String bookingId) {
     DateTime selectedDate = _parseBookingDate(data['date']?.toString());
     String tempTime = (data['time'] ?? "9:30 AM").toString();
     const timeSlots = [
@@ -354,6 +371,14 @@ class _MyBookingsPageState extends State<MyBookingsPage>
       "12:00 PM",
       "12:30 PM",
       "1:00 PM",
+      "1:30 PM",
+      "2:00 PM",
+      "2:30 PM",
+      "3:00 PM",
+      "3:30 PM",
+      "4:00 PM",
+      "4:30 PM",
+      "5:00 PM",
     ];
 
     showDialog(
@@ -621,17 +646,12 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                             const SizedBox(width: 8),
                             Expanded(
                               child: ElevatedButton(
-                                onPressed: () {
-                                  var box = Hive.box('myBox');
-                                  List all = List.from(
-                                    box.get('all_bookings', defaultValue: []),
-                                  );
-                                  all[actualIndex]['date'] = _formatBookingDate(
-                                    selectedDate,
-                                  );
-                                  all[actualIndex]['time'] = tempTime;
-                                  box.put('all_bookings', all);
-                                  Navigator.pop(context);
+                                onPressed: () async {
+                                  await _db.updateBooking(bookingId, {
+                                    'date': _formatBookingDate(selectedDate),
+                                    'time': tempTime,
+                                  });
+                                  if (context.mounted) Navigator.pop(context);
                                 },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF1E5BFF),
@@ -670,119 +690,188 @@ class _MyBookingsPageState extends State<MyBookingsPage>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFEAF5F1),
-      body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: ValueListenableBuilder(
-                valueListenable: Hive.box('myBox').listenable(),
-                builder: (context, Box box, _) {
-                  final List allBookings = box.get(
-                    'all_bookings',
-                    defaultValue: [],
+      bottomNavigationBar: widget.standalone
+          ? BottomNavigationBar(
+              type: BottomNavigationBarType.fixed,
+              selectedItemColor: const Color(0xFF5B9D8E),
+              unselectedItemColor: const Color(0xFF9E9E9E),
+              currentIndex: 3,
+              onTap: (index) {
+                if (index == 0) {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const Home()),
                   );
-                  return Align(
-                    alignment: Alignment.centerLeft,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 2),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            "My Bookings",
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF6F4A3F),
-                              height: 1.05,
+                } else if (index == 1) {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const Home()),
+                  );
+                } else if (index == 4) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => ProfileView()),
+                  );
+                }
+              },
+              items: const [
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.home_outlined),
+                  label: 'Home',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.pets_outlined),
+                  label: 'My Pets',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.message_outlined),
+                  label: 'Messages',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.calendar_today_outlined),
+                  label: 'My Bookings',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.person_outline),
+                  label: 'Profile',
+                ),
+              ],
+            )
+          : null,
+      body: SafeArea(
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : Column(
+                children: [
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 2),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "My Bookings",
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF6F4A3F),
+                                height: 1.05,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            "${allBookings.length} total bookings",
-                            textAlign: TextAlign.left,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                              color: Color(0xFF8F9A99),
-                              letterSpacing: 0.1,
+                            const SizedBox(height: 6),
+                            Text(
+                              "${_allDocs.length} total bookings",
+                              textAlign: TextAlign.left,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF8F9A99),
+                                letterSpacing: 0.1,
+                              ),
                             ),
-                          ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(25),
+                        border: Border.all(color: const Color(0xFFE6EFEA)),
+                      ),
+                      child: TabBar(
+                        controller: _tabController,
+                        indicator: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          color: primaryGreen,
+                        ),
+                        labelColor: Colors.white,
+                        unselectedLabelColor: const Color(0xFF7A7A7A),
+                        labelStyle: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                        ),
+                        unselectedLabelStyle: const TextStyle(
+                          fontWeight: FontWeight.w500,
+                        ),
+                        tabs: const [
+                          Tab(text: "Current Bookings"),
+                          Tab(text: "Past Bookings"),
                         ],
                       ),
                     ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(25),
-                  border: Border.all(color: const Color(0xFFE6EFEA)),
-                ),
-                child: TabBar(
-                  controller: _tabController,
-                  indicator: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    color: primaryGreen,
                   ),
-                  labelColor: Colors.white,
-                  unselectedLabelColor: const Color(0xFF7A7A7A),
-                  labelStyle: const TextStyle(fontWeight: FontWeight.bold),
-                  unselectedLabelStyle: const TextStyle(
-                    fontWeight: FontWeight.w500,
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildBookingsList(true),
+                        _buildBookingsList(false),
+                      ],
+                    ),
                   ),
-                  tabs: const [
-                    Tab(text: "Current Bookings"),
-                    Tab(text: "Past Bookings"),
-                  ],
-                ),
+                ],
               ),
-            ),
-            const SizedBox(height: 12),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [_buildBookingsList(true), _buildBookingsList(false)],
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
 
   Widget _buildBookingsList(bool isCurrent) {
-    return ValueListenableBuilder(
-      valueListenable: Hive.box('myBox').listenable(),
-      builder: (context, Box box, _) {
-        List all = box.get('all_bookings', defaultValue: []);
-        if (all.isEmpty && isCurrent) {
-          return const Center(child: Text("No current bookings."));
-        }
-        if (!isCurrent) return const Center(child: Text("No past bookings."));
+    final now = DateTime.now();
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: all.length,
-          itemBuilder: (context, i) {
-            int actualIndex = (all.length - 1) - i; // للأحدث أولاً
-            final data = all[actualIndex];
-            return _buildBookingCard(data, actualIndex);
-          },
-        );
+    final filtered = _allDocs.where((doc) {
+      final data = doc.data() as Map<String, dynamic>? ?? {};
+      final dateStr = data['date']?.toString() ?? '';
+      final bookingDate = _parseBookingDateFromDMY(dateStr);
+      if (bookingDate == null)
+        return isCurrent; // show in current if unparsable
+      return isCurrent
+          ? bookingDate.isAfter(now.subtract(const Duration(days: 1)))
+          : bookingDate.isBefore(now);
+    }).toList();
+
+    if (filtered.isEmpty) {
+      return Center(
+        child: Text(isCurrent ? "No current bookings." : "No past bookings."),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: filtered.length,
+      itemBuilder: (context, i) {
+        final doc = filtered[i];
+        final data = doc.data() as Map<String, dynamic>? ?? {};
+        final bookingId = doc.id;
+        return _buildBookingCard(data, bookingId);
       },
     );
   }
 
-  Widget _buildBookingCard(Map<dynamic, dynamic> data, int actualIndex) {
+  DateTime? _parseBookingDateFromDMY(String value) {
+    if (value.trim().isEmpty) return null;
+    final parts = value.split('/');
+    if (parts.length == 3) {
+      final day = int.tryParse(parts[0]);
+      final month = int.tryParse(parts[1]);
+      final year = int.tryParse(parts[2]);
+      if (day != null && month != null && year != null) {
+        return DateTime(year, month, day);
+      }
+    }
+    return null;
+  }
+
+  Widget _buildBookingCard(Map<String, dynamic> data, String bookingId) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(18),
@@ -792,7 +881,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
         border: Border.all(color: const Color(0xFFE3EEE7)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 18,
             offset: const Offset(0, 10),
           ),
@@ -875,10 +964,12 @@ class _MyBookingsPageState extends State<MyBookingsPage>
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () => _showRescheduleSheet(data, actualIndex),
+                  onPressed: () => _showRescheduleSheet(data, bookingId),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: primaryGreen,
-                    side: BorderSide(color: primaryGreen.withOpacity(0.4)),
+                    side: BorderSide(
+                      color: primaryGreen.withValues(alpha: 0.4),
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -893,8 +984,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
               const SizedBox(width: 10),
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () =>
-                      _showCancelDialog(context, data, actualIndex),
+                  onPressed: () => _showCancelDialog(context, data, bookingId),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.red,
                     side: const BorderSide(color: Colors.red),

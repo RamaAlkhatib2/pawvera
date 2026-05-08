@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:pawvera/pages/home.dart';
 import 'package:pawvera/pages/my_bookings_page.dart';
+import 'package:pawvera/services/database_service.dart';
 
 class ConfirmBookingPage extends StatelessWidget {
   final Map<String, dynamic> bookingData;
 
-  const ConfirmBookingPage({super.key, required this.bookingData});
+  ConfirmBookingPage({super.key, required this.bookingData});
 
   final Color primaryGreen = const Color(0xFF5B9D8E);
+  final DatabaseService _db = DatabaseService();
 
   String _textValue(String key, {String fallback = "-"}) {
     final value = bookingData[key];
@@ -16,6 +18,7 @@ class ConfirmBookingPage extends StatelessWidget {
     final text = value.toString().trim();
     return text.isEmpty ? fallback : text;
   }
+
   // 1. دالة لإظهار نافذة نجاح الحجز
   void _showSuccessDialog(BuildContext context) {
     showDialog(
@@ -44,7 +47,7 @@ class ConfirmBookingPage extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.05),
+                color: Colors.green.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
@@ -141,26 +144,22 @@ class ConfirmBookingPage extends StatelessWidget {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           // داخل زر Confirm Booking
           onPressed: () async {
-            var box = Hive.box(
-              'myBox',
-            ); // التأكد من استخدام نفس اسم الـ Box المفتوح في الماين
-
-            // 1. جلب القائمة الحالية (أو إنشاء قائمة فارغة إذا كانت أول مرة)
+            // حفظ الحجز في Hive (للتوافق المحلي)
+            var box = Hive.box('myBox');
             List<dynamic> currentBookings = box.get(
               'all_bookings',
               defaultValue: [],
             );
-
-            // 2. تحويلها لـ List قابلة للتعديل وإضافة الحجز الجديد
             List<Map<String, dynamic>> updatedList =
                 List<Map<String, dynamic>>.from(currentBookings);
             updatedList.add(bookingData);
-
-            // 3. حفظ القائمة المحدثة
             await box.put('all_bookings', updatedList);
 
-            // 4. إظهار نافذة النجاح
-            _showSuccessDialog(context);
+            // حفظ الحجز في Firestore (للحساب)
+            await _db.createBooking(bookingData);
+
+            // إظهار نافذة النجاح
+            if (context.mounted) _showSuccessDialog(context);
           },
         ),
         title: const Text(
@@ -275,7 +274,7 @@ class ConfirmBookingPage extends StatelessWidget {
               height: 55,
               child: ElevatedButton(
                 // ابحث عن زر Confirm Booking في كودك الأصلي وعدله ليصبح هكذا:
-                onPressed: () {
+                onPressed: () async {
                   // هنا نقوم بحفظ الحجز في Hive قبل إظهار النجاح
                   final bookingsBox = Hive.box('myBox');
                   List currentBookings = bookingsBox.get(
@@ -287,7 +286,11 @@ class ConfirmBookingPage extends StatelessWidget {
                   ); // إضافة الحجز الحالي للقائمة
                   bookingsBox.put('all_bookings', currentBookings);
 
-                  _showSuccessDialog(context); // إظهار النافذة
+                  // حفظ الحجز في Firestore (للحساب)
+                  await _db.createBooking(bookingData);
+
+                  if (context.mounted)
+                    _showSuccessDialog(context); // إظهار النافذة
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryGreen,
@@ -319,9 +322,9 @@ class ConfirmBookingPage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.05),
+        color: color.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
@@ -340,7 +343,10 @@ class ConfirmBookingPage extends StatelessWidget {
               ),
               Text(
                 subtitle,
-                style: TextStyle(color: color.withOpacity(0.7), fontSize: 11),
+                style: TextStyle(
+                  color: color.withValues(alpha: 0.7),
+                  fontSize: 11,
+                ),
               ),
             ],
           ),

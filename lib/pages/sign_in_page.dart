@@ -34,10 +34,27 @@ class _SignInPageState extends State<SignInPage>
         children: [
           const SizedBox(height: 60),
           Center(
-            child: CircleAvatar(
-              radius: 50,
-              backgroundColor: Colors.white,
-              child: const Icon(Icons.pets, color: Color(0xFF5B9D8E), size: 40),
+            child: Stack(
+              children: [
+                CircleAvatar(
+                  radius: 50,
+                  backgroundColor: Colors.white,
+                  child: const Icon(Icons.pets, color: Color(0xFF5B9D8E), size: 40),
+                ),
+                Positioned(
+                  bottom: 4,
+                  right: 4,
+                  child: Container(
+                    width: 22,
+                    height: 22,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFE53935),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.favorite, color: Colors.white, size: 13),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 15),
@@ -68,6 +85,15 @@ class _SignInPageState extends State<SignInPage>
               ),
               child: Column(
                 children: [
+                  const Text(
+                    "Welcome",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF634732),
+                    ),
+                  ),
+                  const SizedBox(height: 15),
                   Container(
                     height: 45,
                     decoration: BoxDecoration(
@@ -81,7 +107,7 @@ class _SignInPageState extends State<SignInPage>
                         color: Colors.white,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withValues(alpha: 0.05),
                             blurRadius: 5,
                             offset: const Offset(0, 2),
                           ),

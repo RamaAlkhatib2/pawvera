@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:pawvera/pages/pet%20care%20pages/confirm_booking_page.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:pawvera/services/database_service.dart';
 
 class BookingPage extends StatefulWidget {
   final String serviceName;
@@ -26,6 +27,7 @@ class BookingPage extends StatefulWidget {
 class _BookingPageState extends State<BookingPage> {
   final Color primaryGreen = const Color(0xFF5B9D8E);
   final Color bgCream = const Color(0xFFE8F4F1);
+  final DatabaseService _db = DatabaseService();
 
   // Controllers لجمع بيانات اليوزر
   final _nameController = TextEditingController();
@@ -37,6 +39,38 @@ class _BookingPageState extends State<BookingPage> {
   DateTime? _selectedDay;
   String? _selectedTime;
   String? _selectedPet;
+
+  String _countryCode =
+      "+962"; // default to Jordan, will be fetched from user data
+
+  static const Map<String, String> _countryCodes = {
+    "Jordan": "+962",
+    "Saudi Arabia": "+966",
+    "UAE": "+971",
+    "Egypt": "+20",
+    "Palestine": "+970",
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _initCountryCode();
+  }
+
+  void _initCountryCode() {
+    _db.userData.listen((userDoc) {
+      if (!mounted) return;
+      final data = userDoc.data() as Map<String, dynamic>?;
+      if (data != null) {
+        final country = data['country'] as String?;
+        if (country != null && _countryCodes.containsKey(country)) {
+          setState(() {
+            _countryCode = _countryCodes[country]!;
+          });
+        }
+      }
+    });
+  }
 
   final List<String> _timeSlots = [
     "9:00 AM",
@@ -109,7 +143,7 @@ class _BookingPageState extends State<BookingPage> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.05),
+                color: Colors.blue.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
@@ -123,11 +157,46 @@ class _BookingPageState extends State<BookingPage> {
               ),
             ),
             const SizedBox(height: 20),
-            _buildInputField(
-              label: "Verification Code",
-              hint: "000000",
-              controller: codeController,
-              keyboardType: TextInputType.number,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Enter Verification Code",
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.black87,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: codeController,
+                  keyboardType: TextInputType.number,
+                  textAlign: TextAlign.center,
+                  decoration: InputDecoration(
+                    hintText: "000000",
+                    hintStyle: TextStyle(
+                      color: Colors.grey.withValues(alpha: 0.3),
+                      fontSize: 16,
+                      letterSpacing: 6,
+                    ),
+                    filled: true,
+                    fillColor: const Color(0xFFFBFBFB),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 15,
+                      vertical: 15,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFF5B9D8E)),
+                    ),
+                  ),
+                ),
+              ],
             ),
             TextButton(
               onPressed: () {},
@@ -156,14 +225,14 @@ class _BookingPageState extends State<BookingPage> {
                       final bookingInfo = {
                         'service': widget.serviceName,
                         'provider': widget.providerName,
-                        'price': "21.25", // السعر بعد الخصم كما في الصورة
+                        'price': widget.price,
                         'date':
                             "${_selectedDay?.day}/${_selectedDay?.month}/${_selectedDay?.year}",
                         'time': _selectedTime,
                         'pet': _selectedPet,
                         'duration': widget.duration,
                         'name': _nameController.text,
-                        'phone': "+962 ${_phoneController.text}",
+                        'phone': "$_countryCode ${_phoneController.text}",
                         'email': _emailController.text,
                       };
 
@@ -298,7 +367,7 @@ class _BookingPageState extends State<BookingPage> {
         border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -399,7 +468,7 @@ class _BookingPageState extends State<BookingPage> {
             shape: BoxShape.circle,
           ),
           todayDecoration: BoxDecoration(
-            color: primaryGreen.withOpacity(0.2),
+            color: primaryGreen.withValues(alpha: 0.2),
             shape: BoxShape.circle,
           ),
         ),
@@ -473,13 +542,17 @@ class _BookingPageState extends State<BookingPage> {
             hint: "Full Name",
             controller: _nameController,
           ),
-          const Text(
-            "Phone Number",
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey,
-              fontWeight: FontWeight.bold,
-            ),
+          Row(
+            children: [
+              const Text(
+                "Phone Number",
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
           Row(
@@ -487,29 +560,48 @@ class _BookingPageState extends State<BookingPage> {
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
-                  vertical: 14,
+                  vertical: 15,
                 ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFBFBFB),
                   border: Border.all(color: Colors.grey.shade300),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Text(
-                  "+962",
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                child: Text(
+                  _countryCode,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: _buildInputField(
-                  label: "",
-                  hint: "7XXXXXXXX",
+                child: TextField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
+                  decoration: InputDecoration(
+                    hintText: "7XXXXXXXX",
+                    filled: true,
+                    fillColor: const Color(0xFFFBFBFB),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 15,
+                      vertical: 15,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: primaryGreen),
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
+          const SizedBox(height: 15),
           _buildInputField(
             label: "Email Address",
             hint: "example@mail.com",
@@ -540,13 +632,21 @@ class _BookingPageState extends State<BookingPage> {
   }
 
   Widget _buildPetSelector() {
-    return ValueListenableBuilder(
-      valueListenable: Hive.box('myBox').listenable(),
-      builder: (context, Box box, _) {
-        final List petsData = box.get('pets', defaultValue: []);
-        if (petsData.isEmpty) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: _db.userPets,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox(
+            height: 48,
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+          );
+        }
+
+        final pets = snapshot.data?.docs ?? [];
+
+        if (pets.isEmpty) {
           return const Text(
-            "No pets found.",
+            "No pets found. Add a pet first.",
             style: TextStyle(color: Colors.red, fontSize: 12),
           );
         }
@@ -563,14 +663,12 @@ class _BookingPageState extends State<BookingPage> {
               value: _selectedPet,
               hint: const Text("Choose pet", style: TextStyle(fontSize: 13)),
               isExpanded: true,
-              items: petsData
-                  .map(
-                    (pet) => DropdownMenuItem<String>(
-                      value: pet['name'].toString(),
-                      child: Text(pet['name'].toString()),
-                    ),
-                  )
-                  .toList(),
+              items: pets.map((doc) {
+                final name =
+                    (doc.data() as Map<String, dynamic>)['name'] as String? ??
+                    '';
+                return DropdownMenuItem<String>(value: name, child: Text(name));
+              }).toList(),
               onChanged: (val) => setState(() => _selectedPet = val),
             ),
           ),

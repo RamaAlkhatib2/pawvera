@@ -1,6 +1,7 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 
 class ShopInfoTab extends StatefulWidget {
   const ShopInfoTab({super.key});
@@ -284,7 +285,10 @@ class _ShopInfoTabState extends State<ShopInfoTab> {
                   child: shopImage != null
                       ? ClipRRect(
                           borderRadius: BorderRadius.circular(10),
-                          child: Image.file(shopImage!, fit: BoxFit.cover),
+                          child: kIsWeb
+                              ? Image.network(shopImage!.path,
+                                  fit: BoxFit.cover)
+                              : Image.file(shopImage!, fit: BoxFit.cover),
                         )
                       : const Icon(
                           Icons.add_a_photo_outlined,
