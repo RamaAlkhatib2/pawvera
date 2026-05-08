@@ -40,6 +40,38 @@ class _BookingPageState extends State<BookingPage> {
   String? _selectedTime;
   String? _selectedPet;
 
+  String _countryCode =
+      "+962"; // default to Jordan, will be fetched from user data
+
+  static const Map<String, String> _countryCodes = {
+    "Jordan": "+962",
+    "Saudi Arabia": "+966",
+    "UAE": "+971",
+    "Egypt": "+20",
+    "Palestine": "+970",
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _initCountryCode();
+  }
+
+  void _initCountryCode() {
+    _db.userData.listen((userDoc) {
+      if (!mounted) return;
+      final data = userDoc.data() as Map<String, dynamic>?;
+      if (data != null) {
+        final country = data['country'] as String?;
+        if (country != null && _countryCodes.containsKey(country)) {
+          setState(() {
+            _countryCode = _countryCodes[country]!;
+          });
+        }
+      }
+    });
+  }
+
   final List<String> _timeSlots = [
     "9:00 AM",
     "9:30 AM",
@@ -200,7 +232,7 @@ class _BookingPageState extends State<BookingPage> {
                         'pet': _selectedPet,
                         'duration': widget.duration,
                         'name': _nameController.text,
-                        'phone': "+962 ${_phoneController.text}",
+                        'phone': "$_countryCode ${_phoneController.text}",
                         'email': _emailController.text,
                       };
 
@@ -535,9 +567,12 @@ class _BookingPageState extends State<BookingPage> {
                   border: Border.all(color: Colors.grey.shade300),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Text(
-                  "+962",
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                child: Text(
+                  _countryCode,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               const SizedBox(width: 10),
@@ -629,11 +664,10 @@ class _BookingPageState extends State<BookingPage> {
               hint: const Text("Choose pet", style: TextStyle(fontSize: 13)),
               isExpanded: true,
               items: pets.map((doc) {
-                final name = (doc.data() as Map<String, dynamic>)['name'] as String? ?? '';
-                return DropdownMenuItem<String>(
-                  value: name,
-                  child: Text(name),
-                );
+                final name =
+                    (doc.data() as Map<String, dynamic>)['name'] as String? ??
+                    '';
+                return DropdownMenuItem<String>(value: name, child: Text(name));
               }).toList(),
               onChanged: (val) => setState(() => _selectedPet = val),
             ),
