@@ -764,8 +764,9 @@ class _MyBookingsPageState extends State<MyBookingsPage>
       valueListenable: Hive.box('myBox').listenable(),
       builder: (context, Box box, _) {
         List all = box.get('all_bookings', defaultValue: []);
-        if (all.isEmpty && isCurrent)
+        if (all.isEmpty && isCurrent) {
           return const Center(child: Text("No current bookings."));
+        }
         if (!isCurrent) return const Center(child: Text("No past bookings."));
 
         return ListView.builder(

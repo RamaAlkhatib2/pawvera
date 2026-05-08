@@ -544,11 +544,12 @@ class _BookingPageState extends State<BookingPage> {
       valueListenable: Hive.box('myBox').listenable(),
       builder: (context, Box box, _) {
         final List petsData = box.get('pets', defaultValue: []);
-        if (petsData.isEmpty)
+        if (petsData.isEmpty) {
           return const Text(
             "No pets found.",
             style: TextStyle(color: Colors.red, fontSize: 12),
           );
+        }
 
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 15),

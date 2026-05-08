@@ -4,6 +4,8 @@ import 'my_bookings_page.dart';
 import 'profile_view.dart';
 
 class AdoptionScreen extends StatefulWidget {
+  const AdoptionScreen({super.key});
+
   @override
   _AdoptionScreenState createState() => _AdoptionScreenState();
 }
@@ -124,7 +126,7 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
                       pet["gender"],
                       pet["image"],
                     ))
-                .toList(),
+                ,
           ],
         ),
       ),
@@ -442,7 +444,7 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
                             ? messages.last['text'] ?? ""
                             : "No messages";
                         String preview = lastMessage.length > 30
-                            ? lastMessage.substring(0, 30) + "..."
+                            ? "${lastMessage.substring(0, 30)}..."
                             : lastMessage;
 
                         return ListTile(
@@ -621,13 +623,13 @@ class _PostPetPageState extends State<PostPetPage> {
               height: 50,
               child: ElevatedButton(
                 onPressed: _submitPet,
-                child: Text('Submit'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Color(0xFF5BA092),
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15)),
                 ),
+                child: Text('Submit'),
               ),
             ),
           ],
