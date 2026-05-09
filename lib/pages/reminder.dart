@@ -1,4 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:pawvera/services/database_service.dart';
 import 'home.dart';
 import 'my_bookings_page.dart';
 import 'profile_view.dart';
@@ -22,16 +25,30 @@ class _ReminderScreenState extends State<ReminderScreen> {
   String selectedPet = "All Pets";
   final TextEditingController searchController = TextEditingController();
 
+  final DatabaseService _db = DatabaseService();
+  List<String> _firestorePetNames = [];
+  StreamSubscription<QuerySnapshot>? _petsSubscription;
+
   @override
   void initState() {
     super.initState();
     _loadReminders();
     searchController.addListener(applyFilters);
+    _petsSubscription = _db.userPets.listen((snapshot) {
+      setState(() {
+        _firestorePetNames = snapshot.docs
+            .map((doc) =>
+                (doc.data() as Map<String, dynamic>)['name'] as String? ?? '')
+            .where((name) => name.isNotEmpty)
+            .toList();
+      });
+    });
   }
 
   @override
   void dispose() {
     searchController.dispose();
+    _petsSubscription?.cancel();
     super.dispose();
   }
 
@@ -58,10 +75,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
     });
   }
 
-  List<String> get petNames {
-    final names = reminders.map((r) => r['petName'] as String).toSet().toList();
-    return ['All Pets', ...names];
-  }
+  List<String> get petNames => ['All Pets', ..._firestorePetNames];
 
   void applyFilters() {
     setState(() {
