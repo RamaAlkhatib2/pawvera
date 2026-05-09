@@ -677,6 +677,78 @@ class DatabaseService {
     }
   }
 
+  // --- Conversations & Messaging ---
+
+  CollectionReference<Map<String, dynamic>> get _conversations =>
+      _db.collection('conversations');
+
+  Future<String> getOrCreateConversation({
+    required String ownerId,
+    required String petId,
+    required String petName,
+    String ownerName = 'Pet Owner',
+  }) async {
+    final convId = '${_uid}_$petId';
+    final ref = _conversations.doc(convId);
+    final doc = await ref.get();
+    if (!doc.exists) {
+      String adopterName = 'User';
+      try {
+        final userDoc = await _db.collection('users').doc(_uid).get();
+        adopterName =
+            (userDoc.data() ?? {})['fullName'] as String? ?? 'User';
+      } catch (_) {}
+      await ref.set({
+        'id': convId,
+        'participants': [_uid, ownerId],
+        'adopterId': _uid,
+        'ownerId': ownerId,
+        'petId': petId,
+        'petName': petName,
+        'adopterName': adopterName,
+        'ownerName': ownerName,
+        'lastMessage': '',
+        'lastMessageTime': FieldValue.serverTimestamp(),
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    }
+    return convId;
+  }
+
+  Future<void> sendMessage(String conversationId, String text) async {
+    final msgRef =
+        _conversations.doc(conversationId).collection('messages').doc();
+    final now = FieldValue.serverTimestamp();
+    final batch = _db.batch();
+    batch.set(msgRef, {
+      'id': msgRef.id,
+      'senderId': _uid,
+      'text': text,
+      'timestamp': now,
+    });
+    batch.update(_conversations.doc(conversationId), {
+      'lastMessage': text,
+      'lastMessageTime': now,
+    });
+    await batch.commit();
+  }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> streamMessages(
+      String conversationId) {
+    return _conversations
+        .doc(conversationId)
+        .collection('messages')
+        .orderBy('timestamp')
+        .snapshots();
+  }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> get myConversations {
+    return _conversations
+        .where('participants', arrayContains: _uid)
+        .orderBy('lastMessageTime', descending: true)
+        .snapshots();
+  }
+
   // --- Online Store: Admin ---
 
   Stream<QuerySnapshot<Map<String, dynamic>>> streamAllStoresForAdmin() {

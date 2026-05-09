@@ -1,6 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:pawvera/services/database_service.dart';
+import 'messages_page.dart';
 import 'home.dart';
 import 'my_bookings_page.dart';
 import 'profile_view.dart';
@@ -232,6 +235,11 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
               context,
               MaterialPageRoute(builder: (_) => const Home()),
             );
+          } else if (index == 2) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const MessagesPage()),
+            );
           } else if (index == 3) {
             Navigator.push(
               context,
@@ -393,17 +401,44 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ChatPage(
-                            petName: pet["name"],
-                            petImage: pet["image"],
-                            ownerId: pet["ownerId"] ?? "owner_${pet["name"]}",
+                    onPressed: () async {
+                      if (FirebaseAuth.instance.currentUser == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Please log in to contact the owner.'),
                           ),
-                        ),
-                      );
+                        );
+                        return;
+                      }
+                      final petName = pet["name"] as String;
+                      final ownerId =
+                          pet["ownerId"] as String? ?? 'owner_${petName.toLowerCase()}';
+                      final petId =
+                          pet["id"] as String? ?? petName.toLowerCase().replaceAll(' ', '_');
+                      try {
+                        final convId = await DatabaseService().getOrCreateConversation(
+                          ownerId: ownerId,
+                          petId: petId,
+                          petName: petName,
+                        );
+                        if (!mounted) return;
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => FirestoreChatPage(
+                              conversationId: convId,
+                              petName: petName,
+                              contactName: 'Pet Owner',
+                            ),
+                          ),
+                        );
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+                          );
+                        }
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: primaryTeal,
