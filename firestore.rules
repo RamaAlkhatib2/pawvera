@@ -122,6 +122,21 @@ service cloud.firestore {
       }
     }
 
+    // ── Reminder types (admin-managed, globally readable) ────────────────────
+    match /reminder_types/{typeId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+                    && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // ── User notifications ───────────────────────────────────────────────────
+    match /notifications/{notifId} {
+      allow read, update, delete: if request.auth != null
+                                   && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null
+                     && request.auth.uid == request.resource.data.userId;
+    }
+
     // ── Conversations & Messages ─────────────────────────────────────────────
     match /conversations/{convId} {
       allow read: if request.auth != null

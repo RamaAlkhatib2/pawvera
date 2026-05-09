@@ -87,22 +87,152 @@ class DatabaseService {
 
   // Add reminder
   Future<void> addReminder(Map<String, dynamic> reminderData) async {
-    String uid = _auth.currentUser!.uid;
-    await _db.collection('users').doc(uid).collection('reminders').add({
+    final uid = _auth.currentUser!.uid;
+    final ref =
+        _db.collection('users').doc(uid).collection('reminders').doc();
+    await ref.set({
       ...reminderData,
+      'id': ref.id,
+      'notificationSent': false,
+      'isCompleted': false,
       'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
     });
   }
 
-  // Get reminders
+  // Update reminder
+  Future<void> updateReminder(
+      String reminderId, Map<String, dynamic> data) async {
+    final uid = _auth.currentUser!.uid;
+    await _db
+        .collection('users')
+        .doc(uid)
+        .collection('reminders')
+        .doc(reminderId)
+        .update({...data, 'updatedAt': FieldValue.serverTimestamp()});
+  }
+
+  // Delete reminder
+  Future<void> deleteReminder(String reminderId) async {
+    final uid = _auth.currentUser!.uid;
+    await _db
+        .collection('users')
+        .doc(uid)
+        .collection('reminders')
+        .doc(reminderId)
+        .delete();
+  }
+
+  // Stream reminders ordered by date ascending
   Stream<QuerySnapshot> get reminders {
-    String uid = _auth.currentUser!.uid;
+    final uid = _auth.currentUser!.uid;
     return _db
         .collection('users')
         .doc(uid)
         .collection('reminders')
         .orderBy('dateTime', descending: false)
         .snapshots();
+  }
+
+  // --- Reminder Types (admin-managed global list) ---
+
+  CollectionReference<Map<String, dynamic>> get _reminderTypes =>
+      _db.collection('reminder_types');
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> streamReminderTypes() =>
+      _reminderTypes.orderBy('name').snapshots();
+
+  Future<void> seedDefaultReminderTypesIfEmpty() async {
+    final snap = await _reminderTypes.limit(1).get();
+    if (snap.docs.isNotEmpty) return;
+    const defaults = ['Vaccination', 'Medication', 'Grooming', 'Checkup'];
+    final batch = _db.batch();
+    for (final name in defaults) {
+      final ref = _reminderTypes.doc();
+      batch.set(ref, {
+        'id': ref.id,
+        'name': name,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    }
+    await batch.commit();
+  }
+
+  // --- Notifications ---
+
+  CollectionReference<Map<String, dynamic>> get _notificationsCol =>
+      _db.collection('notifications');
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> streamMyNotifications() =>
+      _notificationsCol
+          .where('userId', isEqualTo: _uid)
+          .orderBy('createdAt', descending: true)
+          .snapshots();
+
+  Future<void> markNotificationRead(String notifId) async =>
+      _notificationsCol.doc(notifId).update({'isRead': true});
+
+  Future<void> markAllNotificationsRead() async {
+    final snap = await _notificationsCol
+        .where('userId', isEqualTo: _uid)
+        .where('isRead', isEqualTo: false)
+        .get();
+    if (snap.docs.isEmpty) return;
+    final batch = _db.batch();
+    for (final doc in snap.docs) {
+      batch.update(doc.reference, {'isRead': true});
+    }
+    await batch.commit();
+  }
+
+  Future<void> deleteNotification(String notifId) async =>
+      _notificationsCol.doc(notifId).delete();
+
+  Future<void> deleteNotifications(List<String> ids) async {
+    if (ids.isEmpty) return;
+    final batch = _db.batch();
+    for (final id in ids) {
+      batch.delete(_notificationsCol.doc(id));
+    }
+    await batch.commit();
+  }
+
+  // --- Notification Service: fires due reminder notifications ---
+  // Call on app open to convert due reminders into notification docs.
+  Future<void> checkAndFireDueReminderNotifications() async {
+    final uid = _auth.currentUser!.uid;
+    final now = Timestamp.fromDate(DateTime.now());
+    final snap = await _db
+        .collection('users')
+        .doc(uid)
+        .collection('reminders')
+        .where('notificationSent', isEqualTo: false)
+        .where('dateTime', isLessThanOrEqualTo: now)
+        .get();
+    if (snap.docs.isEmpty) return;
+
+    final batch = _db.batch();
+    for (final doc in snap.docs) {
+      final data = doc.data();
+      final notifRef = _notificationsCol.doc();
+      batch.set(notifRef, {
+        'id': notifRef.id,
+        'userId': uid,
+        'title': 'Reminder: ${data['title'] ?? ''}',
+        'description':
+            '${data['title']} for ${data['petName'] ?? 'your pet'}',
+        'type': 'reminder',
+        'isRead': false,
+        'reminderId': doc.id,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      final updates = <String, dynamic>{'notificationSent': true};
+      if ((data['repeat'] ?? 'Never') == 'Never') {
+        updates['isCompleted'] = true;
+      }
+      batch.update(doc.reference, updates);
+    }
+    await batch.commit();
   }
 
   // Update a pet's metadata
