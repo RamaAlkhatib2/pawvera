@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:pawvera/controllers/service_provider_controller.dart';
 import 'package:pawvera/pages/service%20provider%20dashboard%20pages/audit_tab.dart';
 import 'package:pawvera/pages/service%20provider%20dashboard%20pages/booking_tab.dart';
 import 'package:pawvera/pages/service%20provider%20dashboard%20pages/services_tab.dart';
 import 'package:pawvera/pages/service%20provider%20dashboard%20pages/shop_info_tab.dart';
 import 'package:pawvera/pages/service%20provider%20dashboard%20pages/offers_tab.dart';
-import 'package:pawvera/pages/sign_in_page.dart'; // 1. تأكد من وجود هذا الاستيراد لعمل Logout
+import 'package:pawvera/pages/sign_in_page.dart';
 import 'overview_tab.dart';
 
 class ServiceProviderDashboard extends StatefulWidget {
-  const ServiceProviderDashboard({super.key, required String providerType});
+  const ServiceProviderDashboard({super.key});
 
   @override
   State<ServiceProviderDashboard> createState() =>
@@ -21,19 +23,30 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
   final Color primaryTeal = const Color(0xFF2D6A64);
   final Color bgGrey = const Color(0xFFF8FBFB);
 
-  // دالة عرض نافذة الملف الشخصي (Profile Dialog)
+  @override
+  void initState() {
+    super.initState();
+    // Initialize the controller after build so Provider is available
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ServiceProviderController>().init();
+    });
+  }
+
   void _showProfileDialog() {
+    final ctrl = context.read<ServiceProviderController>();
+    final shop = ctrl.shop;
+
     final TextEditingController nameController = TextEditingController(
-      text: "John Smith",
+      text: shop?.shopName ?? "Pawfect Spa",
     );
     final TextEditingController emailController = TextEditingController(
-      text: "a@gmail.com",
+      text: shop?.email ?? "a@gmail.com",
     );
     final TextEditingController phoneController = TextEditingController(
-      text: "+1 (555) 000-1111",
+      text: shop?.phone ?? "+1 (555) 000-1111",
     );
     final TextEditingController businessController = TextEditingController(
-      text: "Pawfect Spa",
+      text: shop?.shopName ?? "Pawfect Spa",
     );
 
     showDialog(
@@ -101,7 +114,6 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
     );
   }
 
-  // دالة مساعدة لبناء حقول الملف الشخصي
   Widget _buildProfileField(String label, TextEditingController controller) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -138,15 +150,13 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. العنوان الثابت العلوي وأزرار الملف الشخصي
-            // ... داخل ميثود الـ build ...
+            // Header
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // العناوين (يسار)
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -168,18 +178,20 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
                             color: Color(0xFF2D6A64),
                           ),
                         ),
-                        Text(
-                          'Pawfect Spa',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 14,
-                          ),
+                        Consumer<ServiceProviderController>(
+                          builder: (context, ctrl, _) {
+                            return Text(
+                              ctrl.shop?.shopName ?? 'Pawfect Spa',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 14,
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),
                   ),
-
-                  // زر النقاط الثلاث (يمين)
                   PopupMenuButton<String>(
                     icon: const Icon(
                       Icons.more_vert,
@@ -234,7 +246,7 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
               ),
             ),
 
-            // 2. شريط التبويبات (Tabs)
+            // Tabs
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: SingleChildScrollView(
@@ -251,10 +263,9 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
                 ),
               ),
             ),
-
             const SizedBox(height: 20),
 
-            // 3. المحتوى (Scrollable)
+            // Content
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -296,34 +307,6 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeaderButton(
-    IconData icon,
-    String label, {
-    VoidCallback? onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey[200]!),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, size: 16, color: Colors.grey[600]),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: const TextStyle(fontSize: 12, color: Colors.black87),
             ),
           ],
         ),

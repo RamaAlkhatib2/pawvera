@@ -1,7 +1,6 @@
-import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
+import 'package:pawvera/controllers/service_provider_controller.dart';
 
 class ServicesTab extends StatefulWidget {
   const ServicesTab({super.key});
@@ -13,59 +12,40 @@ class ServicesTab extends StatefulWidget {
 class _ServicesTabState extends State<ServicesTab> {
   static const Color primaryTeal = Color(0xFF2D6A64);
 
-  // قائمة الخدمات
-  List<Map<String, dynamic>> services = [
-    {
-      'name': 'Full Grooming Package',
-      'description': 'Bath, haircut, nail trim, and ear cleaning',
-      'price': '45.00',
-      'duration': '2 hours',
-      'isActive': true,
-      'image': null,
-    },
-    {
-      'name': 'Basic Bath & Brush',
-      'description': 'Wash and brush service',
-      'price': '30.00',
-      'duration': '1 hour',
-      'isActive': true,
-      'image': null,
-    },
-  ];
-
-  // متغيرات التحكم بالبحث
   String _searchQuery = "";
   final TextEditingController _searchController = TextEditingController();
 
-  // متحكمات واجهة الإضافة/التعديل
+  // Form controllers
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _durationController = TextEditingController();
   bool _activateImmediately = true;
 
-  // دالة البحث (تعيد القائمة المصفاة فقط)
-  List<Map<String, dynamic>> get _filteredServices {
-    if (_searchQuery.isEmpty) return services;
-    return services
-        .where(
-          (service) => service['name'].toLowerCase().contains(
-            _searchQuery.toLowerCase(),
-          ),
-        )
-        .toList();
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _nameController.dispose();
+    _descController.dispose();
+    _priceController.dispose();
+    _durationController.dispose();
+    super.dispose();
   }
 
   void _openServiceForm({
-    Map<String, dynamic>? serviceToEdit,
-    int? originalIndex,
+    String? serviceId,
+    String? name,
+    String? description,
+    double? price,
+    String? duration,
+    bool? isActive,
   }) {
-    if (serviceToEdit != null) {
-      _nameController.text = serviceToEdit['name'];
-      _descController.text = serviceToEdit['description'];
-      _priceController.text = serviceToEdit['price'];
-      _durationController.text = serviceToEdit['duration'];
-      _activateImmediately = serviceToEdit['isActive'] ?? true;
+    if (serviceId != null) {
+      _nameController.text = name ?? '';
+      _descController.text = description ?? '';
+      _priceController.text = price?.toStringAsFixed(2) ?? '';
+      _durationController.text = duration ?? '';
+      _activateImmediately = isActive ?? true;
     } else {
       _nameController.clear();
       _descController.clear();
@@ -81,8 +61,8 @@ class _ServicesTabState extends State<ServicesTab> {
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) => _buildServiceFormUI(
           setModalState,
-          isEdit: serviceToEdit != null,
-          index: originalIndex,
+          isEdit: serviceId != null,
+          editServiceId: serviceId,
         ),
       ),
     );
@@ -90,83 +70,92 @@ class _ServicesTabState extends State<ServicesTab> {
 
   @override
   Widget build(BuildContext context) {
-    final displayList = _filteredServices; // القائمة المصفاة بناءً على البحث
+    return Consumer<ServiceProviderController>(
+      builder: (context, ctrl, _) {
+        final services = ctrl.services;
+        final displayList = _searchQuery.isEmpty
+            ? services
+            : services
+                  .where(
+                    (s) => s.name.toLowerCase().contains(
+                      _searchQuery.toLowerCase(),
+                    ),
+                  )
+                  .toList();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // الرأس: العنوان وزر الإضافة
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              "Manage Services",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  "Manage Services",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                ElevatedButton.icon(
+                  onPressed: () => _openServiceForm(),
+                  icon: const Icon(Icons.add, size: 18, color: Colors.white),
+                  label: const Text(
+                    "Add Service",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryTeal,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            ElevatedButton.icon(
-              onPressed: () => _openServiceForm(),
-              icon: const Icon(Icons.add, size: 18, color: Colors.white),
-              label: const Text(
-                "Add Service",
-                style: TextStyle(color: Colors.white),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primaryTeal,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _searchController,
+              onChanged: (value) => setState(() => _searchQuery = value),
+              decoration: InputDecoration(
+                hintText: "Search services...",
+                prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey[200]!),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey[200]!),
                 ),
               ),
             ),
-          ],
-        ),
-        const SizedBox(height: 16),
-
-        // --- شريط البحث الجديد ---
-        TextField(
-          controller: _searchController,
-          onChanged: (value) => setState(() => _searchQuery = value),
-          decoration: InputDecoration(
-            hintText: "Search services...",
-            prefixIcon: const Icon(Icons.search, color: Colors.grey),
-            filled: true,
-            fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(vertical: 0),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey[200]!),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey[200]!),
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        // قائمة الخدمات (المصفاة)
-        displayList.isEmpty
-            ? const Center(
+            const SizedBox(height: 16),
+            if (ctrl.loading)
+              const Center(child: CircularProgressIndicator())
+            else if (displayList.isEmpty)
+              const Center(
                 child: Padding(
                   padding: EdgeInsets.all(20),
                   child: Text("No services found."),
                 ),
               )
-            : ListView.builder(
+            else
+              ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: displayList.length,
                 itemBuilder: (context, index) {
-                  // للحصول على الـ index الحقيقي في القائمة الأصلية عند التعديل
                   final service = displayList[index];
-                  final originalIndex = services.indexOf(service);
-                  return _buildServiceCard(service, originalIndex);
+                  return _buildServiceCard(service, ctrl);
                 },
               ),
-      ],
+          ],
+        );
+      },
     );
   }
 
-  Widget _buildServiceCard(Map<String, dynamic> service, int index) {
+  Widget _buildServiceCard(dynamic service, ServiceProviderController ctrl) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(12),
@@ -182,25 +171,25 @@ class _ServicesTabState extends State<ServicesTab> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                service['name'],
+                service.name,
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                 ),
               ),
-              _buildActiveBadge(service['isActive']),
+              _buildActiveBadge(service.isActive),
             ],
           ),
           const SizedBox(height: 4),
           Text(
-            service['description'],
+            service.description,
             style: TextStyle(color: Colors.grey[600], fontSize: 13),
           ),
           const SizedBox(height: 12),
           Row(
             children: [
               Text(
-                "\$${service['price']}",
+                "\$${service.price.toStringAsFixed(2)}",
                 style: const TextStyle(
                   color: primaryTeal,
                   fontWeight: FontWeight.bold,
@@ -210,7 +199,7 @@ class _ServicesTabState extends State<ServicesTab> {
               Icon(Icons.access_time, size: 14, color: Colors.grey[400]),
               const SizedBox(width: 4),
               Text(
-                service['duration'],
+                service.duration,
                 style: const TextStyle(color: Colors.grey, fontSize: 12),
               ),
             ],
@@ -221,8 +210,12 @@ class _ServicesTabState extends State<ServicesTab> {
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () => _openServiceForm(
-                    serviceToEdit: service,
-                    originalIndex: index,
+                    serviceId: service.id,
+                    name: service.name,
+                    description: service.description,
+                    price: service.price,
+                    duration: service.duration,
+                    isActive: service.isActive,
                   ),
                   icon: const Icon(Icons.edit, size: 16),
                   label: const Text("Edit"),
@@ -231,17 +224,17 @@ class _ServicesTabState extends State<ServicesTab> {
               const SizedBox(width: 8),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => setState(
-                    () => services[index]['isActive'] =
-                        !services[index]['isActive'],
-                  ),
+                  onPressed: () {
+                    ctrl.updateService(
+                      serviceId: service.id,
+                      isActive: !service.isActive,
+                    );
+                  },
                   icon: Icon(
-                    service['isActive']
-                        ? Icons.visibility_off
-                        : Icons.visibility,
+                    service.isActive ? Icons.visibility_off : Icons.visibility,
                     size: 16,
                   ),
-                  label: Text(service['isActive'] ? "Deactivate" : "Activate"),
+                  label: Text(service.isActive ? "Deactivate" : "Activate"),
                 ),
               ),
             ],
@@ -251,11 +244,10 @@ class _ServicesTabState extends State<ServicesTab> {
     );
   }
 
-  // واجهة الـ Form المحدثة (بدون صورة + تفعيل فوري + زر إلغاء)
   Widget _buildServiceFormUI(
     StateSetter setModalState, {
     required bool isEdit,
-    int? index,
+    String? editServiceId,
   }) {
     return Container(
       padding: EdgeInsets.only(
@@ -312,8 +304,7 @@ class _ServicesTabState extends State<ServicesTab> {
               ],
             ),
             const SizedBox(height: 18),
-
-            // تفعيل الخدمة فوراً
+            // Activation toggle
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -349,8 +340,6 @@ class _ServicesTabState extends State<ServicesTab> {
               ),
             ),
             const SizedBox(height: 20),
-
-            // الأزرار: Add Service + Cancel
             Row(
               children: [
                 Expanded(
@@ -382,21 +371,28 @@ class _ServicesTabState extends State<ServicesTab> {
                     child: ElevatedButton(
                       onPressed: () {
                         if (_nameController.text.isNotEmpty) {
-                          setState(() {
-                            final data = {
-                              'name': _nameController.text,
-                              'description': _descController.text,
-                              'price': _priceController.text,
-                              'duration': _durationController.text,
-                              'isActive': isEdit
-                                  ? services[index!]['isActive']
-                                  : _activateImmediately,
-                              'image': null,
-                            };
-                            isEdit
-                                ? services[index!] = data
-                                : services.add(data);
-                          });
+                          final ctrl = context
+                              .read<ServiceProviderController>();
+                          if (isEdit && editServiceId != null) {
+                            ctrl.updateService(
+                              serviceId: editServiceId,
+                              name: _nameController.text,
+                              description: _descController.text,
+                              price:
+                                  double.tryParse(_priceController.text) ?? 0,
+                              duration: _durationController.text,
+                              isActive: null, // Keep existing
+                            );
+                          } else {
+                            ctrl.addService(
+                              name: _nameController.text,
+                              description: _descController.text,
+                              price:
+                                  double.tryParse(_priceController.text) ?? 0,
+                              duration: _durationController.text,
+                              isActive: _activateImmediately,
+                            );
+                          }
                           Navigator.pop(context);
                         }
                       },
@@ -432,6 +428,7 @@ class _ServicesTabState extends State<ServicesTab> {
       style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
     ),
   );
+
   Widget _buildTextField(
     TextEditingController controller,
     String hint, {
@@ -453,6 +450,7 @@ class _ServicesTabState extends State<ServicesTab> {
       ),
     ),
   );
+
   Widget _buildActiveBadge(bool isActive) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
     decoration: BoxDecoration(

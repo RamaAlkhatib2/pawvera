@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:pawvera/controllers/service_provider_controller.dart';
 
 class OverviewTab extends StatefulWidget {
   final VoidCallback? onViewAllBookings;
@@ -11,145 +13,164 @@ class OverviewTab extends StatefulWidget {
 }
 
 class _OverviewTabState extends State<OverviewTab> {
-  // حالة المحل (مفتوح أو مغلق)
-  bool isShopOpen = true;
-
   static const Color primaryTeal = Color(0xFF2D6A64);
   static const Color textGrey = Color(0xFF757575);
 
-  // قائمة الخدمات النشطة (مؤقتة - سيتم ربطها لاحقاً)
-  final List<Map<String, dynamic>> activeServices = [
-    {'name': 'Full Grooming Package', 'duration': '2 hours'},
-    {'name': 'Basic Bath & Brush', 'duration': '1 hour'},
-  ];
-
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // 1. الكروت الأربعة العلوية
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          childAspectRatio: 1.3,
-          children: [
-            _buildStatCard(
-              'Total Bookings',
-              '4',
-              Icons.calendar_today_outlined,
-              primaryTeal,
-            ),
-            _buildStatCard(
-              'Active Bookings',
-              '3',
-              Icons.inventory_2_outlined,
-              Colors.purple[300]!,
-            ),
-            _buildStatCard(
-              'Total Revenue',
-              '\$45.00',
-              Icons.attach_money,
-              Colors.green[400]!,
-            ),
-            _buildStatCard(
-              'Active Services',
-              '${activeServices.length}/${activeServices.length}',
-              Icons.content_cut_outlined,
-              Colors.orange[300]!,
-            ),
-          ],
-        ),
-        const SizedBox(height: 20),
+    return Consumer<ServiceProviderController>(
+      builder: (context, ctrl, _) {
+        if (ctrl.loading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final shop = ctrl.shop;
+        final recentBookings = ctrl.bookings.take(3).toList();
 
-        // 2. قسم حالة المحل (Shop Status)
-        _buildSectionCard(
-          title: 'Shop Status',
-          rightWidget: _buildStatusBadge(
-            isShopOpen ? 'OPEN' : 'CLOSED',
-            isShopOpen ? Colors.green : Colors.red,
-          ),
-          child: Column(
-            children: [
-              _buildInfoRow(Icons.storefront_outlined, 'Pawfect Spa'),
-              _buildInfoRow(
-                Icons.location_on_outlined,
-                '123 Main St, Downtown',
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 1. Stat Cards
+            GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              childAspectRatio: 1.3,
+              children: [
+                _buildStatCard(
+                  'Total Bookings',
+                  '${ctrl.totalBookings}',
+                  Icons.calendar_today_outlined,
+                  primaryTeal,
+                ),
+                _buildStatCard(
+                  'Active Bookings',
+                  '${ctrl.activeBookings}',
+                  Icons.inventory_2_outlined,
+                  Colors.purple[300]!,
+                ),
+                _buildStatCard(
+                  'Total Revenue',
+                  '\$${ctrl.totalRevenue.toStringAsFixed(2)}',
+                  Icons.attach_money,
+                  Colors.green[400]!,
+                ),
+                _buildStatCard(
+                  'Active Services',
+                  '${ctrl.activeServicesCount}',
+                  Icons.content_cut_outlined,
+                  Colors.orange[300]!,
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            // 2. Shop Status Section
+            _buildSectionCard(
+              title: 'Shop Status',
+              rightWidget: _buildStatusBadge(
+                shop?.status ?? 'Closed',
+                (shop?.status == 'Open')
+                    ? Colors.green
+                    : (shop?.status == 'Busy' ? Colors.orange : Colors.red),
               ),
-              _buildInfoRow(Icons.access_time, '9:00 AM - 7:00 PM'),
-              const SizedBox(height: 16),
-              Row(
+              child: Column(
                 children: [
-                  Expanded(
-                    child: _buildShopButton(
-                      text: 'Open Shop',
-                      isActive: isShopOpen,
-                      onPressed: () => setState(() => isShopOpen = true),
-                    ),
+                  _buildInfoRow(
+                    Icons.storefront_outlined,
+                    shop?.shopName ?? '',
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildShopButton(
-                      text: 'Close Shop',
-                      isActive: !isShopOpen,
-                      onPressed: () => setState(() => isShopOpen = false),
-                      activeColor: Colors.red[400]!,
-                    ),
+                  _buildInfoRow(
+                    Icons.location_on_outlined,
+                    shop?.address ?? '',
+                  ),
+                  _buildInfoRow(Icons.access_time, shop?.workingHours ?? ''),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildShopButton(
+                          text: 'Open Shop',
+                          isActive: shop?.status == 'Open',
+                          onPressed: () => ctrl.setShopStatus('Open'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildShopButton(
+                          text: 'Close Shop',
+                          isActive: shop?.status == 'Closed',
+                          onPressed: () => ctrl.setShopStatus('Closed'),
+                          activeColor: Colors.red[400]!,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 20),
+            ),
+            const SizedBox(height: 20),
 
-        // 3. الحجوزات الأخيرة
-        _buildSectionCard(
-          title: 'Recent Bookings',
-          child: Column(
-            children: [
-              _buildListItem(
-                'Full Grooming Package',
-                'Sarah Johnson - Max',
-                'Confirmed',
-                Colors.green,
+            // 3. Recent Bookings
+            _buildSectionCard(
+              title: 'Recent Bookings',
+              child: Column(
+                children: [
+                  if (recentBookings.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: Text(
+                        'No bookings yet',
+                        style: TextStyle(color: textGrey),
+                      ),
+                    )
+                  else
+                    ...recentBookings.map(
+                      (b) => _buildListItem(
+                        b.serviceName,
+                        '${b.userName} - ${b.petName}',
+                        b.status,
+                        b.status == 'confirmed'
+                            ? Colors.green
+                            : b.status == 'pending'
+                            ? Colors.orange
+                            : Colors.grey,
+                      ),
+                    ),
+                  _buildViewAllButton('View All Bookings'),
+                ],
               ),
-              _buildListItem(
-                'Basic Bath & Brush',
-                'Mike Brown - Luna',
-                'Pending',
-                Colors.orange,
-              ),
-              _buildViewAllButton('View All Bookings'),
-            ],
-          ),
-        ),
-        const SizedBox(height: 20),
+            ),
+            const SizedBox(height: 20),
 
-        // 4. الخدمات النشطة (Active Services)
-        _buildSectionCard(
-          title: 'Active Services',
-          child: Column(
-            children: [
-              ...activeServices.map(
-                (service) => _buildServiceItem(
-                  service['name'] as String,
-                  service['duration'] as String,
-                ),
+            // 4. Active Services
+            _buildSectionCard(
+              title: 'Active Services',
+              child: Column(
+                children: [
+                  if (ctrl.activeServices.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: Text(
+                        'No active services',
+                        style: TextStyle(color: textGrey),
+                      ),
+                    )
+                  else
+                    ...ctrl.activeServices.map(
+                      (s) => _buildServiceItem(s.name, s.duration),
+                    ),
+                  const SizedBox(height: 8),
+                  _buildManageServicesButton('Manage Services'),
+                ],
               ),
-              const SizedBox(height: 8),
-              _buildManageServicesButton('Manage Services'),
-            ],
-          ),
-        ),
-      ],
+            ),
+          ],
+        );
+      },
     );
   }
-
-  // --- الويدجت الفرعية (الميثودات) ---
 
   Widget _buildServiceItem(String name, String duration) {
     return Padding(
@@ -268,7 +289,7 @@ class _OverviewTabState extends State<OverviewTab> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              ?rightWidget,
+              if (rightWidget != null) rightWidget,
             ],
           ),
           const SizedBox(height: 16),

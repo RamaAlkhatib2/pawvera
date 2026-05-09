@@ -48,8 +48,9 @@ class _LoginViewState extends State<LoginView> {
       if (userEmailController.text.trim().isEmpty) {
         _emailError = "Email is required";
         isValid = false;
-      } else if (!RegExp(r'^[\w\.\-]+@[\w\-]+\.[a-zA-Z]{2,}$')
-          .hasMatch(userEmailController.text.trim())) {
+      } else if (!RegExp(
+        r'^[\w\.\-]+@[\w\-]+\.[a-zA-Z]{2,}$',
+      ).hasMatch(userEmailController.text.trim())) {
         _emailError = "Enter a valid email address";
         isValid = false;
       }
@@ -82,9 +83,9 @@ class _LoginViewState extends State<LoginView> {
     try {
       UserCredential userCredential = await FirebaseAuth.instance
           .signInWithEmailAndPassword(
-        email: userEmailController.text.trim(),
-        password: passwordController.text.trim(),
-      );
+            email: userEmailController.text.trim(),
+            password: passwordController.text.trim(),
+          );
 
       DocumentSnapshot userDoc = await FirebaseFirestore.instance
           .collection('users')
@@ -97,12 +98,15 @@ class _LoginViewState extends State<LoginView> {
 
       if (!userDoc.exists) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("User data not found. Please register again.")),
+          const SnackBar(
+            content: Text("User data not found. Please register again."),
+          ),
         );
         return;
       }
 
-      final String dbRole = (userDoc.data() as Map<String, dynamic>)['role'] ?? '';
+      final String dbRole =
+          (userDoc.data() as Map<String, dynamic>)['role'] ?? '';
       final String? dbProviderType =
           (userDoc.data() as Map<String, dynamic>)['providerType'];
 
@@ -110,7 +114,9 @@ class _LoginViewState extends State<LoginView> {
       if (activeRole == "Pet Owner" && dbRole != 'pet_owner') {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("This account is registered as a Provider. Please select Provider."),
+            content: Text(
+              "This account is registered as a Provider. Please select Provider.",
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -120,7 +126,9 @@ class _LoginViewState extends State<LoginView> {
       if (activeRole == "Provider" && dbRole != 'provider') {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("This account is registered as a Pet Owner. Please select Pet Owner."),
+            content: Text(
+              "This account is registered as a Pet Owner. Please select Pet Owner.",
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -134,7 +142,8 @@ class _LoginViewState extends State<LoginView> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-                "This account is registered as '$dbProviderType'. Please select that type."),
+              "This account is registered as '$dbProviderType'. Please select that type.",
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -148,19 +157,21 @@ class _LoginViewState extends State<LoginView> {
           MaterialPageRoute(builder: (context) => const Home()),
         );
       } else if (dbRole == 'provider') {
-        final String providerType = dbProviderType ?? selectedProviderType ?? '';
+        final String providerType =
+            dbProviderType ?? selectedProviderType ?? '';
         if (providerType == "Pet Supplies Store") {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-                builder: (context) => const PetSuppliesStoreOwnerDashboard()),
+              builder: (context) => const PetSuppliesStoreOwnerDashboard(),
+            ),
           );
         } else {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-                builder: (context) =>
-                    ServiceProviderDashboard(providerType: providerType)),
+              builder: (context) => const ServiceProviderDashboard(),
+            ),
           );
         }
       }
@@ -197,9 +208,9 @@ class _LoginViewState extends State<LoginView> {
     } catch (e) {
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: $e")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error: $e")));
       }
     }
   }
@@ -223,8 +234,10 @@ class _LoginViewState extends State<LoginView> {
             hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
             filled: true,
             fillColor: Colors.white,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(

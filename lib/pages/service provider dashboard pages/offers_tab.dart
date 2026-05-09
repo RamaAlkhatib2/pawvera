@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:pawvera/controllers/service_provider_controller.dart';
 
 class OffersTab extends StatefulWidget {
   const OffersTab({super.key});
@@ -11,108 +13,111 @@ class _OffersTabState extends State<OffersTab> {
   final Color primaryTeal = const Color(0xFF2D6A64);
   final Color accentOrange = const Color(0xFFE67E22);
 
-  // قائمة وهمية للخدمات (يفضل جلبها من Provider أو Database)
-  List<String> myServices = [
-    "Full Grooming Package",
-    "Basic Bath & Brush",
-    "Pet Vaccination",
-  ];
-  String? selectedService;
-
-  // قائمة العروض المضافة
-  List<Map<String, dynamic>> activeOffers = [];
-
-  // متحكمات الحقول
+  // Form controllers
   final TextEditingController _discountController = TextEditingController();
   final TextEditingController _expiryController = TextEditingController();
   final TextEditingController _minPriceController = TextEditingController();
   final TextEditingController _maxPriceController = TextEditingController();
   final TextEditingController _minBookingController = TextEditingController();
 
-  // حالات الـ Checkbox
   bool _applyPriceRange = false;
   bool _requireMinBooking = false;
-
-  // خيارات الخصم السريع
   final List<int> quickDiscounts = [10, 15, 20, 25, 30, 50];
   int? selectedQuickDiscount;
+  String? selectedServiceId;
+  String? selectedServiceName;
 
-  // قوائم مفصولة حسب النوع
-  List<Map<String, dynamic>> get shopWideOffers =>
-      activeOffers.where((o) => o['isShopWide'] == true).toList();
-  List<Map<String, dynamic>> get serviceOffers =>
-      activeOffers.where((o) => o['isShopWide'] == false).toList();
+  @override
+  void dispose() {
+    _discountController.dispose();
+    _expiryController.dispose();
+    _minPriceController.dispose();
+    _maxPriceController.dispose();
+    _minBookingController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          "Manage Offers",
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 16),
+    return Consumer<ServiceProviderController>(
+      builder: (context, ctrl, _) {
+        final offers = ctrl.offers;
+        final services = ctrl.activeServices;
 
-        // بطاقة: Shop Wide Offer
-        _buildOfferTypeCard(
-          title: "Shop Wide Offer",
-          description: "Create discount offer for all services in your shop",
-          buttonLabel: "+ Create shop-wide offer",
-          icon: Icons.storefront_rounded,
-          accentColor: accentOrange,
-          onTap: () => _showOfferDialog(isShopWide: true),
-        ),
-        const SizedBox(height: 14),
+        final shopWideOffers = offers.where((o) => o.isShopWide).toList();
+        final serviceOffers = offers.where((o) => !o.isShopWide).toList();
 
-        // بطاقة: Service Offer
-        _buildOfferTypeCard(
-          title: "Service Offer",
-          description: "Create discount offer for a specific service",
-          buttonLabel: "+ Create service offer",
-          icon: Icons.content_cut_rounded,
-          accentColor: primaryTeal,
-          onTap: () => _showOfferDialog(isShopWide: false),
-        ),
-
-        const SizedBox(height: 24),
-        const Text(
-          "Shop Wide Offers",
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
-
-        shopWideOffers.isEmpty
-            ? _buildEmptyState(isShopWide: true)
-            : ListView.builder(
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Manage Offers",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            _buildOfferTypeCard(
+              title: "Shop Wide Offer",
+              description:
+                  "Create discount offer for all services in your shop",
+              buttonLabel: "+ Create shop-wide offer",
+              icon: Icons.storefront_rounded,
+              accentColor: accentOrange,
+              onTap: () => _showOfferDialog(
+                isShopWide: true,
+                services: services,
+                ctrl: ctrl,
+              ),
+            ),
+            const SizedBox(height: 14),
+            _buildOfferTypeCard(
+              title: "Service Offer",
+              description: "Create discount offer for a specific service",
+              buttonLabel: "+ Create service offer",
+              icon: Icons.content_cut_rounded,
+              accentColor: primaryTeal,
+              onTap: () => _showOfferDialog(
+                isShopWide: false,
+                services: services,
+                ctrl: ctrl,
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              "Shop Wide Offers",
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            if (ctrl.loading)
+              const Center(child: CircularProgressIndicator())
+            else if (shopWideOffers.isEmpty)
+              _buildEmptyState(isShopWide: true)
+            else
+              ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: shopWideOffers.length,
-                itemBuilder: (context, index) => _buildOfferCard(
-                  shopWideOffers[index],
-                  activeOffers.indexOf(shopWideOffers[index]),
-                ),
+                itemBuilder: (context, index) =>
+                    _buildOfferCard(shopWideOffers[index], ctrl),
               ),
-
-        const SizedBox(height: 20),
-        const Text(
-          "Service Offers",
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
-
-        serviceOffers.isEmpty
-            ? _buildEmptyState(isShopWide: false)
-            : ListView.builder(
+            const SizedBox(height: 20),
+            const Text(
+              "Service Offers",
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            if (serviceOffers.isEmpty)
+              _buildEmptyState(isShopWide: false)
+            else
+              ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: serviceOffers.length,
-                itemBuilder: (context, index) => _buildOfferCard(
-                  serviceOffers[index],
-                  activeOffers.indexOf(serviceOffers[index]),
-                ),
+                itemBuilder: (context, index) =>
+                    _buildOfferCard(serviceOffers[index], ctrl),
               ),
-      ],
+          ],
+        );
+      },
     );
   }
 
@@ -142,7 +147,6 @@ class _OffersTabState extends State<OffersTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // العنوان + الأيقونة
           Row(
             children: [
               Container(
@@ -203,9 +207,13 @@ class _OffersTabState extends State<OffersTab> {
     );
   }
 
-  // نافذة إضافة العرض - بتصميم جديد
-  void _showOfferDialog({required bool isShopWide}) {
-    selectedService = null;
+  void _showOfferDialog({
+    required bool isShopWide,
+    required List<dynamic> services,
+    required ServiceProviderController ctrl,
+  }) {
+    selectedServiceId = null;
+    selectedServiceName = null;
     selectedQuickDiscount = null;
     _discountController.clear();
     _expiryController.clear();
@@ -236,7 +244,6 @@ class _OffersTabState extends State<OffersTab> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // العنوان مع أيقونة
                 Row(
                   children: [
                     Container(
@@ -266,8 +273,6 @@ class _OffersTabState extends State<OffersTab> {
                   ],
                 ),
                 const SizedBox(height: 20),
-
-                // اختيار الخدمة (فقط للـ Service Offer)
                 if (!isShopWide) ...[
                   const Text(
                     "Select Service",
@@ -288,21 +293,34 @@ class _OffersTabState extends State<OffersTab> {
                           "Choose a service",
                           style: TextStyle(color: Colors.grey[400]),
                         ),
-                        value: selectedService,
-                        items: myServices
-                            .map(
-                              (s) => DropdownMenuItem(value: s, child: Text(s)),
-                            )
-                            .toList(),
-                        onChanged: (val) =>
-                            setModalState(() => selectedService = val),
+                        value: selectedServiceId,
+                        items: [
+                          const DropdownMenuItem(
+                            value: null,
+                            child: Text("Select a service"),
+                          ),
+                          ...services.map(
+                            (s) => DropdownMenuItem(
+                              value: s.id,
+                              child: Text(s.name),
+                            ),
+                          ),
+                        ],
+                        onChanged: (val) {
+                          setModalState(() {
+                            selectedServiceId = val;
+                            selectedServiceName = services
+                                .where((s) => s.id == val)
+                                .map((s) => s.name)
+                                .firstOrNull;
+                          });
+                        },
                       ),
                     ),
                   ),
                   const SizedBox(height: 20),
                 ],
-
-                // قسم: Quick Discount Selection
+                // Quick Discount
                 const Text(
                   "Quick Discount",
                   style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
@@ -353,8 +371,7 @@ class _OffersTabState extends State<OffersTab> {
                   }).toList(),
                 ),
                 const SizedBox(height: 18),
-
-                // قسم: Or enter custom discount
+                // Custom discount
                 const Text(
                   "Or enter custom discount",
                   style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
@@ -395,8 +412,7 @@ class _OffersTabState extends State<OffersTab> {
                   ),
                 ),
                 const SizedBox(height: 18),
-
-                // قسم: Valid Until
+                // Valid Until
                 const Text(
                   "Valid Until",
                   style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
@@ -470,9 +486,8 @@ class _OffersTabState extends State<OffersTab> {
                   ),
                 ),
                 const SizedBox(height: 22),
-
-                // Checkbox: Apply to service in specific price range (فقط للـ Shop-wide Offer)
                 if (isShopWide) ...[
+                  // Price range toggle
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(
@@ -586,8 +601,7 @@ class _OffersTabState extends State<OffersTab> {
                     ),
                   ),
                   const SizedBox(height: 12),
-
-                  // Checkbox: Require minimum booking amount (فقط للـ Service Offer)
+                  // Min booking toggle
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(
@@ -662,8 +676,6 @@ class _OffersTabState extends State<OffersTab> {
                   ),
                 ],
                 const SizedBox(height: 28),
-
-                // الأزرار: Cancel + Create Offer
                 Row(
                   children: [
                     Expanded(
@@ -706,26 +718,30 @@ class _OffersTabState extends State<OffersTab> {
                           onPressed: () {
                             if (_discountController.text.isNotEmpty &&
                                 _expiryController.text.isNotEmpty) {
-                              setState(() {
-                                activeOffers.add({
-                                  'title': isShopWide
-                                      ? "Full Shop Discount"
-                                      : selectedService,
-                                  'discount': _discountController.text,
-                                  'expiry': _expiryController.text,
-                                  'isShopWide': isShopWide,
-                                  'isActive': true,
-                                  'minPrice': _applyPriceRange
-                                      ? _minPriceController.text
-                                      : null,
-                                  'maxPrice': _applyPriceRange
-                                      ? _maxPriceController.text
-                                      : null,
-                                  'minBooking': _requireMinBooking
-                                      ? _minBookingController.text
-                                      : null,
-                                });
-                              });
+                              final discount =
+                                  int.tryParse(_discountController.text) ?? 0;
+                              ctrl.addOffer(
+                                serviceId: isShopWide
+                                    ? null
+                                    : selectedServiceId,
+                                serviceName: isShopWide
+                                    ? null
+                                    : selectedServiceName,
+                                discountPercent: discount,
+                                expiryDate: _expiryController.text,
+                                isShopWide: isShopWide,
+                                minPrice: _applyPriceRange
+                                    ? double.tryParse(_minPriceController.text)
+                                    : null,
+                                maxPrice: _applyPriceRange
+                                    ? double.tryParse(_maxPriceController.text)
+                                    : null,
+                                minBookingAmount: _requireMinBooking
+                                    ? double.tryParse(
+                                        _minBookingController.text,
+                                      )
+                                    : null,
+                              );
                               Navigator.pop(context);
                             }
                           },
@@ -751,8 +767,8 @@ class _OffersTabState extends State<OffersTab> {
     );
   }
 
-  Widget _buildOfferCard(Map<String, dynamic> offer, int index) {
-    final isShopWide = offer['isShopWide'] as bool;
+  Widget _buildOfferCard(dynamic offer, ServiceProviderController ctrl) {
+    final isShopWide = offer.isShopWide;
     final accentColor = isShopWide ? accentOrange : primaryTeal;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -783,7 +799,7 @@ class _OffersTabState extends State<OffersTab> {
                 ),
                 child: Center(
                   child: Text(
-                    "${offer['discount']}%",
+                    "${offer.discountPercent}%",
                     style: TextStyle(
                       color: accentColor,
                       fontSize: 16,
@@ -801,7 +817,7 @@ class _OffersTabState extends State<OffersTab> {
                       children: [
                         Expanded(
                           child: Text(
-                            offer['title'] ?? 'Offer',
+                            offer.serviceName ?? 'Full Shop',
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 15,
@@ -840,7 +856,7 @@ class _OffersTabState extends State<OffersTab> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          "Expires: ${offer['expiry']}",
+                          "Expires: ${offer.expiryDate}",
                           style: TextStyle(
                             color: Colors.grey[500],
                             fontSize: 12,
@@ -848,8 +864,7 @@ class _OffersTabState extends State<OffersTab> {
                         ),
                       ],
                     ),
-                    if (offer['minPrice'] != null &&
-                        (offer['minPrice'] as String).isNotEmpty) ...[
+                    if (offer.minPrice != null) ...[
                       const SizedBox(height: 4),
                       Row(
                         children: [
@@ -860,7 +875,7 @@ class _OffersTabState extends State<OffersTab> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            "Price range: \$${offer['minPrice']} - \$${offer['maxPrice']}",
+                            "Price range: \$${offer.minPrice!.toStringAsFixed(0)} - \$${offer.maxPrice?.toStringAsFixed(0) ?? 'N/A'}",
                             style: TextStyle(
                               color: Colors.grey[500],
                               fontSize: 12,
@@ -869,8 +884,7 @@ class _OffersTabState extends State<OffersTab> {
                         ],
                       ),
                     ],
-                    if (offer['minBooking'] != null &&
-                        (offer['minBooking'] as String).isNotEmpty) ...[
+                    if (offer.minBookingAmount != null) ...[
                       const SizedBox(height: 4),
                       Row(
                         children: [
@@ -881,7 +895,7 @@ class _OffersTabState extends State<OffersTab> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            "Min booking: \$${offer['minBooking']}",
+                            "Min booking: \$${offer.minBookingAmount!.toStringAsFixed(0)}",
                             style: TextStyle(
                               color: Colors.grey[500],
                               fontSize: 12,
@@ -901,10 +915,7 @@ class _OffersTabState extends State<OffersTab> {
             children: [
               InkWell(
                 onTap: () {
-                  setState(() {
-                    activeOffers[index]['isActive'] =
-                        !(activeOffers[index]['isActive'] ?? true);
-                  });
+                  ctrl.toggleOfferActive(offer.id, !offer.isActive);
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(
@@ -912,17 +923,15 @@ class _OffersTabState extends State<OffersTab> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: (offer['isActive'] ?? true)
+                    color: offer.isActive
                         ? Colors.green.withValues(alpha: 0.1)
                         : Colors.grey.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    (offer['isActive'] ?? true) ? "Active" : "Inactive",
+                    offer.isActive ? "Active" : "Inactive",
                     style: TextStyle(
-                      color: (offer['isActive'] ?? true)
-                          ? Colors.green
-                          : Colors.grey,
+                      color: offer.isActive ? Colors.green : Colors.grey,
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
                     ),
@@ -931,7 +940,7 @@ class _OffersTabState extends State<OffersTab> {
               ),
               const SizedBox(width: 8),
               InkWell(
-                onTap: () => setState(() => activeOffers.removeAt(index)),
+                onTap: () => ctrl.deleteOffer(offer.id),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,

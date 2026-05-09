@@ -1,7 +1,7 @@
-import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
+import 'package:pawvera/controllers/service_provider_controller.dart';
+import 'package:pawvera/models/service_provider_models.dart';
 
 class ShopInfoTab extends StatefulWidget {
   const ShopInfoTab({super.key});
@@ -13,74 +13,71 @@ class ShopInfoTab extends StatefulWidget {
 class _ShopInfoTabState extends State<ShopInfoTab> {
   static const Color primaryTeal = Color(0xFF2D6A64);
 
-  // بيانات المتجر الأساسية
-  String shopName = "Pawfect Spa";
-  String shopLocation = "123 Main St, Downtown";
-  String shopPhone = "+1 (555) 000-1111";
-  String shopEmail = "contact@pawfectspa.com";
-  String shopHours = "9:00 AM - 7:00 PM";
-  String shopStatus = "Open"; // الأوضاع: Open, Busy, Closed
-  File? shopImage;
-
-  // متحكمات التعديل
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _hoursController = TextEditingController();
 
-  // تغيير حالة المتجر
-  void _updateStatus(String newStatus) {
-    setState(() {
-      shopStatus = newStatus;
-    });
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _locationController.dispose();
+    _phoneController.dispose();
+    _emailController.dispose();
+    _hoursController.dispose();
+    super.dispose();
   }
 
-  // ميثود فتح واجهة التعديل
-  void _openEditShopInfo() {
-    _nameController.text = shopName;
-    _locationController.text = shopLocation;
-    _phoneController.text = shopPhone;
-    _emailController.text = shopEmail;
-    _hoursController.text = shopHours;
+  void _openEditShopInfo(ShopProfile shop) {
+    _nameController.text = shop.shopName;
+    _locationController.text = shop.address;
+    _phoneController.text = shop.phone;
+    _emailController.text = shop.email;
+    _hoursController.text = shop.workingHours;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setModalState) => _buildEditForm(setModalState),
-      ),
+      builder: (ctx) => _buildEditForm(),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            "Shop Management",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+    return Consumer<ServiceProviderController>(
+      builder: (context, ctrl, _) {
+        if (ctrl.loading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final shop = ctrl.shop;
+        if (shop == null) {
+          return const Center(child: Text('Shop not found'));
+        }
+
+        return SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "Shop Management",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              _buildStatusCard(shop, ctrl),
+              const SizedBox(height: 16),
+              _buildInfoCard(shop),
+            ],
           ),
-          const SizedBox(height: 16),
-
-          // كرت حالة المتجر (Shop Status)
-          _buildStatusCard(),
-
-          const SizedBox(height: 16),
-
-          // كرت معلومات المتجر
-          _buildInfoCard(),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildStatusCard() {
+  Widget _buildStatusCard(ShopProfile shop, ServiceProviderController ctrl) {
     Color statusColor;
-    switch (shopStatus) {
+    switch (shop.status) {
       case "Open":
         statusColor = Colors.green;
         break;
@@ -121,7 +118,7 @@ class _ShopInfoTabState extends State<ShopInfoTab> {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  shopStatus,
+                  shop.status,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 12,
@@ -134,11 +131,17 @@ class _ShopInfoTabState extends State<ShopInfoTab> {
           const SizedBox(height: 16),
           Row(
             children: [
-              _statusButton("Open", Colors.green, shopStatus == "Open"),
+              _statusButton("Open", Colors.green, shop.status == "Open", () {
+                ctrl.setShopStatus("Open");
+              }),
               const SizedBox(width: 8),
-              _statusButton("Busy", Colors.orange, shopStatus == "Busy"),
+              _statusButton("Busy", Colors.orange, shop.status == "Busy", () {
+                ctrl.setShopStatus("Busy");
+              }),
               const SizedBox(width: 8),
-              _statusButton("Closed", Colors.red, shopStatus == "Closed"),
+              _statusButton("Closed", Colors.red, shop.status == "Closed", () {
+                ctrl.setShopStatus("Closed");
+              }),
             ],
           ),
         ],
@@ -146,10 +149,15 @@ class _ShopInfoTabState extends State<ShopInfoTab> {
     );
   }
 
-  Widget _statusButton(String label, Color color, bool isSelected) {
+  Widget _statusButton(
+    String label,
+    Color color,
+    bool isSelected,
+    VoidCallback onTap,
+  ) {
     return Expanded(
       child: InkWell(
-        onTap: () => _updateStatus(label),
+        onTap: onTap,
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
           alignment: Alignment.center,
@@ -171,7 +179,7 @@ class _ShopInfoTabState extends State<ShopInfoTab> {
     );
   }
 
-  Widget _buildInfoCard() {
+  Widget _buildInfoCard(ShopProfile shop) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -187,16 +195,16 @@ class _ShopInfoTabState extends State<ShopInfoTab> {
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
-          _infoRow(Icons.storefront_outlined, shopName),
-          _infoRow(Icons.location_on_outlined, shopLocation),
-          _infoRow(Icons.phone_outlined, shopPhone),
-          _infoRow(Icons.email_outlined, shopEmail),
-          _infoRow(Icons.access_time, shopHours),
+          _infoRow(Icons.storefront_outlined, shop.shopName),
+          _infoRow(Icons.location_on_outlined, shop.address),
+          _infoRow(Icons.phone_outlined, shop.phone),
+          _infoRow(Icons.email_outlined, shop.email),
+          _infoRow(Icons.access_time, shop.workingHours),
           const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
-              onPressed: _openEditShopInfo,
+              onPressed: () => _openEditShopInfo(shop),
               icon: const Icon(Icons.edit_note, size: 20),
               label: const Text("Edit Information"),
               style: OutlinedButton.styleFrom(
@@ -230,8 +238,7 @@ class _ShopInfoTabState extends State<ShopInfoTab> {
     );
   }
 
-  // نافذة تعديل البيانات (نفس ستايل صور الفيجما المرفقة)
-  Widget _buildEditForm(StateSetter setModalState) {
+  Widget _buildEditForm() {
     return Container(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom + 20,
@@ -262,42 +269,6 @@ class _ShopInfoTabState extends State<ShopInfoTab> {
               ],
             ),
             const SizedBox(height: 15),
-            _buildLabel("Shop Image"),
-            Center(
-              child: GestureDetector(
-                onTap: () async {
-                  final picker = ImagePicker();
-                  final picked = await picker.pickImage(
-                    source: ImageSource.gallery,
-                  );
-                  if (picked != null) {
-                    setModalState(() => shopImage = File(picked.path));
-                  }
-                },
-                child: Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.grey[300]!),
-                  ),
-                  child: shopImage != null
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: kIsWeb
-                              ? Image.network(shopImage!.path,
-                                  fit: BoxFit.cover)
-                              : Image.file(shopImage!, fit: BoxFit.cover),
-                        )
-                      : const Icon(
-                          Icons.add_a_photo_outlined,
-                          color: Colors.grey,
-                        ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 15),
             _buildLabel("Shop Name *"),
             _buildTextField(_nameController, "Shop Name"),
             const SizedBox(height: 15),
@@ -318,13 +289,13 @@ class _ShopInfoTabState extends State<ShopInfoTab> {
               height: 48,
               child: ElevatedButton(
                 onPressed: () {
-                  setState(() {
-                    shopName = _nameController.text;
-                    shopLocation = _locationController.text;
-                    shopPhone = _phoneController.text;
-                    shopEmail = _emailController.text;
-                    shopHours = _hoursController.text;
-                  });
+                  context.read<ServiceProviderController>().updateShopInfo(
+                    shopName: _nameController.text,
+                    address: _locationController.text,
+                    phone: _phoneController.text,
+                    email: _emailController.text,
+                    workingHours: _hoursController.text,
+                  );
                   Navigator.pop(context);
                 },
                 style: ElevatedButton.styleFrom(
@@ -355,6 +326,7 @@ class _ShopInfoTabState extends State<ShopInfoTab> {
       style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
     ),
   );
+
   Widget _buildTextField(TextEditingController controller, String hint) =>
       TextField(
         controller: controller,

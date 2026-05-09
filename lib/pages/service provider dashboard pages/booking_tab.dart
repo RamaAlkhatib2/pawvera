@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:pawvera/controllers/service_provider_controller.dart';
 
 class BookingsTab extends StatefulWidget {
   const BookingsTab({super.key});
@@ -8,54 +10,9 @@ class BookingsTab extends StatefulWidget {
 }
 
 class _BookingsTabState extends State<BookingsTab> {
-  // الحالة الحالية للفلتر والبحث
   String selectedFilter = 'All';
   String searchQuery = '';
   DateTime? selectedDate;
-
-  // قائمة الحجوزات التفاعلية مع بيانات أكثر
-  List<Map<String, dynamic>> allBookings = [
-    {
-      'name': 'Sarah Johnson',
-      'pet': 'Max',
-      'service': 'Full Grooming Package',
-      'phone': '+1 (555) 123-4567',
-      'date': 'Jan 05, 2026',
-      'time': '10:00 AM',
-      'status': 'confirmed',
-      'notes': 'Please use hypoallergenic shampoo',
-    },
-    {
-      'name': 'Mike Brown',
-      'pet': 'Luna',
-      'service': 'Basic Bath & Brush',
-      'phone': '+1 (555) 234-5678',
-      'date': 'Jan 05, 2026',
-      'time': '02:00 PM',
-      'status': 'pending',
-      'notes': '',
-    },
-    {
-      'name': 'Emily Davis',
-      'pet': 'Charlie',
-      'service': 'Nail Trim Only',
-      'phone': '+1 (555) 345-6789',
-      'date': 'Jan 06, 2026',
-      'time': '11:00 AM',
-      'status': 'confirmed',
-      'notes': 'Nervous around other dogs',
-    },
-    {
-      'name': 'David Wilson',
-      'pet': 'Bella',
-      'service': 'Full Grooming Package',
-      'phone': '+1 (555) 456-7890',
-      'date': 'Jan 03, 2026',
-      'time': '03:00 PM',
-      'status': 'completed',
-      'notes': 'Prefers quiet environment',
-    },
-  ];
 
   static const Color primaryTeal = Color(0xFF2D6A64);
 
@@ -99,150 +56,171 @@ class _BookingsTabState extends State<BookingsTab> {
 
   @override
   Widget build(BuildContext context) {
-    // منطق التصفية (فلتر الحالة + نص البحث + التاريخ)
-    final filteredList = allBookings.where((booking) {
-      bool matchesFilter =
-          selectedFilter == 'All' ||
-          booking['status'].toLowerCase() == selectedFilter.toLowerCase();
+    return Consumer<ServiceProviderController>(
+      builder: (context, ctrl, _) {
+        final allBookings = ctrl.bookings;
 
-      bool matchesSearch =
-          booking['name'].toLowerCase().contains(searchQuery.toLowerCase()) ||
-          booking['pet'].toLowerCase().contains(searchQuery.toLowerCase()) ||
-          booking['service'].toLowerCase().contains(searchQuery.toLowerCase());
+        // Filter logic
+        final filteredList = allBookings.where((booking) {
+          bool matchesFilter =
+              selectedFilter == 'All' ||
+              booking.status.toLowerCase() == selectedFilter.toLowerCase();
 
-      bool matchesDate =
-          selectedDate == null || booking['date'] == _formatDate(selectedDate!);
+          bool matchesSearch =
+              booking.userName.toLowerCase().contains(
+                searchQuery.toLowerCase(),
+              ) ||
+              booking.petName.toLowerCase().contains(
+                searchQuery.toLowerCase(),
+              ) ||
+              booking.serviceName.toLowerCase().contains(
+                searchQuery.toLowerCase(),
+              );
 
-      return matchesFilter && matchesSearch && matchesDate;
-    }).toList();
+          bool matchesDate =
+              selectedDate == null ||
+              booking.date == _formatDate(selectedDate!);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // 1. أزرار الفلترة العلوية مع الأعداد التفاعلية
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              _buildFilterButton('All', allBookings.length),
-              _buildFilterButton(
-                'Pending',
-                allBookings.where((b) => b['status'] == 'pending').length,
-              ),
-              _buildFilterButton(
-                'Confirmed',
-                allBookings.where((b) => b['status'] == 'confirmed').length,
-              ),
-              _buildFilterButton(
-                'Completed',
-                allBookings.where((b) => b['status'] == 'completed').length,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
+          return matchesFilter && matchesSearch && matchesDate;
+        }).toList();
 
-        // 2. خانة البحث مع زر التقويم
-        Row(
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: SizedBox(
-                height: 48,
-                child: TextField(
-                  onChanged: (value) => setState(() => searchQuery = value),
-                  decoration: InputDecoration(
-                    hintText: 'Search by owner, pet, or service...',
-                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                    filled: true,
-                    fillColor: Colors.white,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: Colors.grey[200]!),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: Colors.grey[200]!),
-                    ),
+            // Filter buttons with live counts
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildFilterButton('All', allBookings.length),
+                  _buildFilterButton(
+                    'Pending',
+                    allBookings.where((b) => b.status == 'pending').length,
                   ),
-                ),
+                  _buildFilterButton(
+                    'Confirmed',
+                    allBookings.where((b) => b.status == 'confirmed').length,
+                  ),
+                  _buildFilterButton(
+                    'Completed',
+                    allBookings.where((b) => b.status == 'completed').length,
+                  ),
+                ],
               ),
             ),
-            const SizedBox(width: 8),
-            GestureDetector(
-              onTap: _pickDate,
-              child: Container(
-                constraints: const BoxConstraints(minWidth: 120),
-                height: 48,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(
-                  color: selectedDate != null
-                      ? const Color(0xFF2D6A64)
-                      : Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: selectedDate != null
-                        ? const Color(0xFF2D6A64)
-                        : Colors.grey[200]!,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.calendar_today,
-                      color: selectedDate != null ? Colors.white : Colors.grey,
-                      size: 16,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      selectedDate != null
-                          ? '${selectedDate!.month.toString().padLeft(2, '0')}/${selectedDate!.day.toString().padLeft(2, '0')}/${selectedDate!.year}'
-                          : 'mm/dd/yyyy',
-                      style: TextStyle(
-                        color: selectedDate != null
-                            ? Colors.white
-                            : Colors.grey[600],
-                        fontSize: 13,
-                      ),
-                    ),
-                    if (selectedDate != null) ...[
-                      const SizedBox(width: 6),
-                      GestureDetector(
-                        onTap: () => setState(() => selectedDate = null),
-                        child: Icon(
-                          Icons.close,
-                          size: 16,
-                          color: Colors.white70,
+            const SizedBox(height: 16),
+
+            // Search + Date picker
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 48,
+                    child: TextField(
+                      onChanged: (value) => setState(() => searchQuery = value),
+                      decoration: InputDecoration(
+                        hintText: 'Search by owner, pet, or service...',
+                        prefixIcon: const Icon(
+                          Icons.search,
+                          color: Colors.grey,
+                        ),
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: Colors.grey[200]!),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: Colors.grey[200]!),
                         ),
                       ),
-                    ],
-                  ],
+                    ),
+                  ),
                 ),
-              ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: _pickDate,
+                  child: Container(
+                    constraints: const BoxConstraints(minWidth: 120),
+                    height: 48,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: selectedDate != null
+                          ? const Color(0xFF2D6A64)
+                          : Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: selectedDate != null
+                            ? const Color(0xFF2D6A64)
+                            : Colors.grey[200]!,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.calendar_today,
+                          color: selectedDate != null
+                              ? Colors.white
+                              : Colors.grey,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          selectedDate != null
+                              ? '${selectedDate!.month.toString().padLeft(2, '0')}/${selectedDate!.day.toString().padLeft(2, '0')}/${selectedDate!.year}'
+                              : 'mm/dd/yyyy',
+                          style: TextStyle(
+                            color: selectedDate != null
+                                ? Colors.white
+                                : Colors.grey[600],
+                            fontSize: 13,
+                          ),
+                        ),
+                        if (selectedDate != null) ...[
+                          const SizedBox(width: 6),
+                          GestureDetector(
+                            onTap: () => setState(() => selectedDate = null),
+                            child: Icon(
+                              Icons.close,
+                              size: 16,
+                              color: Colors.white70,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-        const SizedBox(height: 20),
+            const SizedBox(height: 20),
 
-        // 3. قائمة الحجوزات التفاعلية
-        filteredList.isEmpty
-            ? const Center(child: Text("No bookings found"))
-            : ListView.builder(
+            // Bookings list
+            if (ctrl.loading)
+              const Center(child: CircularProgressIndicator())
+            else if (filteredList.isEmpty)
+              const Center(child: Text("No bookings found"))
+            else
+              ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: filteredList.length,
                 itemBuilder: (context, index) {
                   final booking = filteredList[index];
-                  int originalIndex = allBookings.indexOf(booking);
-                  return _buildBookingItem(booking, originalIndex);
+                  return _buildBookingItem(booking, ctrl);
                 },
               ),
-      ],
+          ],
+        );
+      },
     );
   }
 
-  // ويدجت زر الفلتر
   Widget _buildFilterButton(String label, int count) {
     bool isSelected = selectedFilter == label;
     return GestureDetector(
@@ -280,8 +258,7 @@ class _BookingsTabState extends State<BookingsTab> {
     );
   }
 
-  // ويدجت الحجز الفردي مع بيانات تفصيلية
-  Widget _buildBookingItem(Map<String, dynamic> booking, int index) {
+  Widget _buildBookingItem(dynamic booking, ServiceProviderController ctrl) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -293,39 +270,36 @@ class _BookingsTabState extends State<BookingsTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // الصف العلوي: الاسم + الحالة
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                booking['name'],
+                booking.userName,
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                 ),
               ),
-              _buildStatusBadge(booking['status']),
+              _buildStatusBadge(booking.status),
             ],
           ),
           const SizedBox(height: 8),
-
-          // معلومات الحجز (أيقونة + قيمة)
-          _buildDetailRow(Icons.pets, booking['pet']),
-          _buildDetailRow(Icons.content_cut, booking['service']),
-          _buildDetailRow(Icons.phone, booking['phone']),
+          _buildDetailRow(Icons.pets, booking.petName),
+          _buildDetailRow(Icons.content_cut, booking.serviceName),
+          _buildDetailRow(Icons.phone, booking.userPhone),
+          if (booking.petBreed.isNotEmpty)
+            _buildDetailRow(Icons.info_outline, 'Breed: ${booking.petBreed}'),
           _buildDetailRow(
             Icons.calendar_today,
-            '${booking['date']} at ${booking['time']}',
+            '${booking.date} at ${booking.time}',
           ),
-          if (booking['notes'] != null &&
-              (booking['notes'] as String).isNotEmpty)
-            _buildDetailRow(Icons.notes, booking['notes']),
+          if (booking.notes != null && booking.notes.isNotEmpty)
+            _buildDetailRow(Icons.notes, booking.notes),
 
           const Divider(height: 24),
 
-          // منطقة الأزرار التفاعلية
-          if (booking['status'] == 'pending' ||
-              booking['status'] == 'confirmed')
+          // Action buttons
+          if (booking.status == 'pending' || booking.status == 'confirmed')
             Row(
               children: [
                 Expanded(
@@ -334,13 +308,11 @@ class _BookingsTabState extends State<BookingsTab> {
                     height: 40,
                     child: ElevatedButton(
                       onPressed: () {
-                        setState(() {
-                          if (booking['status'] == 'pending') {
-                            allBookings[index]['status'] = 'confirmed';
-                          } else if (booking['status'] == 'confirmed') {
-                            allBookings[index]['status'] = 'completed';
-                          }
-                        });
+                        if (booking.status == 'pending') {
+                          ctrl.updateBookingStatus(booking.id, 'confirmed');
+                        } else if (booking.status == 'confirmed') {
+                          ctrl.updateBookingStatus(booking.id, 'completed');
+                        }
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: primaryTeal,
@@ -350,7 +322,7 @@ class _BookingsTabState extends State<BookingsTab> {
                         elevation: 0,
                       ),
                       child: Text(
-                        booking['status'] == 'pending' ? 'Confirm' : 'Complete',
+                        booking.status == 'pending' ? 'Confirm' : 'Complete',
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -367,9 +339,7 @@ class _BookingsTabState extends State<BookingsTab> {
                     height: 40,
                     child: OutlinedButton(
                       onPressed: () {
-                        setState(() {
-                          allBookings[index]['status'] = 'cancelled';
-                        });
+                        ctrl.updateBookingStatus(booking.id, 'cancelled');
                       },
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: Colors.redAccent),
@@ -378,7 +348,7 @@ class _BookingsTabState extends State<BookingsTab> {
                         ),
                       ),
                       child: Text(
-                        booking['status'] == 'pending' ? 'Decline' : 'Cancel',
+                        booking.status == 'pending' ? 'Decline' : 'Cancel',
                         style: const TextStyle(
                           color: Colors.redAccent,
                           fontWeight: FontWeight.bold,
