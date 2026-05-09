@@ -180,31 +180,48 @@ class _MyPetPageState extends State<MyPetPage> {
                         height: 50,
                         child: ElevatedButton(
                           onPressed: () async {
-                            if (nameCtrl.text.isNotEmpty) {
+                            if (nameCtrl.text.trim().isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("Please enter your pet's name."),
+                                ),
+                              );
+                              return;
+                            }
+                            try {
                               final ageValue = ageValueCtrl.text.trim();
                               final newPet = {
-                                'name': nameCtrl.text,
+                                'name': nameCtrl.text.trim(),
                                 'type': selectedType,
-                                'breed': breedCtrl.text,
+                                'breed': breedCtrl.text.trim(),
                                 'gender': selectedGender,
                                 'age': ageValue.isEmpty
                                     ? ''
                                     : '$ageValue $selectedAgeUnit',
                                 'ageValue': ageValue,
                                 'ageUnit': selectedAgeUnit,
-                                'weight': weightCtrl.text,
-                                'color': colorCtrl.text,
-                                'imagePath':
-                                    imagePath, // Note: Should ideally be uploaded to Firebase Storage
+                                'weight': weightCtrl.text.trim(),
+                                'color': colorCtrl.text.trim(),
+                                'imagePath': imagePath,
                                 'ownerName': '',
                                 'ownerPhone': '',
                                 'ownerEmail': '',
                                 'medicalInfo': '',
                                 'allergies': '',
                               };
-
                               await _db.addPet(newPet);
                               if (context.mounted) Navigator.pop(context);
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      "Failed to add pet: ${e.toString()}",
+                                    ),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
                             }
                           },
                           style: ElevatedButton.styleFrom(
@@ -790,12 +807,25 @@ class _MyPetPageState extends State<MyPetPage> {
                     return const Center(child: CircularProgressIndicator());
                   }
 
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Text(
+                          "Error loading pets:\n${snapshot.error}",
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: Colors.red, fontSize: 13),
+                        ),
+                      ),
+                    );
+                  }
+
                   final List pets = snapshot.data?.docs ?? [];
 
                   if (pets.isEmpty) {
                     return const Center(
                       child: Text(
-                        "No pets yet.",
+                        "No pets yet. Tap 'Add Pet' to get started.",
                         style: TextStyle(color: Colors.grey),
                       ),
                     );
@@ -892,7 +922,17 @@ class _MyPetPageState extends State<MyPetPage> {
               ),
               InkWell(
                 onTap: () async {
-                  await _db.deletePet(petId);
+                  final messenger = ScaffoldMessenger.of(context);
+                  try {
+                    await _db.deletePet(petId);
+                  } catch (e) {
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text("Failed to delete pet: ${e.toString()}"),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
                 },
                 borderRadius: BorderRadius.circular(8),
                 child: Container(
