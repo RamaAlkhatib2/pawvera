@@ -3,6 +3,15 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:typed_data';
 
+/// Firestore may store `tags` as mixed types; never throw from stream transforms.
+List<String> _storeTagsNormalized(Object? raw) {
+  if (raw is! List) return <String>[];
+  return raw
+      .map((e) => e.toString().trim().toLowerCase())
+      .where((s) => s.isNotEmpty)
+      .toList();
+}
+
 class DatabaseService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -16,8 +25,6 @@ class DatabaseService {
     return user.uid;
   }
 
-  CollectionReference<Map<String, dynamic>> get _stores =>
-      _db.collection('stores');
   CollectionReference<Map<String, dynamic>> get _products =>
       _db.collection('products');
   CollectionReference<Map<String, dynamic>> get _orders =>
@@ -144,53 +151,10 @@ class DatabaseService {
 
   // --- Online Store: Data Initialization ---
 
-  Future<void> ensureStoreCollectionsInitialized() async {
-    try {
-      final storesSnapshot = await _stores.limit(1).get();
-      if (storesSnapshot.docs.isNotEmpty) return;
-
-      final now = FieldValue.serverTimestamp();
-      final batch = _db.batch();
-
-      final defaultStores = <Map<String, dynamic>>[
-        {
-          'name': 'Pet Supplies Plus',
-          'description': 'Complete pet supply store with premium brands',
-          'ownerId': _uid,
-          'location': 'Al-Jabal Street',
-          'contactInfo': '+962790000000',
-          'status': 'active',
-          'isActive': true,
-          'ratingAvg': 0.0,
-          'ratingCount': 0,
-          'createdAt': now,
-          'updatedAt': now,
-        },
-        {
-          'name': 'Comfort Paws Store',
-          'description': 'Premium pet furniture and bedding',
-          'ownerId': _uid,
-          'location': 'King Fahd Avenue',
-          'contactInfo': '+962791111111',
-          'status': 'active',
-          'isActive': true,
-          'ratingAvg': 0.0,
-          'ratingCount': 0,
-          'createdAt': now,
-          'updatedAt': now,
-        },
-      ];
-
-      for (final store in defaultStores) {
-        final storeRef = _stores.doc();
-        batch.set(storeRef, {...store, 'id': storeRef.id});
-      }
-
-      await batch.commit();
-    } catch (_) {
-      rethrow;
-    }
-  }
+  /// Reserved for future migrations. Does **not** seed demo stores — those
+  /// were easy to confuse with real Firebase data and hid console-created docs
+  /// that lacked `isActive: true`.
+  Future<void> ensureStoreCollectionsInitialized() async {}
 
   // --- Online Store: Browsing & Discovery ---
 
@@ -200,11 +164,13 @@ class DatabaseService {
     bool offersOnly = false,
     bool onlyActive = true,
   }) {
-    Query<Map<String, dynamic>> query = _stores;
-    if (onlyActive) {
-      query = query.where('isActive', isEqualTo: true);
-    }
-    query = query.orderBy('name');
+    // Stores are provider users (role=='provider', providerType=='Pet Supplies Store').
+    // Role/type filters run on the server; visibility, search, category, and
+    // offer filters run in Dart so missing fields can't break the stream.
+    final query = _db
+        .collection('users')
+        .where('role', isEqualTo: 'provider')
+        .where('providerType', isEqualTo: 'Pet Supplies Store');
 
     return query.snapshots().map((snapshot) {
       final normalizedQuery = (searchQuery ?? '').trim().toLowerCase();
@@ -212,22 +178,38 @@ class DatabaseService {
 
       final filteredDocs = snapshot.docs.where((doc) {
         final data = doc.data();
-        final name = (data['name'] ?? '').toString().toLowerCase();
+        if (onlyActive && data['isActive'] != true) {
+          return false;
+        }
+        final name = (data['businessName'] ?? data['name'] ?? '')
+            .toString()
+            .toLowerCase();
         final description =
             (data['description'] ?? '').toString().toLowerCase();
-        final tags = (data['tags'] as List?)?.cast<String>() ?? <String>[];
+        final tags = _storeTagsNormalized(data['tags']);
         final hasOffers = (data['offer'] ?? '').toString().trim().isNotEmpty;
 
         final matchesSearch = normalizedQuery.isEmpty ||
             name.contains(normalizedQuery) ||
             description.contains(normalizedQuery);
         final matchesCategory = normalizedCategory == 'all' ||
-            tags.map((e) => e.toLowerCase()).contains(normalizedCategory);
+            tags.contains(normalizedCategory);
         final matchesOffer = !offersOnly || hasOffers;
 
         return matchesSearch && matchesCategory && matchesOffer;
-      }).map((doc) => {'id': doc.id, ...doc.data()}).toList();
+      }).map((doc) {
+        final data = doc.data();
+        return {
+          ...data,
+          'id': doc.id,
+          // Surface `businessName` as `name` so the existing UI keeps working.
+          'name': (data['businessName'] ?? data['name'] ?? '').toString(),
+        };
+      }).toList();
 
+      filteredDocs.sort(
+        (a, b) => (a['name'] ?? '').toString().compareTo((b['name'] ?? '').toString()),
+      );
       return filteredDocs;
     });
   }
@@ -238,9 +220,8 @@ class DatabaseService {
     String category = 'All',
     bool onSaleOnly = false,
   }) {
-    Query<Map<String, dynamic>> query = _products
-        .where('storeId', isEqualTo: storeId)
-        .where('isActive', isEqualTo: true);
+    // Single-field `where('storeId')` avoids a composite index; filter `isActive` client-side.
+    final query = _products.where('storeId', isEqualTo: storeId);
 
     return query.snapshots().map((snapshot) {
       final normalizedQuery = searchQuery.trim().toLowerCase();
@@ -248,6 +229,7 @@ class DatabaseService {
 
       final filteredDocs = snapshot.docs.where((doc) {
         final data = doc.data();
+        if (data['isActive'] == false) return false;
         final title = (data['title'] ?? '').toString().toLowerCase();
         final desc = (data['description'] ?? '').toString().toLowerCase();
         final productCategory =
@@ -579,7 +561,7 @@ class DatabaseService {
   ) async {
     await _assertStoreOwner(storeId);
     try {
-      await _stores.doc(storeId).update({
+      await _db.collection('users').doc(storeId).update({
         ...data,
         'updatedAt': FieldValue.serverTimestamp(),
       });
@@ -594,7 +576,7 @@ class DatabaseService {
   }) async {
     await _assertStoreOwner(storeId);
     try {
-      await _stores.doc(storeId).update({
+      await _db.collection('users').doc(storeId).update({
         'status': isOpen ? 'active' : 'inactive',
         'isActive': isOpen,
         'updatedAt': FieldValue.serverTimestamp(),
@@ -608,28 +590,35 @@ class DatabaseService {
     String storeId, {
     bool includeInactive = true,
   }) {
-    Query<Map<String, dynamic>> query = _products.where(
-      'storeId',
-      isEqualTo: storeId,
-    );
-    if (!includeInactive) {
-      query = query.where('isActive', isEqualTo: true);
-    }
-    query = query.orderBy('updatedAt', descending: true);
-    return query.snapshots().map(
-      (snapshot) => snapshot.docs
-          .map((doc) => {'id': doc.id, ...doc.data()})
-          .toList(),
-    );
+    final query = _products.where('storeId', isEqualTo: storeId);
+    return query.snapshots().map((snapshot) {
+      var rows = snapshot.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList();
+      if (!includeInactive) {
+        rows = rows.where((p) => p['isActive'] != false).toList();
+      }
+      DateTime? ts(Map<String, dynamic> p) {
+        final v = p['updatedAt'];
+        if (v is Timestamp) return v.toDate();
+        return null;
+      }
+      rows.sort((a, b) {
+        final da = ts(a);
+        final db = ts(b);
+        if (da == null && db == null) return 0;
+        if (da == null) return 1;
+        if (db == null) return -1;
+        return db.compareTo(da);
+      });
+      return rows;
+    });
   }
 
   Stream<QuerySnapshot<Map<String, dynamic>>> streamOrdersForStoreOwner(
     String storeId,
   ) {
-    return _orders
-        .where('storeId', isEqualTo: storeId)
-        .orderBy('createdAt', descending: true)
-        .snapshots();
+    // `where(storeId) + orderBy(createdAt)` requires a composite index. Query by
+    // store only so the stream succeeds; list order is not guaranteed by Firestore.
+    return _orders.where('storeId', isEqualTo: storeId).snapshots();
   }
 
   Future<void> updateOrderStatus({
@@ -667,12 +656,18 @@ class DatabaseService {
     if (storeId.isEmpty) {
       throw Exception('Invalid store.');
     }
-    final storeDoc = await _stores.doc(storeId).get();
-    if (!storeDoc.exists) {
+    // The store IS the provider's user doc; storeId == provider uid.
+    if (storeId != _uid) {
+      throw Exception('You do not have permission to manage this store.');
+    }
+    final userDoc = await _db.collection('users').doc(_uid).get();
+    if (!userDoc.exists) {
       throw Exception('Store not found.');
     }
-    final ownerId = (storeDoc.data() ?? const {})['ownerId']?.toString();
-    if (ownerId != _uid) {
+    final data = userDoc.data() ?? const <String, dynamic>{};
+    final isPetSuppliesProvider = data['role'] == 'provider' &&
+        data['providerType'] == 'Pet Supplies Store';
+    if (!isPetSuppliesProvider) {
       throw Exception('You do not have permission to manage this store.');
     }
   }
@@ -752,7 +747,11 @@ class DatabaseService {
   // --- Online Store: Admin ---
 
   Stream<QuerySnapshot<Map<String, dynamic>>> streamAllStoresForAdmin() {
-    return _stores.orderBy('createdAt', descending: true).snapshots();
+    return _db
+        .collection('users')
+        .where('role', isEqualTo: 'provider')
+        .where('providerType', isEqualTo: 'Pet Supplies Store')
+        .snapshots();
   }
 
   Future<void> setStoreActivation({
@@ -760,7 +759,7 @@ class DatabaseService {
     required bool active,
   }) async {
     try {
-      await _stores.doc(storeId).update({
+      await _db.collection('users').doc(storeId).update({
         'isActive': active,
         'status': active ? 'active' : 'inactive',
         'updatedAt': FieldValue.serverTimestamp(),

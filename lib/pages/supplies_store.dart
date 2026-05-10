@@ -20,7 +20,6 @@ class _SuppliesStoreState extends State<SuppliesStore> {
   @override
   void initState() {
     super.initState();
-    _databaseService.ensureStoreCollectionsInitialized();
   }
 
   List<Map<String, dynamic>> _sortedStores(List<Map<String, dynamic>> stores) {

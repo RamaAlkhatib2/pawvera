@@ -24,19 +24,14 @@ class _PetSuppliesStoreOwnerDashboardState
   Future<String?> _loadStoreId() async {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return null;
-    final existing = await _firestore
-        .collection('stores')
-        .where('ownerId', isEqualTo: uid)
-        .limit(1)
-        .get();
-    if (existing.docs.isNotEmpty) return existing.docs.first.id;
-    await _databaseService.ensureStoreCollectionsInitialized();
-    final created = await _firestore
-        .collection('stores')
-        .where('ownerId', isEqualTo: uid)
-        .limit(1)
-        .get();
-    return created.docs.isNotEmpty ? created.docs.first.id : null;
+    // Stores live on the user doc itself for pet supplies providers.
+    // The provider's uid IS the storeId for all downstream queries (products/orders).
+    final userDoc = await _firestore.collection('users').doc(uid).get();
+    if (!userDoc.exists) return null;
+    final data = userDoc.data() ?? const <String, dynamic>{};
+    final isPetSuppliesProvider = data['role'] == 'provider' &&
+        data['providerType'] == 'Pet Supplies Store';
+    return isPetSuppliesProvider ? uid : null;
   }
 
   @override
