@@ -209,10 +209,11 @@ class ServiceProviderController extends ChangeNotifier {
           notifyListeners();
         });
 
-    // Bookings for this shop
+    // Bookings for this shop (subcollection under the shop)
     _bookingsSub = _db
-        .collection('service_bookings')
-        .where('shopId', isEqualTo: shopId)
+        .collection('service_shops')
+        .doc(shopId)
+        .collection('bookings')
         .orderBy('createdAt', descending: true)
         .snapshots()
         .listen((snap) {
@@ -440,10 +441,12 @@ class ServiceProviderController extends ChangeNotifier {
   Future<void> updateBookingStatus(String bookingId, String status) async {
     final id = shopId;
     if (id == null) return;
-    await _db.collection('service_bookings').doc(bookingId).update({
-      'status': status,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+    await _db
+        .collection('service_shops')
+        .doc(id)
+        .collection('bookings')
+        .doc(bookingId)
+        .update({'status': status, 'updatedAt': FieldValue.serverTimestamp()});
 
     // Update shop counters
     if (status == 'confirmed') {
@@ -505,8 +508,9 @@ class ServiceProviderController extends ChangeNotifier {
     final id = shopId;
     if (id == null) return false;
     final existing = await _db
-        .collection('service_bookings')
-        .where('shopId', isEqualTo: id)
+        .collection('service_shops')
+        .doc(id)
+        .collection('bookings')
         .where('date', isEqualTo: date)
         .where('time', isEqualTo: time)
         .where('status', whereIn: ['pending', 'confirmed'])
@@ -544,7 +548,11 @@ class ServiceProviderController extends ChangeNotifier {
       );
     }
 
-    final ref = _db.collection('service_bookings').doc();
+    final ref = _db
+        .collection('service_shops')
+        .doc(shopId)
+        .collection('bookings')
+        .doc();
     await ref.set({
       'id': ref.id,
       'shopId': shopId,
