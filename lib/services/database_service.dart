@@ -65,14 +65,48 @@ class DatabaseService {
 
   // --- Bookings & Appointments ---
 
-  // Create a booking
+  // Create a booking (saves to the shop's subcollection for provider dashboard)
   Future<void> createBooking(Map<String, dynamic> bookingData) async {
-    await _db.collection('bookings').add({
-      ...bookingData,
-      'userId': _auth.currentUser!.uid,
-      'status': 'pending',
-      'createdAt': FieldValue.serverTimestamp(),
-    });
+    final shopId = bookingData['shopId'] as String?;
+    if (shopId != null && shopId.isNotEmpty) {
+      // Save to the shop's subcollection so the provider dashboard picks it up
+      final ref = _db
+          .collection('service_shops')
+          .doc(shopId)
+          .collection('bookings')
+          .doc();
+      await ref.set({
+        'id': ref.id,
+        'shopId': shopId,
+        'shopName': bookingData['clinicName'] ?? bookingData['provider'] ?? '',
+        'userId': _auth.currentUser!.uid,
+        'userName': bookingData['name'] ?? '',
+        'userPhone': bookingData['phone'] ?? '',
+        'petName': bookingData['pet'] ?? '',
+        'petBreed': '',
+        'serviceId': '',
+        'serviceName': bookingData['service'] ?? '',
+        'servicePrice':
+            double.tryParse(
+              bookingData['price']?.replaceAll(RegExp(r'[^0-9.]'), '') ?? '0',
+            ) ??
+            0.0,
+        'date': bookingData['date'] ?? '',
+        'time': bookingData['time'] ?? '',
+        'status': 'pending',
+        'notes': '',
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } else {
+      // Fallback to top-level bookings collection for backward compatibility
+      await _db.collection('bookings').add({
+        ...bookingData,
+        'userId': _auth.currentUser!.uid,
+        'status': 'pending',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    }
   }
 
   // Get my bookings
@@ -88,8 +122,7 @@ class DatabaseService {
   // Add reminder
   Future<void> addReminder(Map<String, dynamic> reminderData) async {
     final uid = _auth.currentUser!.uid;
-    final ref =
-        _db.collection('users').doc(uid).collection('reminders').doc();
+    final ref = _db.collection('users').doc(uid).collection('reminders').doc();
     await ref.set({
       ...reminderData,
       'id': ref.id,
@@ -102,7 +135,9 @@ class DatabaseService {
 
   // Update reminder
   Future<void> updateReminder(
-      String reminderId, Map<String, dynamic> data) async {
+    String reminderId,
+    Map<String, dynamic> data,
+  ) async {
     final uid = _auth.currentUser!.uid;
     await _db
         .collection('users')
@@ -219,8 +254,7 @@ class DatabaseService {
         'id': notifRef.id,
         'userId': uid,
         'title': 'Reminder: ${data['title'] ?? ''}',
-        'description':
-            '${data['title']} for ${data['petName'] ?? 'your pet'}',
+        'description': '${data['title']} for ${data['petName'] ?? 'your pet'}',
         'type': 'reminder',
         'isRead': false,
         'reminderId': doc.id,
@@ -340,23 +374,32 @@ class DatabaseService {
       final normalizedQuery = (searchQuery ?? '').trim().toLowerCase();
       final normalizedCategory = (category ?? 'all').trim().toLowerCase();
 
-      final filteredDocs = snapshot.docs.where((doc) {
-        final data = doc.data();
-        final name = (data['name'] ?? '').toString().toLowerCase();
-        final description =
-            (data['description'] ?? '').toString().toLowerCase();
-        final tags = (data['tags'] as List?)?.cast<String>() ?? <String>[];
-        final hasOffers = (data['offer'] ?? '').toString().trim().isNotEmpty;
+      final filteredDocs = snapshot.docs
+          .where((doc) {
+            final data = doc.data();
+            final name = (data['name'] ?? '').toString().toLowerCase();
+            final description = (data['description'] ?? '')
+                .toString()
+                .toLowerCase();
+            final tags = (data['tags'] as List?)?.cast<String>() ?? <String>[];
+            final hasOffers = (data['offer'] ?? '')
+                .toString()
+                .trim()
+                .isNotEmpty;
 
-        final matchesSearch = normalizedQuery.isEmpty ||
-            name.contains(normalizedQuery) ||
-            description.contains(normalizedQuery);
-        final matchesCategory = normalizedCategory == 'all' ||
-            tags.map((e) => e.toLowerCase()).contains(normalizedCategory);
-        final matchesOffer = !offersOnly || hasOffers;
+            final matchesSearch =
+                normalizedQuery.isEmpty ||
+                name.contains(normalizedQuery) ||
+                description.contains(normalizedQuery);
+            final matchesCategory =
+                normalizedCategory == 'all' ||
+                tags.map((e) => e.toLowerCase()).contains(normalizedCategory);
+            final matchesOffer = !offersOnly || hasOffers;
 
-        return matchesSearch && matchesCategory && matchesOffer;
-      }).map((doc) => {'id': doc.id, ...doc.data()}).toList();
+            return matchesSearch && matchesCategory && matchesOffer;
+          })
+          .map((doc) => {'id': doc.id, ...doc.data()})
+          .toList();
 
       return filteredDocs;
     });
@@ -376,22 +419,28 @@ class DatabaseService {
       final normalizedQuery = searchQuery.trim().toLowerCase();
       final normalizedCategory = category.trim().toLowerCase();
 
-      final filteredDocs = snapshot.docs.where((doc) {
-        final data = doc.data();
-        final title = (data['title'] ?? '').toString().toLowerCase();
-        final desc = (data['description'] ?? '').toString().toLowerCase();
-        final productCategory =
-            (data['category'] ?? '').toString().toLowerCase();
-        final hasOffer = (data['offer'] ?? '').toString().trim().isNotEmpty;
+      final filteredDocs = snapshot.docs
+          .where((doc) {
+            final data = doc.data();
+            final title = (data['title'] ?? '').toString().toLowerCase();
+            final desc = (data['description'] ?? '').toString().toLowerCase();
+            final productCategory = (data['category'] ?? '')
+                .toString()
+                .toLowerCase();
+            final hasOffer = (data['offer'] ?? '').toString().trim().isNotEmpty;
 
-        final matchesSearch = normalizedQuery.isEmpty ||
-            title.contains(normalizedQuery) ||
-            desc.contains(normalizedQuery);
-        final matchesCategory =
-            normalizedCategory == 'all' || productCategory == normalizedCategory;
-        final matchesSale = !onSaleOnly || hasOffer;
-        return matchesSearch && matchesCategory && matchesSale;
-      }).map((doc) => {'id': doc.id, ...doc.data()}).toList();
+            final matchesSearch =
+                normalizedQuery.isEmpty ||
+                title.contains(normalizedQuery) ||
+                desc.contains(normalizedQuery);
+            final matchesCategory =
+                normalizedCategory == 'all' ||
+                productCategory == normalizedCategory;
+            final matchesSale = !onSaleOnly || hasOffer;
+            return matchesSearch && matchesCategory && matchesSale;
+          })
+          .map((doc) => {'id': doc.id, ...doc.data()})
+          .toList();
 
       return filteredDocs;
     });
@@ -420,8 +469,10 @@ class DatabaseService {
     required Map<String, dynamic> productSnapshot,
   }) async {
     try {
-      final itemRef =
-          _usersCart.doc(_uid).collection('cart_items').doc(productId);
+      final itemRef = _usersCart
+          .doc(_uid)
+          .collection('cart_items')
+          .doc(productId);
       final now = FieldValue.serverTimestamp();
       await itemRef.set({
         'id': productId,
@@ -442,7 +493,11 @@ class DatabaseService {
 
   Future<void> removeCartItem(String productId) async {
     try {
-      await _usersCart.doc(_uid).collection('cart_items').doc(productId).delete();
+      await _usersCart
+          .doc(_uid)
+          .collection('cart_items')
+          .doc(productId)
+          .delete();
     } catch (_) {
       throw Exception('Unable to remove cart item right now.');
     }
@@ -450,8 +505,10 @@ class DatabaseService {
 
   Future<void> clearMyCart() async {
     try {
-      final cartSnapshot =
-          await _usersCart.doc(_uid).collection('cart_items').get();
+      final cartSnapshot = await _usersCart
+          .doc(_uid)
+          .collection('cart_items')
+          .get();
       final batch = _db.batch();
       for (final doc in cartSnapshot.docs) {
         batch.delete(doc.reference);
@@ -476,8 +533,10 @@ class DatabaseService {
     required Map<String, dynamic> productSnapshot,
   }) async {
     try {
-      final ref =
-          _usersCart.doc(_uid).collection('wishlist_items').doc(productId);
+      final ref = _usersCart
+          .doc(_uid)
+          .collection('wishlist_items')
+          .doc(productId);
       final existing = await ref.get();
       if (existing.exists) {
         await ref.delete();
@@ -635,7 +694,9 @@ class DatabaseService {
     }
   }
 
-  Stream<QuerySnapshot<Map<String, dynamic>>> streamStoreReviews(String storeId) {
+  Stream<QuerySnapshot<Map<String, dynamic>>> streamStoreReviews(
+    String storeId,
+  ) {
     return _reviews
         .where('storeId', isEqualTo: storeId)
         .where('type', isEqualTo: 'store')
@@ -681,7 +742,9 @@ class DatabaseService {
   ) async {
     final doc = await _products.doc(productId).get();
     if (!doc.exists) throw Exception('Product not found.');
-    await _assertStoreOwner((doc.data() ?? const {})['storeId']?.toString() ?? '');
+    await _assertStoreOwner(
+      (doc.data() ?? const {})['storeId']?.toString() ?? '',
+    );
     try {
       await _products.doc(productId).update({
         ...data,
@@ -695,7 +758,9 @@ class DatabaseService {
   Future<void> deleteProduct(String productId) async {
     final doc = await _products.doc(productId).get();
     if (!doc.exists) throw Exception('Product not found.');
-    await _assertStoreOwner((doc.data() ?? const {})['storeId']?.toString() ?? '');
+    await _assertStoreOwner(
+      (doc.data() ?? const {})['storeId']?.toString() ?? '',
+    );
     try {
       await _products.doc(productId).delete();
     } catch (_) {
@@ -747,9 +812,8 @@ class DatabaseService {
     }
     query = query.orderBy('updatedAt', descending: true);
     return query.snapshots().map(
-      (snapshot) => snapshot.docs
-          .map((doc) => {'id': doc.id, ...doc.data()})
-          .toList(),
+      (snapshot) =>
+          snapshot.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList(),
     );
   }
 
@@ -825,8 +889,7 @@ class DatabaseService {
       String adopterName = 'User';
       try {
         final userDoc = await _db.collection('users').doc(_uid).get();
-        adopterName =
-            (userDoc.data() ?? {})['fullName'] as String? ?? 'User';
+        adopterName = (userDoc.data() ?? {})['fullName'] as String? ?? 'User';
       } catch (_) {}
       await ref.set({
         'id': convId,
@@ -846,8 +909,10 @@ class DatabaseService {
   }
 
   Future<void> sendMessage(String conversationId, String text) async {
-    final msgRef =
-        _conversations.doc(conversationId).collection('messages').doc();
+    final msgRef = _conversations
+        .doc(conversationId)
+        .collection('messages')
+        .doc();
     final now = FieldValue.serverTimestamp();
     final batch = _db.batch();
     batch.set(msgRef, {
@@ -864,7 +929,8 @@ class DatabaseService {
   }
 
   Stream<QuerySnapshot<Map<String, dynamic>>> streamMessages(
-      String conversationId) {
+    String conversationId,
+  ) {
     return _conversations
         .doc(conversationId)
         .collection('messages')
