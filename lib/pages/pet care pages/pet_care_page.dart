@@ -1,5 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'clinic_details_page.dart';
+import 'package:pawvera/models/service_provider_models.dart';
 
 class ServiceProvider {
   final String id,
@@ -65,111 +67,65 @@ class _PetCarePageState extends State<PetCarePage> {
   ];
   String _selectedCategory = 'All';
 
-  final List<ServiceProvider> _providers = [
-    ServiceProvider(
-      id: "1",
-      name: "Happy Tails Pet Care",
-      rating: 4.9,
-      description: "Professional pet sitting and dog walking services",
-      tags: ["Walking", "Sitting", "Dog", "Cat", "Bird", "Fish"],
-      distance: "2.5 km",
-      location: "Westside Avenue",
-      hours: "7AM - 8PM",
-      petType: "Dog",
-      hasOffer: true,
+  /// Build a ServiceProvider from a Firestore shop document.
+  /// We only show shop name, address, working hours, and a default rating.
+  /// Tags are extracted from the shop's active services subcollection names.
+  /// If no imageUrl is set, a placeholder is returned.
+  Future<ServiceProvider> _buildProviderFromShop(
+    QueryDocumentSnapshot<Map<String, dynamic>> doc,
+  ) async {
+    final data = doc.data();
+    final shopId = doc.id;
+
+    // Fetch active services for tags
+    final servicesSnap = await FirebaseFirestore.instance
+        .collection('service_shops')
+        .doc(shopId)
+        .collection('services')
+        .where('isActive', isEqualTo: true)
+        .get();
+
+    final serviceNames = servicesSnap.docs
+        .map((d) => (d.data()['name'] ?? '').toString())
+        .where((n) => n.isNotEmpty)
+        .toList();
+
+    // Fetch active offers for the hasOffer flag
+    final offersSnap = await FirebaseFirestore.instance
+        .collection('service_shops')
+        .doc(shopId)
+        .collection('offers')
+        .where('isActive', isEqualTo: true)
+        .get();
+    final hasOffer = offersSnap.docs.isNotEmpty;
+
+    return ServiceProvider(
+      id: shopId,
+      name: (data['shopName'] ?? 'Pet Shop').toString(),
+      description: (data['address'] ?? 'Professional pet care services')
+          .toString(),
+      distance: '1.5 km', // default; could be derived from geolocation later
+      location: (data['address'] ?? 'Unknown location').toString(),
+      hours: (data['workingHours'] ?? '9:00 AM - 7:00 PM').toString(),
+      petType: 'Dog',
+      imageUrl: (data['imageUrl'] ?? '').toString(),
+      rating: 4.5, // default rating; could be derived from reviews later
+      tags: serviceNames.isNotEmpty
+          ? serviceNames
+          : ['Grooming', 'Spa', 'Wellness'],
+      hasOffer: hasOffer,
       isFavorite: false,
-      imageUrl:
-          "https://images.unsplash.com/photo-1516733725897-1aa73b87c8e8?q=80&w=1000&auto=format&fit=crop",
-    ),
-    ServiceProvider(
-      id: "2",
-      name: "Obedience Masters",
-      rating: 4.9,
-      description: "Expert pet training and behavior modification",
-      tags: ["Training", "Behavior", "Classes", "Cat", "Dog"],
-      distance: "3.1 km",
-      location: "Pet Training Center",
-      hours: "8AM - 6PM",
-      petType: "Dog",
-      hasOffer: true,
-      imageUrl:
-          "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?q=80&w=1000&auto=format&fit=crop",
-    ),
-    ServiceProvider(
-      id: "3",
-      name: "Pawfect Spa & Grooming",
-      rating: 4.8,
-      description: "Premium grooming services with certified specialists",
-      tags: ["Cat", "Dog"],
-      distance: "1.2 km",
-      location: "Downtown Mall, 2nd floor",
-      hours: "9AM - 7PM",
-      petType: "Dog",
-      hasOffer: true,
-      imageUrl:
-          "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?q=80&w=1000&auto=format&fit=crop",
-    ),
-    ServiceProvider(
-      id: "4",
-      name: "Zen Pet Wellness",
-      rating: 4.8,
-      description: "Pet massage, aromatherapy, and wellness treatments",
-      tags: ["Massage", "Wellness", "Spa", "Bird", "Fish"],
-      distance: "1.2 km",
-      location: "Pet Avenue Center",
-      hours: "10AM - 6PM",
-      petType: "Cat",
-      hasOffer: false,
-      imageUrl:
-          "https://images.unsplash.com/photo-1518791841217-8f162f1e1131?q=80&w=1000&auto=format&fit=crop",
-    ),
-  ];
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final filteredList = _providers.where((p) {
-      final query = _searchQuery.toLowerCase();
-      final matchesSearch =
-          p.name.toLowerCase().contains(query) ||
-          p.description.toLowerCase().contains(query) ||
-          p.tags.any((tag) => tag.toLowerCase().contains(query));
-      final matchesOffer = !_showOffersOnly || p.hasOffer;
-      final matchesFav = !_showFavoritesOnly || p.isFavorite;
-      final petTypeLower = _selectedPetType.toLowerCase();
-      final matchesPet =
-          _selectedPetType == "All Pet Types" ||
-          p.tags.any((tag) => tag.toLowerCase() == petTypeLower);
-      final matchesCategory =
-          _selectedCategory == "All" || p.tags.contains(_selectedCategory);
-
-      return matchesSearch &&
-          matchesOffer &&
-          matchesFav &&
-          matchesPet &&
-          matchesCategory;
-    }).toList();
-
-    final sortedList = [...filteredList];
-    sortedList.sort((a, b) {
-      switch (_selectedSort) {
-        case 'Nearest':
-          return _parseDistance(
-            a.distance,
-          ).compareTo(_parseDistance(b.distance));
-        case 'Name (A - Z)':
-          return a.name.compareTo(b.name);
-        case 'Highest Rated':
-        default:
-          return b.rating.compareTo(a.rating);
-      }
-    });
-
     return Scaffold(
       backgroundColor: const Color(0xFFF0F4F3),
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(filteredList.length),
+            _buildHeader(),
             _buildSearchBar(),
             const SizedBox(height: 10),
             _buildFilterRow(),
@@ -177,16 +133,103 @@ class _PetCarePageState extends State<PetCarePage> {
             _buildFavoritesRow(),
             const SizedBox(height: 10),
             _buildCategoryFilter(),
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.all(15),
-                itemCount: sortedList.length,
-                itemBuilder: (context, i) => _buildProviderCard(sortedList[i]),
-              ),
-            ),
+            Expanded(child: _buildProvidersList()),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildProvidersList() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('service_shops')
+          .where('isOpen', isEqualTo: true)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return const Center(child: Text('Something went wrong'));
+        }
+
+        final docs = snapshot.data?.docs ?? [];
+        if (docs.isEmpty) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Text(
+                'No service providers are currently available.\nCheck back later!',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+            ),
+          );
+        }
+
+        return FutureBuilder<List<ServiceProvider>>(
+          future: Future.wait(
+            docs.map(
+              (doc) => _buildProviderFromShop(
+                doc as QueryDocumentSnapshot<Map<String, dynamic>>,
+              ),
+            ),
+          ),
+          builder: (context, providersSnapshot) {
+            if (providersSnapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final providers = providersSnapshot.data ?? [];
+
+            // Apply local filters (search, offers, favorites, pet type, category)
+            final filteredList = providers.where((p) {
+              final query = _searchQuery.toLowerCase();
+              final matchesSearch =
+                  p.name.toLowerCase().contains(query) ||
+                  p.description.toLowerCase().contains(query) ||
+                  p.tags.any((tag) => tag.toLowerCase().contains(query));
+              final matchesOffer = !_showOffersOnly || p.hasOffer;
+              final matchesFav = !_showFavoritesOnly || p.isFavorite;
+              final petTypeLower = _selectedPetType.toLowerCase();
+              final matchesPet =
+                  _selectedPetType == "All Pet Types" ||
+                  p.tags.any((tag) => tag.toLowerCase() == petTypeLower);
+              final matchesCategory =
+                  _selectedCategory == "All" ||
+                  p.tags.contains(_selectedCategory);
+
+              return matchesSearch &&
+                  matchesOffer &&
+                  matchesFav &&
+                  matchesPet &&
+                  matchesCategory;
+            }).toList();
+
+            final sortedList = [...filteredList];
+            sortedList.sort((a, b) {
+              switch (_selectedSort) {
+                case 'Nearest':
+                  return _parseDistance(
+                    a.distance,
+                  ).compareTo(_parseDistance(b.distance));
+                case 'Name (A - Z)':
+                  return a.name.compareTo(b.name);
+                case 'Highest Rated':
+                default:
+                  return b.rating.compareTo(a.rating);
+              }
+            });
+
+            return ListView.builder(
+              padding: const EdgeInsets.all(15),
+              itemCount: sortedList.length,
+              itemBuilder: (context, i) => _buildProviderCard(sortedList[i]),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -246,7 +289,7 @@ class _PetCarePageState extends State<PetCarePage> {
     );
   }
 
-  Widget _buildHeader(int providerCount) => Padding(
+  Widget _buildHeader() => Padding(
     padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 16),
     child: Row(
       children: [
@@ -264,9 +307,18 @@ class _PetCarePageState extends State<PetCarePage> {
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
-              Text(
-                "$providerCount service providers",
-                style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+              StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('service_shops')
+                    .where('isOpen', isEqualTo: true)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  final count = snapshot.data?.docs.length ?? 0;
+                  return Text(
+                    "$count service providers",
+                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                  );
+                },
               ),
             ],
           ),
@@ -486,12 +538,36 @@ class _PetCarePageState extends State<PetCarePage> {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(16),
-                  child: Image.network(
-                    p.imageUrl,
-                    width: 96,
-                    height: 96,
-                    fit: BoxFit.cover,
-                  ),
+                  child: p.imageUrl.isNotEmpty
+                      ? Image.network(
+                          p.imageUrl,
+                          width: 96,
+                          height: 96,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              Container(
+                                width: 96,
+                                height: 96,
+                                color: const Color(
+                                  0xFF2D6A64,
+                                ).withValues(alpha: 0.1),
+                                child: const Icon(
+                                  Icons.storefront,
+                                  color: Color(0xFF2D6A64),
+                                  size: 36,
+                                ),
+                              ),
+                        )
+                      : Container(
+                          width: 96,
+                          height: 96,
+                          color: const Color(0xFF2D6A64).withValues(alpha: 0.1),
+                          child: const Icon(
+                            Icons.storefront,
+                            color: Color(0xFF2D6A64),
+                            size: 36,
+                          ),
+                        ),
                 ),
                 const SizedBox(width: 14),
                 Expanded(

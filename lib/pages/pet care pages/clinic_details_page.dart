@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'booking_page.dart';
 
@@ -50,79 +51,8 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
     "Other Pets",
   ];
 
-  // قائمة الخدمات المتاحة (يمكنك إضافة المزيد هنا)
-  final List<PetService> _servicesList = [
-    PetService(
-      title: "Daily Dog Walking",
-      price: "21.25 JOD",
-      oldPrice: "25 JOD",
-      discount: "15% OFF",
-      isPopular: true,
-      petType: "Dogs",
-      duration: "45 mins",
-      subtitle: "Daily walks with certified dog walkers, GPS tracking included",
-      hasOffer: true,
-    ),
-    PetService(
-      title: "Pet Sitting - Full Day",
-      price: "55 JOD",
-      petType: "Dogs",
-      duration: "8 hours",
-      subtitle: "Professional in-home pet care with regular updates and photos",
-      hasOffer: false,
-    ),
-    PetService(
-      title: "Cat Grooming",
-      price: "30 JOD",
-      petType: "Cats",
-      duration: "1 hour",
-      subtitle: "Gentle grooming for cats with coat care and nail trim",
-      hasOffer: false,
-    ),
-    PetService(
-      title: "Special Cat Care",
-      price: "15 JOD",
-      oldPrice: "20 JOD",
-      discount: "25% OFF",
-      petType: "Cats",
-      duration: "30 mins",
-      subtitle: "Calm cat care package for routine wellness and comfort",
-      hasOffer: true,
-    ),
-    PetService(
-      title: "Dog Daycare Package",
-      price: "45 JOD",
-      petType: "Dogs",
-      duration: "Full day",
-      subtitle:
-          "Playtime, rest breaks and socialization in a safe daycare space",
-      hasOffer: false,
-    ),
-    PetService(
-      title: "Bird Care Service",
-      price: "30 JOD",
-      petType: "Birds",
-      duration: "Per visit",
-      subtitle: "Light feeding and companionship for your feathered friend",
-      hasOffer: false,
-    ),
-  ];
-
   @override
   Widget build(BuildContext context) {
-    // منطق الفلترة: تصفية القائمة بناءً على المدخلات
-    List<PetService> filteredServices = _servicesList.where((service) {
-      final matchesType =
-          _selectedPetFilter == "All Pets" ||
-          service.petType == _selectedPetFilter;
-      final matchesOffer = !_filterByOffers || service.hasOffer;
-      final matchesSearch =
-          _searchQuery.isEmpty ||
-          service.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          service.subtitle.toLowerCase().contains(_searchQuery.toLowerCase());
-      return matchesType && matchesOffer && matchesSearch;
-    }).toList();
-
     final shopImageUrl = _getProviderImageUrl();
     final shopDescription = _getProviderDescription();
     final shopLocation = _getProviderLocation();
@@ -151,295 +81,467 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  const BoxShadow(
-                    color: Color.fromRGBO(0, 0, 0, 0.05),
-                    blurRadius: 16,
-                    offset: Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ClipRRect(
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(20),
-                    ),
-                    child: shopImageUrl != null
-                        ? Image.network(
-                            shopImageUrl,
-                            width: double.infinity,
-                            height: 170,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                Container(
-                                  height: 170,
-                                  color: Colors.grey.shade200,
-                                  child: const Icon(
-                                    Icons.store,
-                                    size: 50,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                          )
-                        : Container(
-                            height: 170,
-                            color: Colors.grey.shade200,
-                            child: const Center(
-                              child: Icon(
-                                Icons.store,
-                                size: 50,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.provider.name,
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF274C4B),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          shopDescription,
-                          style: const TextStyle(
-                            color: Colors.grey,
-                            fontSize: 13,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            _buildInfoBubble(
-                              Icons.location_on_outlined,
-                              shopLocation,
-                            ),
-                            const SizedBox(width: 8),
-                            _buildInfoBubble(Icons.access_time, shopHours),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+            // --- Shop Info Card ---
+            _buildShopInfoCard(
+              shopImageUrl,
+              shopDescription,
+              shopLocation,
+              shopHours,
             ),
             const SizedBox(height: 20),
-            TextField(
-              onChanged: (value) => setState(() => _searchQuery = value),
-              decoration: InputDecoration(
-                hintText: "Search services...",
-                prefixIcon: const Icon(Icons.search),
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
+            // --- Search Bar ---
+            _buildSearchBar(),
             const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  const BoxShadow(
-                    color: Color.fromRGBO(0, 0, 0, 0.03),
-                    blurRadius: 10,
-                    offset: Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: Container(
-                      height: 48,
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: _selectedPetFilter,
-                          isExpanded: true,
-                          icon: const Icon(Icons.keyboard_arrow_down),
-                          items: _petTypes.map((String type) {
-                            return DropdownMenuItem(
-                              value: type,
-                              child: Text(
-                                type,
-                                style: const TextStyle(fontSize: 13),
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            setState(() => _selectedPetFilter = value!);
-                          },
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () =>
-                          setState(() => _filterByOffers = !_filterByOffers),
-                      child: Container(
-                        height: 48,
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
-                        decoration: BoxDecoration(
-                          color: _filterByOffers ? primaryGreen : Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: _filterByOffers
-                                ? primaryGreen
-                                : Colors.grey.shade300,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.local_offer_outlined,
-                              size: 16,
-                              color: _filterByOffers
-                                  ? Colors.white
-                                  : Colors.black,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              "Offers ${_servicesList.where((s) => s.hasOffer).length}",
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: _filterByOffers
-                                    ? Colors.white
-                                    : Colors.black,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            // --- Filter Row (pet type dropdown + offers toggle) ---
+            _buildFilterRow(),
+            // --- Offers Section ---
             const SizedBox(height: 24),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE8F8F2),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFFBEE9D5)),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF5B9D8E),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.percent,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Text(
-                          "Weekly Walking Package",
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF274C4B),
-                          ),
-                        ),
-                        SizedBox(height: 6),
-                        Text(
-                          "Book 5 walks, get 1 free! Valid until Mar 15, 2026",
-                          style: TextStyle(fontSize: 13, color: Colors.black54),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF5B9D8E),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Text(
-                      "15% OFF",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            _buildOffersSection(),
             const SizedBox(height: 24),
-            Row(
-              children: [
-                const Icon(Icons.pets, size: 20, color: Color(0xFF5B9D8E)),
-                const SizedBox(width: 8),
-                Text(
-                  "All ${_selectedPetFilter == 'All Pets' ? 'Pets' : _selectedPetFilter} (${_servicesList.length})",
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-              ],
-            ),
+            // --- Services Header ---
+            _buildAllServicesHeader(),
             const SizedBox(height: 16),
-            if (filteredServices.isEmpty)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.only(top: 20),
-                  child: Text("No services found for this filter."),
-                ),
-              )
-            else
-              ...filteredServices.map(
-                (service) => _serviceItem(context, service),
-              ),
+            // --- Service Items ---
+            _buildServiceItemsList(),
           ],
         ),
       ),
     );
   }
 
-  Widget _serviceItem(BuildContext context, PetService service) {
+  Widget _buildShopInfoCard(
+    String? shopImageUrl,
+    String shopDescription,
+    String shopLocation,
+    String shopHours,
+  ) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          const BoxShadow(
+            color: Color.fromRGBO(0, 0, 0, 0.05),
+            blurRadius: 16,
+            offset: Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            child: shopImageUrl != null
+                ? Image.network(
+                    shopImageUrl,
+                    width: double.infinity,
+                    height: 170,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      height: 170,
+                      color: Colors.grey.shade200,
+                      child: const Icon(
+                        Icons.store,
+                        size: 50,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  )
+                : Container(
+                    height: 170,
+                    color: Colors.grey.shade200,
+                    child: const Center(
+                      child: Icon(Icons.store, size: 50, color: Colors.grey),
+                    ),
+                  ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.provider.name,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF274C4B),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  shopDescription,
+                  style: const TextStyle(color: Colors.grey, fontSize: 13),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    _buildInfoBubble(Icons.location_on_outlined, shopLocation),
+                    const SizedBox(width: 8),
+                    _buildInfoBubble(Icons.access_time, shopHours),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return TextField(
+      onChanged: (value) => setState(() => _searchQuery = value),
+      decoration: InputDecoration(
+        hintText: "Search services...",
+        prefixIcon: const Icon(Icons.search),
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide.none,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterRow() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('service_shops')
+          .doc(widget.provider.id)
+          .collection('offers')
+          .where('isActive', isEqualTo: true)
+          .snapshots(),
+      builder: (context, offersSnapshot) {
+        final hasActiveOffers = (offersSnapshot.data?.docs.length ?? 0) > 0;
+        return Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              const BoxShadow(
+                color: Color.fromRGBO(0, 0, 0, 0.03),
+                blurRadius: 10,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: Container(
+                  height: 48,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _selectedPetFilter,
+                      isExpanded: true,
+                      icon: const Icon(Icons.keyboard_arrow_down),
+                      items: _petTypes.map((String type) {
+                        return DropdownMenuItem(
+                          value: type,
+                          child: Text(
+                            type,
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setState(() => _selectedPetFilter = value!);
+                      },
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () =>
+                      setState(() => _filterByOffers = !_filterByOffers),
+                  child: Container(
+                    height: 48,
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(
+                      color: _filterByOffers ? primaryGreen : Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: _filterByOffers
+                            ? primaryGreen
+                            : Colors.grey.shade300,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.local_offer_outlined,
+                          size: 16,
+                          color: _filterByOffers ? Colors.white : Colors.black,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          "Offers ${hasActiveOffers ? '1' : '0'}",
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: _filterByOffers
+                                ? Colors.white
+                                : Colors.black,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildOffersSection() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('service_shops')
+          .doc(widget.provider.id)
+          .collection('offers')
+          .where('isActive', isEqualTo: true)
+          .snapshots(),
+      builder: (context, snapshot) {
+        final offerDocs = snapshot.data?.docs ?? [];
+        if (offerDocs.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        return Column(
+          children: offerDocs.map((offerDoc) {
+            final offerData = offerDoc.data() as Map<String, dynamic>;
+            final discountPercent = offerData['discountPercent'] ?? 0;
+            final expiryDate = offerData['expiryDate'] ?? '';
+            final serviceName = offerData['serviceName'] as String?;
+            final isShopWide = offerData['isShopWide'] ?? true;
+            final title = isShopWide == true
+                ? 'Shop-Wide Offer'
+                : (serviceName ?? 'Special Offer');
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F8F2),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFFBEE9D5)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF5B9D8E),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.percent,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF274C4B),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            expiryDate.isNotEmpty
+                                ? 'Valid until $expiryDate'
+                                : 'Limited time offer',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Colors.black54,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF5B9D8E),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '$discountPercent% OFF',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
+
+  Widget _buildAllServicesHeader() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('service_shops')
+          .doc(widget.provider.id)
+          .collection('services')
+          .where('isActive', isEqualTo: true)
+          .snapshots(),
+      builder: (context, snapshot) {
+        final count = snapshot.data?.docs.length ?? 0;
+        return Row(
+          children: [
+            const Icon(Icons.pets, size: 20, color: Color(0xFF5B9D8E)),
+            const SizedBox(width: 8),
+            Text(
+              "All Services ($count)",
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildServiceItemsList() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('service_shops')
+          .doc(widget.provider.id)
+          .collection('services')
+          .where('isActive', isEqualTo: true)
+          .snapshots(),
+      builder: (context, servicesSnapshot) {
+        if (servicesSnapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final serviceDocs = servicesSnapshot.data?.docs ?? [];
+
+        // Build PetService list from Firestore data
+        final allServices = serviceDocs.map((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          final name = (data['name'] ?? 'Service').toString();
+          final priceVal = (data['price'] as num?)?.toDouble() ?? 0.0;
+          final duration = (data['duration'] ?? '1 hour').toString();
+          final description = (data['description'] ?? '').toString();
+
+          return PetService(
+            title: name,
+            price: '${priceVal.toStringAsFixed(2)} JOD',
+            petType: 'All Pets',
+            duration: duration,
+            subtitle: description.isNotEmpty
+                ? description
+                : 'Professional $name service',
+            hasOffer: false,
+          );
+        }).toList();
+
+        // Check offers
+        return StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('service_shops')
+              .doc(widget.provider.id)
+              .collection('offers')
+              .where('isActive', isEqualTo: true)
+              .snapshots(),
+          builder: (context, offersSnapshot) {
+            final servicesWithOffer = <String>{};
+            for (final offerDoc in offersSnapshot.data?.docs ?? []) {
+              final offerData = offerDoc.data() as Map<String, dynamic>;
+              final sid = offerData['serviceId'] as String?;
+              if (sid != null && sid.isNotEmpty) {
+                servicesWithOffer.add(sid);
+              }
+            }
+
+            // Mark offers on services
+            for (int i = 0; i < allServices.length; i++) {
+              final svcDoc = serviceDocs[i];
+              if (servicesWithOffer.contains(svcDoc.id)) {
+                allServices[i] = PetService(
+                  title: allServices[i].title,
+                  price: allServices[i].price,
+                  oldPrice: allServices[i].oldPrice,
+                  discount: allServices[i].discount,
+                  isPopular: allServices[i].isPopular,
+                  petType: allServices[i].petType,
+                  duration: allServices[i].duration,
+                  subtitle: allServices[i].subtitle,
+                  hasOffer: true,
+                );
+              }
+            }
+
+            // Apply filters
+            final filteredServices = allServices.where((service) {
+              final matchesType = _selectedPetFilter == "All Pets" || true;
+              final matchesOffer = !_filterByOffers || service.hasOffer;
+              final matchesSearch =
+                  _searchQuery.isEmpty ||
+                  service.title.toLowerCase().contains(
+                    _searchQuery.toLowerCase(),
+                  ) ||
+                  service.subtitle.toLowerCase().contains(
+                    _searchQuery.toLowerCase(),
+                  );
+              return matchesType && matchesOffer && matchesSearch;
+            }).toList();
+
+            if (filteredServices.isEmpty) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.only(top: 20),
+                  child: Text("No services found for this filter."),
+                ),
+              );
+            }
+
+            return Column(
+              children: filteredServices
+                  .map((service) => _buildServiceItem(context, service))
+                  .toList(),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildServiceItem(BuildContext context, PetService service) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -564,8 +666,9 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
                       serviceName: service.title,
                       price: service.price,
                       clinicName: widget.provider.name,
-                      providerName: '',
+                      providerName: widget.provider.name,
                       duration: service.duration,
+                      shopId: widget.provider.id,
                     ),
                   ),
                 ),

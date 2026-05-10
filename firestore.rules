@@ -141,6 +141,33 @@ service cloud.firestore {
         allow create: if request.auth != null;
         allow update, delete: if false;
       }
+
+      // ── Bookings (subcollection under each shop) ──────────────────────────
+      match /bookings/{bookingId} {
+        allow read: if request.auth != null
+                     && (request.auth.uid == resource.data.userId
+                      || request.auth.uid == get(/databases/$(database)/documents/service_shops/$(shopId)).data.ownerId);
+        allow create: if request.auth != null;
+        allow update: if request.auth != null
+                       && (request.auth.uid == resource.data.userId
+                        || request.auth.uid == get(/databases/$(database)/documents/service_shops/$(shopId)).data.ownerId);
+        allow delete: if false;
+      }
+    }
+
+    // ── Reminder types (admin-managed, globally readable) ────────────────────
+    match /reminder_types/{typeId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+                    && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // ── User notifications ───────────────────────────────────────────────────
+    match /notifications/{notifId} {
+      allow read, update, delete: if request.auth != null
+                                   && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null
+                     && request.auth.uid == request.resource.data.userId;
     }
 
     // ── Conversations & Messages ─────────────────────────────────────────────
@@ -164,16 +191,5 @@ service cloud.firestore {
       }
     }
 
-    // ── Service bookings ─────────────────────────────────────────────────────
-    match /service_bookings/{bookingId} {
-      allow read: if request.auth != null
-                   && (request.auth.uid == resource.data.userId
-                    || request.auth.uid == get(/databases/$(database)/documents/service_shops/$(resource.data.shopId)).data.ownerId);
-      allow create: if request.auth != null;
-      allow update: if request.auth != null
-                     && (request.auth.uid == resource.data.userId
-                      || request.auth.uid == get(/databases/$(database)/documents/service_shops/$(resource.data.shopId)).data.ownerId);
-      allow delete: if false;
-    }
   }
 }

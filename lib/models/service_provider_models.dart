@@ -4,8 +4,8 @@
 ///   - service_shops/{shopId} — Shop profile
 ///   - service_shops/{shopId}/services/{serviceId} — Services
 ///   - service_shops/{shopId}/offers/{offerId} — Promotions
+///   - service_shops/{shopId}/bookings/{bookingId} — Bookings (part of the shop)
 ///   - service_shops/{shopId}/audit_logs/{logId} — Activity logs
-///   - service_bookings/{bookingId} — Bookings (shared with pet owners)
 ///
 /// The shop owner is identified by `shop.ownerId == auth.currentUser.uid`.
 
@@ -275,7 +275,7 @@ class ShopOffer {
 }
 
 // ──────────────────────────────────────────────
-// Service Booking (shared between provider & owner)
+// Service Booking (stored as subcollection under each shop)
 // ──────────────────────────────────────────────
 
 class ServiceBooking {

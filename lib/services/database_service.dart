@@ -72,14 +72,48 @@ class DatabaseService {
 
   // --- Bookings & Appointments ---
 
-  // Create a booking
+  // Create a booking (saves to the shop's subcollection for provider dashboard)
   Future<void> createBooking(Map<String, dynamic> bookingData) async {
-    await _db.collection('bookings').add({
-      ...bookingData,
-      'userId': _auth.currentUser!.uid,
-      'status': 'pending',
-      'createdAt': FieldValue.serverTimestamp(),
-    });
+    final shopId = bookingData['shopId'] as String?;
+    if (shopId != null && shopId.isNotEmpty) {
+      // Save to the shop's subcollection so the provider dashboard picks it up
+      final ref = _db
+          .collection('service_shops')
+          .doc(shopId)
+          .collection('bookings')
+          .doc();
+      await ref.set({
+        'id': ref.id,
+        'shopId': shopId,
+        'shopName': bookingData['clinicName'] ?? bookingData['provider'] ?? '',
+        'userId': _auth.currentUser!.uid,
+        'userName': bookingData['name'] ?? '',
+        'userPhone': bookingData['phone'] ?? '',
+        'petName': bookingData['pet'] ?? '',
+        'petBreed': '',
+        'serviceId': '',
+        'serviceName': bookingData['service'] ?? '',
+        'servicePrice':
+            double.tryParse(
+              bookingData['price']?.replaceAll(RegExp(r'[^0-9.]'), '') ?? '0',
+            ) ??
+            0.0,
+        'date': bookingData['date'] ?? '',
+        'time': bookingData['time'] ?? '',
+        'status': 'pending',
+        'notes': '',
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } else {
+      // Fallback to top-level bookings collection for backward compatibility
+      await _db.collection('bookings').add({
+        ...bookingData,
+        'userId': _auth.currentUser!.uid,
+        'status': 'pending',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    }
   }
 
   // Get my bookings
@@ -94,22 +128,152 @@ class DatabaseService {
 
   // Add reminder
   Future<void> addReminder(Map<String, dynamic> reminderData) async {
-    String uid = _auth.currentUser!.uid;
-    await _db.collection('users').doc(uid).collection('reminders').add({
+    final uid = _auth.currentUser!.uid;
+    final ref = _db.collection('users').doc(uid).collection('reminders').doc();
+    await ref.set({
       ...reminderData,
+      'id': ref.id,
+      'notificationSent': false,
+      'isCompleted': false,
       'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
     });
   }
 
-  // Get reminders
+  // Update reminder
+  Future<void> updateReminder(
+    String reminderId,
+    Map<String, dynamic> data,
+  ) async {
+    final uid = _auth.currentUser!.uid;
+    await _db
+        .collection('users')
+        .doc(uid)
+        .collection('reminders')
+        .doc(reminderId)
+        .update({...data, 'updatedAt': FieldValue.serverTimestamp()});
+  }
+
+  // Delete reminder
+  Future<void> deleteReminder(String reminderId) async {
+    final uid = _auth.currentUser!.uid;
+    await _db
+        .collection('users')
+        .doc(uid)
+        .collection('reminders')
+        .doc(reminderId)
+        .delete();
+  }
+
+  // Stream reminders ordered by date ascending
   Stream<QuerySnapshot> get reminders {
-    String uid = _auth.currentUser!.uid;
+    final uid = _auth.currentUser!.uid;
     return _db
         .collection('users')
         .doc(uid)
         .collection('reminders')
         .orderBy('dateTime', descending: false)
         .snapshots();
+  }
+
+  // --- Reminder Types (admin-managed global list) ---
+
+  CollectionReference<Map<String, dynamic>> get _reminderTypes =>
+      _db.collection('reminder_types');
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> streamReminderTypes() =>
+      _reminderTypes.orderBy('name').snapshots();
+
+  Future<void> seedDefaultReminderTypesIfEmpty() async {
+    final snap = await _reminderTypes.limit(1).get();
+    if (snap.docs.isNotEmpty) return;
+    const defaults = ['Vaccination', 'Medication', 'Grooming', 'Checkup'];
+    final batch = _db.batch();
+    for (final name in defaults) {
+      final ref = _reminderTypes.doc();
+      batch.set(ref, {
+        'id': ref.id,
+        'name': name,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    }
+    await batch.commit();
+  }
+
+  // --- Notifications ---
+
+  CollectionReference<Map<String, dynamic>> get _notificationsCol =>
+      _db.collection('notifications');
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> streamMyNotifications() =>
+      _notificationsCol
+          .where('userId', isEqualTo: _uid)
+          .orderBy('createdAt', descending: true)
+          .snapshots();
+
+  Future<void> markNotificationRead(String notifId) async =>
+      _notificationsCol.doc(notifId).update({'isRead': true});
+
+  Future<void> markAllNotificationsRead() async {
+    final snap = await _notificationsCol
+        .where('userId', isEqualTo: _uid)
+        .where('isRead', isEqualTo: false)
+        .get();
+    if (snap.docs.isEmpty) return;
+    final batch = _db.batch();
+    for (final doc in snap.docs) {
+      batch.update(doc.reference, {'isRead': true});
+    }
+    await batch.commit();
+  }
+
+  Future<void> deleteNotification(String notifId) async =>
+      _notificationsCol.doc(notifId).delete();
+
+  Future<void> deleteNotifications(List<String> ids) async {
+    if (ids.isEmpty) return;
+    final batch = _db.batch();
+    for (final id in ids) {
+      batch.delete(_notificationsCol.doc(id));
+    }
+    await batch.commit();
+  }
+
+  // --- Notification Service: fires due reminder notifications ---
+  // Call on app open to convert due reminders into notification docs.
+  Future<void> checkAndFireDueReminderNotifications() async {
+    final uid = _auth.currentUser!.uid;
+    final now = Timestamp.fromDate(DateTime.now());
+    final snap = await _db
+        .collection('users')
+        .doc(uid)
+        .collection('reminders')
+        .where('notificationSent', isEqualTo: false)
+        .where('dateTime', isLessThanOrEqualTo: now)
+        .get();
+    if (snap.docs.isEmpty) return;
+
+    final batch = _db.batch();
+    for (final doc in snap.docs) {
+      final data = doc.data();
+      final notifRef = _notificationsCol.doc();
+      batch.set(notifRef, {
+        'id': notifRef.id,
+        'userId': uid,
+        'title': 'Reminder: ${data['title'] ?? ''}',
+        'description': '${data['title']} for ${data['petName'] ?? 'your pet'}',
+        'type': 'reminder',
+        'isRead': false,
+        'reminderId': doc.id,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      final updates = <String, dynamic>{'notificationSent': true};
+      if ((data['repeat'] ?? 'Never') == 'Never') {
+        updates['isCompleted'] = true;
+      }
+      batch.update(doc.reference, updates);
+    }
+    await batch.commit();
   }
 
   // Update a pet's metadata
@@ -227,23 +391,28 @@ class DatabaseService {
       final normalizedQuery = searchQuery.trim().toLowerCase();
       final normalizedCategory = category.trim().toLowerCase();
 
-      final filteredDocs = snapshot.docs.where((doc) {
-        final data = doc.data();
-        if (data['isActive'] == false) return false;
-        final title = (data['title'] ?? '').toString().toLowerCase();
-        final desc = (data['description'] ?? '').toString().toLowerCase();
-        final productCategory =
-            (data['category'] ?? '').toString().toLowerCase();
-        final hasOffer = (data['offer'] ?? '').toString().trim().isNotEmpty;
+      final filteredDocs = snapshot.docs
+          .where((doc) {
+            final data = doc.data();
+            if (data['isActive'] == false) return false;
+            final title = (data['title'] ?? '').toString().toLowerCase();
+            final desc = (data['description'] ?? '').toString().toLowerCase();
+            final productCategory =
+                (data['category'] ?? '').toString().toLowerCase();
+            final hasOffer = (data['offer'] ?? '').toString().trim().isNotEmpty;
 
-        final matchesSearch = normalizedQuery.isEmpty ||
-            title.contains(normalizedQuery) ||
-            desc.contains(normalizedQuery);
-        final matchesCategory =
-            normalizedCategory == 'all' || productCategory == normalizedCategory;
-        final matchesSale = !onSaleOnly || hasOffer;
-        return matchesSearch && matchesCategory && matchesSale;
-      }).map((doc) => {'id': doc.id, ...doc.data()}).toList();
+            final matchesSearch =
+                normalizedQuery.isEmpty ||
+                title.contains(normalizedQuery) ||
+                desc.contains(normalizedQuery);
+            final matchesCategory =
+                normalizedCategory == 'all' ||
+                productCategory == normalizedCategory;
+            final matchesSale = !onSaleOnly || hasOffer;
+            return matchesSearch && matchesCategory && matchesSale;
+          })
+          .map((doc) => {'id': doc.id, ...doc.data()})
+          .toList();
 
       return filteredDocs;
     });
@@ -272,8 +441,10 @@ class DatabaseService {
     required Map<String, dynamic> productSnapshot,
   }) async {
     try {
-      final itemRef =
-          _usersCart.doc(_uid).collection('cart_items').doc(productId);
+      final itemRef = _usersCart
+          .doc(_uid)
+          .collection('cart_items')
+          .doc(productId);
       final now = FieldValue.serverTimestamp();
       await itemRef.set({
         'id': productId,
@@ -294,7 +465,11 @@ class DatabaseService {
 
   Future<void> removeCartItem(String productId) async {
     try {
-      await _usersCart.doc(_uid).collection('cart_items').doc(productId).delete();
+      await _usersCart
+          .doc(_uid)
+          .collection('cart_items')
+          .doc(productId)
+          .delete();
     } catch (_) {
       throw Exception('Unable to remove cart item right now.');
     }
@@ -302,8 +477,10 @@ class DatabaseService {
 
   Future<void> clearMyCart() async {
     try {
-      final cartSnapshot =
-          await _usersCart.doc(_uid).collection('cart_items').get();
+      final cartSnapshot = await _usersCart
+          .doc(_uid)
+          .collection('cart_items')
+          .get();
       final batch = _db.batch();
       for (final doc in cartSnapshot.docs) {
         batch.delete(doc.reference);
@@ -328,8 +505,10 @@ class DatabaseService {
     required Map<String, dynamic> productSnapshot,
   }) async {
     try {
-      final ref =
-          _usersCart.doc(_uid).collection('wishlist_items').doc(productId);
+      final ref = _usersCart
+          .doc(_uid)
+          .collection('wishlist_items')
+          .doc(productId);
       final existing = await ref.get();
       if (existing.exists) {
         await ref.delete();
@@ -487,7 +666,9 @@ class DatabaseService {
     }
   }
 
-  Stream<QuerySnapshot<Map<String, dynamic>>> streamStoreReviews(String storeId) {
+  Stream<QuerySnapshot<Map<String, dynamic>>> streamStoreReviews(
+    String storeId,
+  ) {
     return _reviews
         .where('storeId', isEqualTo: storeId)
         .where('type', isEqualTo: 'store')
@@ -533,7 +714,9 @@ class DatabaseService {
   ) async {
     final doc = await _products.doc(productId).get();
     if (!doc.exists) throw Exception('Product not found.');
-    await _assertStoreOwner((doc.data() ?? const {})['storeId']?.toString() ?? '');
+    await _assertStoreOwner(
+      (doc.data() ?? const {})['storeId']?.toString() ?? '',
+    );
     try {
       await _products.doc(productId).update({
         ...data,
@@ -547,7 +730,9 @@ class DatabaseService {
   Future<void> deleteProduct(String productId) async {
     final doc = await _products.doc(productId).get();
     if (!doc.exists) throw Exception('Product not found.');
-    await _assertStoreOwner((doc.data() ?? const {})['storeId']?.toString() ?? '');
+    await _assertStoreOwner(
+      (doc.data() ?? const {})['storeId']?.toString() ?? '',
+    );
     try {
       await _products.doc(productId).delete();
     } catch (_) {
@@ -690,8 +875,7 @@ class DatabaseService {
       String adopterName = 'User';
       try {
         final userDoc = await _db.collection('users').doc(_uid).get();
-        adopterName =
-            (userDoc.data() ?? {})['fullName'] as String? ?? 'User';
+        adopterName = (userDoc.data() ?? {})['fullName'] as String? ?? 'User';
       } catch (_) {}
       await ref.set({
         'id': convId,
@@ -711,8 +895,10 @@ class DatabaseService {
   }
 
   Future<void> sendMessage(String conversationId, String text) async {
-    final msgRef =
-        _conversations.doc(conversationId).collection('messages').doc();
+    final msgRef = _conversations
+        .doc(conversationId)
+        .collection('messages')
+        .doc();
     final now = FieldValue.serverTimestamp();
     final batch = _db.batch();
     batch.set(msgRef, {
@@ -729,7 +915,8 @@ class DatabaseService {
   }
 
   Stream<QuerySnapshot<Map<String, dynamic>>> streamMessages(
-      String conversationId) {
+    String conversationId,
+  ) {
     return _conversations
         .doc(conversationId)
         .collection('messages')
