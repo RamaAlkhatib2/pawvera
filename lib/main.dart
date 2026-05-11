@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:pawvera/controllers/service_provider_controller.dart';
 import 'package:pawvera/firebase_options.dart';
 import 'package:pawvera/pages/sign_in_page.dart';
+import 'package:pawvera/services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,6 +16,9 @@ void main() async {
   // Initialize Hive for mobile
   await Hive.initFlutter();
   await Hive.openBox('myBox');
+
+  // Initialize Notifications
+  await NotificationService().init();
 
   runApp(const MainApp());
 }

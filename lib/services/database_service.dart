@@ -127,7 +127,7 @@ class DatabaseService {
   // --- Reminders ---
 
   // Add reminder
-  Future<void> addReminder(Map<String, dynamic> reminderData) async {
+  Future<String> addReminder(Map<String, dynamic> reminderData) async {
     final uid = _auth.currentUser!.uid;
     final ref = _db.collection('users').doc(uid).collection('reminders').doc();
     await ref.set({
@@ -138,6 +138,7 @@ class DatabaseService {
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
+    return ref.id;
   }
 
   // Update reminder

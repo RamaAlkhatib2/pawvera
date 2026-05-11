@@ -30,6 +30,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
   @override
   void initState() {
     super.initState();
+    _db.checkAndFireDueReminderNotifications().catchError((_) {});
     _sub = _db.streamMyNotifications().listen((snap) {
       setState(() {
         _notifications = snap.docs

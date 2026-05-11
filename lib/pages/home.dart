@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -22,6 +23,23 @@ class Home extends StatefulWidget {
 class _HomePageState extends State<Home> {
   int _selectedIndex = 0;
   final DatabaseService _db = DatabaseService();
+  Timer? _reminderTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _db.checkAndFireDueReminderNotifications().catchError((_) {});
+    // Check for due reminders every 10 seconds while the app is active
+    _reminderTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      _db.checkAndFireDueReminderNotifications().catchError((_) {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _reminderTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
