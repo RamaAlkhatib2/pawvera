@@ -676,6 +676,13 @@ class DatabaseService {
         .snapshots();
   }
 
+  /// All reviews (store + product) for this supplier; sorted client-side.
+  Stream<QuerySnapshot<Map<String, dynamic>>> streamAllReviewsForStore(
+    String storeId,
+  ) {
+    return _reviews.where('storeId', isEqualTo: storeId).snapshots();
+  }
+
   Stream<QuerySnapshot<Map<String, dynamic>>> streamProductReviews(
     String productId,
   ) {
@@ -706,6 +713,11 @@ class DatabaseService {
     } catch (_) {
       throw Exception('Unable to add product right now.');
     }
+    await appendPetStoreAuditLog(
+      storeId,
+      'Product added',
+      (productData['title'] ?? 'New product').toString(),
+    );
   }
 
   Future<void> updateProduct(
@@ -725,6 +737,11 @@ class DatabaseService {
     } catch (_) {
       throw Exception('Unable to update product.');
     }
+    await appendPetStoreAuditLog(
+      (doc.data() ?? const {})['storeId']?.toString() ?? '',
+      'Product updated',
+      (data['title'] ?? doc.data()?['title'] ?? productId).toString(),
+    );
   }
 
   Future<void> deleteProduct(String productId) async {
@@ -733,11 +750,14 @@ class DatabaseService {
     await _assertStoreOwner(
       (doc.data() ?? const {})['storeId']?.toString() ?? '',
     );
+    final title = (doc.data() ?? const {})['title']?.toString() ?? productId;
+    final sid = (doc.data() ?? const {})['storeId']?.toString() ?? '';
     try {
       await _products.doc(productId).delete();
     } catch (_) {
       throw Exception('Unable to delete product.');
     }
+    await appendPetStoreAuditLog(sid, 'Product deleted', title);
   }
 
   Future<void> updateStoreProfile(
@@ -753,6 +773,11 @@ class DatabaseService {
     } catch (_) {
       throw Exception('Unable to update store profile.');
     }
+    await appendPetStoreAuditLog(
+      storeId,
+      'Store profile updated',
+      (data['businessName'] ?? '').toString(),
+    );
   }
 
   Future<void> updateStoreStatus({
@@ -769,6 +794,13 @@ class DatabaseService {
     } catch (_) {
       throw Exception('Unable to update store status.');
     }
+    await appendPetStoreAuditLog(
+      storeId,
+      isOpen ? 'Store opened' : 'Store closed',
+      isOpen
+          ? 'Store status changed to open'
+          : 'Store status changed to closed',
+    );
   }
 
   Stream<List<Map<String, dynamic>>> streamProductsForStoreOwner(
@@ -821,6 +853,151 @@ class DatabaseService {
       'status': status,
       'updatedAt': FieldValue.serverTimestamp(),
     });
+    await appendPetStoreAuditLog(
+      storeId,
+      'Order updated',
+      'Order $orderId set to $status',
+    );
+  }
+
+  CollectionReference<Map<String, dynamic>> _petStoreOffersCol(String storeId) =>
+      _db.collection('users').doc(storeId).collection('pet_store_offers');
+
+  CollectionReference<Map<String, dynamic>> _petStoreAuditCol(String storeId) =>
+      _db.collection('users').doc(storeId).collection('pet_store_audit_logs');
+
+  /// Best-effort activity log for the pet-supplies provider dashboard.
+  Future<void> appendPetStoreAuditLog(
+    String storeId,
+    String title,
+    String description,
+  ) async {
+    if (storeId.isEmpty || storeId != _uid) return;
+    try {
+      await _petStoreAuditCol(storeId).add({
+        'title': title,
+        'description': description,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } catch (_) {}
+  }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> streamPetStoreOffers(
+    String storeId,
+  ) {
+    return _petStoreOffersCol(storeId)
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+  }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> streamPetStoreAuditLogs(
+    String storeId,
+  ) {
+    return _petStoreAuditCol(storeId)
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+  }
+
+  Future<String> createPetStoreOffer({
+    required String storeId,
+    required Map<String, dynamic> fields,
+  }) async {
+    await _assertStoreOwner(storeId);
+    final ref = _petStoreOffersCol(storeId).doc();
+    await ref.set({
+      ...fields,
+      'id': ref.id,
+      'isActive': fields['isActive'] ?? true,
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+    await appendPetStoreAuditLog(
+      storeId,
+      'Offer created',
+      (fields['title'] ?? '').toString(),
+    );
+    return ref.id;
+  }
+
+  Future<void> updatePetStoreOffer({
+    required String storeId,
+    required String offerId,
+    required Map<String, dynamic> patch,
+  }) async {
+    await _assertStoreOwner(storeId);
+    await _petStoreOffersCol(storeId).doc(offerId).update({
+      ...patch,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> deletePetStoreOffer(String storeId, String offerId) async {
+    await _assertStoreOwner(storeId);
+    await _petStoreOffersCol(storeId).doc(offerId).delete();
+    await appendPetStoreAuditLog(storeId, 'Offer removed', offerId);
+  }
+
+  Future<String?> fetchUserDisplayName(String uid) async {
+    if (uid.isEmpty) return null;
+    try {
+      final d = await _db.collection('users').doc(uid).get();
+      final m = d.data();
+      if (m == null) return null;
+      final s = (m['businessName'] ??
+              m['fullName'] ??
+              m['name'] ??
+              m['email'] ??
+              '')
+          .toString()
+          .trim();
+      return s.isEmpty ? null : s;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Public fields for store-owner order detail (buyer profile).
+  Future<Map<String, String?>> fetchBuyerPublicProfile(String uid) async {
+    if (uid.isEmpty) {
+      return {'name': null, 'email': null, 'phone': null};
+    }
+    try {
+      final d = await _db.collection('users').doc(uid).get();
+      final m = d.data();
+      if (m == null) {
+        return {'name': null, 'email': null, 'phone': null};
+      }
+      String? pick(String k) {
+        final v = (m[k] ?? '').toString().trim();
+        return v.isEmpty ? null : v;
+      }
+
+      final name = pick('businessName') ??
+          pick('fullName') ??
+          pick('name') ??
+          pick('email');
+      return {
+        'name': name,
+        'email': pick('email'),
+        'phone': pick('phone'),
+      };
+    } catch (_) {
+      return {'name': null, 'email': null, 'phone': null};
+    }
+  }
+
+  Future<String> uploadStoreProfileImageBytes({
+    required String storeId,
+    required Uint8List bytes,
+    required String fileName,
+  }) async {
+    await _assertStoreOwner(storeId);
+    final safeFileName = fileName.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
+    final ref = _storage.ref().child(
+      'stores/$storeId/profile/${DateTime.now().millisecondsSinceEpoch}_$safeFileName',
+    );
+    await ref.putData(bytes);
+    return ref.getDownloadURL();
   }
 
   Future<String> uploadProductImageBytes({

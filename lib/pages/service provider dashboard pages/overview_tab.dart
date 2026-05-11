@@ -289,7 +289,7 @@ class _OverviewTabState extends State<OverviewTab> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              if (rightWidget != null) rightWidget,
+              ?rightWidget,
             ],
           ),
           const SizedBox(height: 16),
