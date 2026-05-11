@@ -611,17 +611,54 @@ class DatabaseService {
     return completedOrders.docs.isNotEmpty;
   }
 
+  /// Buyer may review this order after it is completed/delivered for this store.
+  Future<bool> canRateOrderForReview({
+    required String storeId,
+    required String orderId,
+  }) async {
+    final doc = await _orders.doc(orderId).get();
+    if (!doc.exists) return false;
+    final d = doc.data();
+    if (d == null) return false;
+    if ((d['userId'] ?? '').toString() != _uid) return false;
+    if ((d['storeId'] ?? '').toString() != storeId) return false;
+    final status = (d['status'] ?? '').toString().toLowerCase();
+    return status == 'completed' || status == 'delivered';
+  }
+
+  String _reviewCustomerName(String? customerName) {
+    final fromArg = (customerName ?? '').trim();
+    if (fromArg.isNotEmpty) return fromArg;
+    final dn = (_auth.currentUser?.displayName ?? '').trim();
+    if (dn.isNotEmpty) return dn;
+    return '';
+  }
+
   Future<void> rateProduct({
     required String storeId,
     required String productId,
     required int stars,
     String? comment,
+    String? orderId,
+    String? customerName,
   }) async {
     if (stars < 1 || stars > 5) {
       throw Exception('Rating must be between 1 and 5 stars.');
     }
+    final oid = (orderId ?? '').trim();
+    if (oid.isNotEmpty) {
+      final ok = await canRateOrderForReview(storeId: storeId, orderId: oid);
+      if (!ok) {
+        throw Exception(
+          'You can only review products from completed orders at this store.',
+        );
+      }
+    }
     try {
-      final ratingId = '${_uid}_$productId';
+      final ratingId = oid.isNotEmpty
+          ? '${_uid}_${oid}_$productId'
+          : '${_uid}_$productId';
+      final cn = _reviewCustomerName(customerName);
       await _reviews.doc(ratingId).set({
         'id': ratingId,
         'type': 'product',
@@ -630,6 +667,8 @@ class DatabaseService {
         'userId': _uid,
         'stars': stars,
         'comment': comment ?? '',
+        if (oid.isNotEmpty) 'orderId': oid,
+        if (cn.isNotEmpty) 'customerName': cn,
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
@@ -642,16 +681,31 @@ class DatabaseService {
     required String storeId,
     required int stars,
     String? comment,
+    String? orderId,
+    String? customerName,
   }) async {
     if (stars < 1 || stars > 5) {
       throw Exception('Rating must be between 1 and 5 stars.');
     }
-    final allowed = await canRateStore(storeId);
-    if (!allowed) {
-      throw Exception('You can rate this store only after placing an order.');
+    final oid = (orderId ?? '').trim();
+    if (oid.isNotEmpty) {
+      final ok = await canRateOrderForReview(storeId: storeId, orderId: oid);
+      if (!ok) {
+        throw Exception(
+          'You can only review the store for completed orders you placed.',
+        );
+      }
+    } else {
+      final allowed = await canRateStore(storeId);
+      if (!allowed) {
+        throw Exception('You can rate this store only after placing an order.');
+      }
     }
     try {
-      final ratingId = '${_uid}_store_$storeId';
+      final ratingId = oid.isNotEmpty
+          ? '${_uid}_${oid}_store_$storeId'
+          : '${_uid}_store_$storeId';
+      final cn = _reviewCustomerName(customerName);
       await _reviews.doc(ratingId).set({
         'id': ratingId,
         'type': 'store',
@@ -659,6 +713,8 @@ class DatabaseService {
         'userId': _uid,
         'stars': stars,
         'comment': comment ?? '',
+        if (oid.isNotEmpty) 'orderId': oid,
+        if (cn.isNotEmpty) 'customerName': cn,
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));

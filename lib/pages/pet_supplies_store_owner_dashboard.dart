@@ -4662,7 +4662,116 @@ class _FirestoreOfferCard extends StatelessWidget {
   }
 }
 
-// ─── Reviews ─────────────────────────────────────────────────────────────────
+// ─── Reviews (Firestore `reviews` where storeId == provider uid) ───────────
+
+const Color _kReviewCardBorder = Color(0xFF9EC9E0);
+
+class _PetStoreReviewGroup {
+  _PetStoreReviewGroup({
+    required this.userId,
+    required this.orderId,
+  });
+
+  final String userId;
+  final String orderId;
+  final List<QueryDocumentSnapshot<Map<String, dynamic>>> productDocs = [];
+  QueryDocumentSnapshot<Map<String, dynamic>>? storeDoc;
+
+  static int _docMs(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+    final t = doc.data()['updatedAt'] ?? doc.data()['createdAt'];
+    if (t is Timestamp) return t.millisecondsSinceEpoch;
+    return 0;
+  }
+
+  QueryDocumentSnapshot<Map<String, dynamic>>? pickLatestProductDoc() {
+    if (productDocs.isEmpty) return null;
+    final sorted = [...productDocs]
+      ..sort((a, b) => _docMs(b).compareTo(_docMs(a)));
+    return sorted.first;
+  }
+
+  int sortKeyMs() {
+    var best = 0;
+    final pd = pickLatestProductDoc();
+    if (pd != null) best = best > _docMs(pd) ? best : _docMs(pd);
+    if (storeDoc != null) {
+      best = best > _docMs(storeDoc!) ? best : _docMs(storeDoc!);
+    }
+    return best;
+  }
+
+  String? customerNameHint() {
+    for (final d in productDocs) {
+      final n = (d.data()['customerName'] ?? '').toString().trim();
+      if (n.isNotEmpty) return n;
+    }
+    final s = storeDoc;
+    if (s != null) {
+      final n = (s.data()['customerName'] ?? '').toString().trim();
+      if (n.isNotEmpty) return n;
+    }
+    return null;
+  }
+
+  String headerDateStr() {
+    Timestamp? bestTs;
+    var best = 0;
+    for (final d in productDocs) {
+      final t = d.data()['createdAt'];
+      if (t is Timestamp && t.millisecondsSinceEpoch >= best) {
+        best = t.millisecondsSinceEpoch;
+        bestTs = t;
+      }
+    }
+    final s = storeDoc;
+    if (s != null) {
+      final t = s.data()['createdAt'];
+      if (t is Timestamp && t.millisecondsSinceEpoch >= best) {
+        bestTs = t;
+      }
+    }
+    if (bestTs != null) return DateFormat.yMMMd().format(bestTs.toDate());
+    return '';
+  }
+}
+
+List<_PetStoreReviewGroup> _groupPetStoreReviewDocs(
+  List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+) {
+  final map = <String, _PetStoreReviewGroup>{};
+  for (final doc in docs) {
+    final d = doc.data();
+    final type = (d['type'] ?? '').toString();
+    final uid = (d['userId'] ?? '').toString();
+    final oid = (d['orderId'] ?? '').toString().trim();
+    if (oid.isNotEmpty && (type == 'product' || type == 'store')) {
+      final key = '$uid|$oid';
+      final g = map.putIfAbsent(key, () => _PetStoreReviewGroup(userId: uid, orderId: oid));
+      if (type == 'product') {
+        g.productDocs.add(doc);
+      } else if (type == 'store') {
+        final cur = g.storeDoc;
+        if (cur == null || _PetStoreReviewGroup._docMs(doc) >= _PetStoreReviewGroup._docMs(cur)) {
+          g.storeDoc = doc;
+        }
+      }
+    } else {
+      final key = 'legacy|${doc.id}';
+      final g = map.putIfAbsent(
+        key,
+        () => _PetStoreReviewGroup(userId: uid, orderId: ''),
+      );
+      if (type == 'product') {
+        g.productDocs.add(doc);
+      } else if (type == 'store') {
+        g.storeDoc = doc;
+      }
+    }
+  }
+  final list = map.values.toList();
+  list.sort((a, b) => b.sortKeyMs().compareTo(a.sortKeyMs()));
+  return list;
+}
 
 class _ReviewsTab extends StatelessWidget {
   final String storeId;
@@ -4670,16 +4779,46 @@ class _ReviewsTab extends StatelessWidget {
 
   const _ReviewsTab({required this.storeId, required this.databaseService});
 
-  static Widget _starsRow(int stars) {
+  static Widget _starsRow(int stars, {double size = 20}) {
+    final n = stars.clamp(0, 5);
     return Row(
       children: List.generate(
         5,
         (j) => Icon(
-          j < stars ? Icons.star : Icons.star_border,
-          color: Colors.amber,
-          size: 18,
+          j < n ? Icons.star : Icons.star_border,
+          color: Colors.amber.shade700,
+          size: size,
         ),
       ),
+    );
+  }
+
+  static Widget _reviewSection({
+    required String label,
+    required int stars,
+    required String comment,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: Colors.grey.shade800,
+          ),
+        ),
+        const SizedBox(height: 4),
+        _starsRow(stars),
+        if (comment.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text(
+            comment,
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade800, height: 1.35),
+          ),
+        ],
+      ],
     );
   }
 
@@ -4688,27 +4827,33 @@ class _ReviewsTab extends StatelessWidget {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: databaseService.streamAllReviewsForStore(storeId),
       builder: (context, snap) {
+        if (snap.hasError) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text(
+                'Could not load reviews.\n${snap.error}',
+                textAlign: TextAlign.center,
+              ),
+            ),
+          );
+        }
         if (!snap.hasData) {
           return const Center(child: CircularProgressIndicator(color: _kTeal));
         }
-        var docs = snap.data!.docs.toList();
-        docs.sort((a, b) {
-          final ta = a.data()['createdAt'];
-          final tb = b.data()['createdAt'];
-          if (ta is Timestamp && tb is Timestamp) return tb.compareTo(ta);
-          return 0;
-        });
+        final docs = snap.data!.docs.toList();
         if (docs.isEmpty) {
           return const Center(child: Text('No reviews yet.'));
         }
-        final storeOnly = docs.where((d) => d.data()['type'] == 'store').toList();
-        double avg = 0;
-        if (storeOnly.isNotEmpty) {
+        final groups = _groupPetStoreReviewDocs(docs);
+        final withStore = groups.where((g) => g.storeDoc != null).toList();
+        double avgStore = 0;
+        if (withStore.isNotEmpty) {
           var s = 0.0;
-          for (final d in storeOnly) {
-            s += ((d.data()['stars'] as num?)?.toDouble() ?? 0);
+          for (final g in withStore) {
+            s += ((g.storeDoc!.data()['stars'] as num?)?.toDouble() ?? 0);
           }
-          avg = s / storeOnly.length;
+          avgStore = s / withStore.length;
         }
 
         return ListView(
@@ -4726,15 +4871,14 @@ class _ReviewsTab extends StatelessWidget {
                 ),
                 const Spacer(),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: _kTeal,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    '${docs.length} reviews',
-                    style: const TextStyle(color: Colors.white, fontSize: 11),
+                    '${groups.length} reviews',
+                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
                   ),
                 ),
               ],
@@ -4742,7 +4886,7 @@ class _ReviewsTab extends StatelessWidget {
             const SizedBox(height: 12),
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 20),
+              padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 16),
               decoration: BoxDecoration(
                 color: const Color(0xFFFFF9E6),
                 borderRadius: BorderRadius.circular(14),
@@ -4752,10 +4896,10 @@ class _ReviewsTab extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.star, color: Colors.amber, size: 36),
+                      Icon(Icons.star, color: Colors.amber.shade700, size: 38),
                       const SizedBox(width: 8),
                       Text(
-                        storeOnly.isEmpty ? '—' : avg.toStringAsFixed(1),
+                        withStore.isEmpty ? '—' : avgStore.toStringAsFixed(1),
                         style: const TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.w900,
@@ -4764,37 +4908,52 @@ class _ReviewsTab extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
-                  const Text('Average Store Rating'),
+                  const SizedBox(height: 8),
                   Text(
-                    'Based on ${storeOnly.length} store reviews',
+                    'Average Store Rating',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade800,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Based on ${withStore.length} reviews',
                     style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 14),
-            ...docs.map((doc) {
-              final d = doc.data();
-              final uid = (d['userId'] ?? '').toString();
-              final type = (d['type'] ?? '').toString();
-              final stars = (d['stars'] as num?)?.toInt() ?? 0;
-              final comment = (d['comment'] ?? '').toString();
-              final ts = d['createdAt'];
-              String dateStr = '';
-              if (ts is Timestamp) {
-                dateStr = DateFormat.yMMMd().format(ts.toDate());
-              }
-              final orderRef = (d['orderId'] ?? d['productId'] ?? '').toString();
+            const SizedBox(height: 16),
+            ...groups.map((g) {
+              final uid = g.userId;
+              final productDoc = g.pickLatestProductDoc();
+              final storeDoc = g.storeDoc;
+              final nameHint = g.customerNameHint();
+              final dateStr = g.headerDateStr();
+              final oid = g.orderId.trim();
+              final orderLabel = oid.isNotEmpty ? 'Order #$oid' : '';
+
+              final pStars = productDoc != null
+                  ? ((productDoc.data()['stars'] as num?)?.toInt() ?? 0)
+                  : 0;
+              final pComment =
+                  productDoc != null ? (productDoc.data()['comment'] ?? '').toString() : '';
+              final sStars = storeDoc != null
+                  ? ((storeDoc.data()['stars'] as num?)?.toInt() ?? 0)
+                  : 0;
+              final sComment =
+                  storeDoc != null ? (storeDoc.data()['comment'] ?? '').toString() : '';
 
               return Padding(
-                padding: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.only(bottom: 12),
                 child: Container(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.grey.shade300),
+                    border: Border.all(color: _kReviewCardBorder, width: 1.2),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -4803,65 +4962,90 @@ class _ReviewsTab extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(
-                            child: FutureBuilder<String?>(
-                              future:
-                                  databaseService.fetchUserDisplayName(uid),
-                              builder: (ctx, ns) {
-                                return Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      ns.data ?? 'Customer',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w800,
-                                        color: _kBrown,
+                            child: nameHint != null && nameHint.isNotEmpty
+                                ? Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        nameHint,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 16,
+                                          color: _kBrown,
+                                        ),
                                       ),
-                                    ),
-                                    Text(
-                                      dateStr,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey.shade600,
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              },
-                            ),
+                                      if (dateStr.isNotEmpty)
+                                        Text(
+                                          dateStr,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey.shade600,
+                                          ),
+                                        ),
+                                    ],
+                                  )
+                                : FutureBuilder<String?>(
+                                    future: databaseService.fetchUserDisplayName(uid),
+                                    builder: (ctx, ns) {
+                                      return Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            ns.data ?? 'Customer',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w800,
+                                              fontSize: 16,
+                                              color: _kBrown,
+                                            ),
+                                          ),
+                                          if (dateStr.isNotEmpty)
+                                            Text(
+                                              dateStr,
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey.shade600,
+                                              ),
+                                            ),
+                                        ],
+                                      );
+                                    },
+                                  ),
                           ),
-                          if (orderRef.isNotEmpty)
+                          if (orderLabel.isNotEmpty)
                             Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 2,
-                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(
                                 color: Colors.grey.shade200,
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
-                                type == 'product'
-                                    ? 'Product $orderRef'
-                                    : 'Order $orderRef',
-                                style: const TextStyle(fontSize: 10),
+                                orderLabel,
+                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
                               ),
                             ),
                         ],
                       ),
-                      const SizedBox(height: 10),
-                      Text(
-                        type == 'product' ? 'Product rating' : 'Store rating',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey.shade800,
+                      if (productDoc != null) ...[
+                        const SizedBox(height: 14),
+                        _reviewSection(
+                          label: 'Product Rating:',
+                          stars: pStars,
+                          comment: pComment,
                         ),
-                      ),
-                      _starsRow(stars),
-                      if (comment.isNotEmpty) ...[
-                        const SizedBox(height: 6),
-                        Text(comment),
                       ],
+                      if (storeDoc != null) ...[
+                        const SizedBox(height: 14),
+                        _reviewSection(
+                          label: 'Store Rating:',
+                          stars: sStars,
+                          comment: sComment,
+                        ),
+                      ],
+                      if (productDoc == null && storeDoc == null)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 8),
+                          child: Text('No rating data.'),
+                        ),
                     ],
                   ),
                 ),
