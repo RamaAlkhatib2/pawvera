@@ -24,6 +24,12 @@ class _HomePageState extends State<Home> {
   final DatabaseService _db = DatabaseService();
 
   @override
+  void initState() {
+    super.initState();
+    _db.checkAndFireDueReminderNotifications().catchError((_) {});
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       // تعديل منطق عرض الصفحات ليشمل صفحة الحجوزات الجديدة

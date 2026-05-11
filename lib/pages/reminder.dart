@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pawvera/services/database_service.dart';
+import 'package:pawvera/services/notification_service.dart';
 import 'home.dart';
 import 'my_bookings_page.dart';
 import 'profile_view.dart';
@@ -563,11 +564,22 @@ class _ReminderFormSheetState extends State<_ReminderFormSheet> {
         'priority': '$_priority Priority',
         'description': _notesCtrl.text.trim(),
       };
+      
+      String reminderId;
       if (_isEdit) {
-        await DatabaseService().updateReminder(widget.existing!['id'], data);
+        reminderId = widget.existing!['id'];
+        await DatabaseService().updateReminder(reminderId, data);
       } else {
-        await DatabaseService().addReminder(data);
+        reminderId = await DatabaseService().addReminder(data);
       }
+
+      await NotificationService().scheduleReminderNotification(
+        reminderId: reminderId,
+        title: _titleCtrl.text.trim(),
+        petName: _selectedPet ?? 'Unknown',
+        scheduledAt: _selectedDateTime,
+      );
+
       if (mounted) Navigator.pop(context);
     } catch (e) {
       setState(() => _loading = false);
