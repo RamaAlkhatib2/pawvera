@@ -18,6 +18,14 @@ const Color _kBlueOffer = Color(0xFF5B8FD9);
 String _productImageUrl(Map<String, dynamic> p) =>
     (p['image'] ?? p['imageUrl'] ?? '').toString().trim();
 
+String _formatPetStoreOfferValidUntil(Map<String, dynamic> m) {
+  final vu = m['validUntil'];
+  if (vu is Timestamp) {
+    return DateFormat.yMMMd().format(vu.toDate());
+  }
+  return (m['validUntilText'] ?? '').toString().trim();
+}
+
 class PetSuppliesStoreOwnerDashboard extends StatefulWidget {
   const PetSuppliesStoreOwnerDashboard({super.key});
 
@@ -3009,7 +3017,7 @@ class _ManageSaleDialogState extends State<_ManageSaleDialog> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: 'percentage',
+              initialValue: 'percentage',
               items: const [
                 DropdownMenuItem(
                   value: 'percentage',
@@ -3128,6 +3136,900 @@ class _ManageSaleDialogState extends State<_ManageSaleDialog> {
   }
 }
 
+// ─── Pet store offer dialogs (Firestore `users/{storeId}/pet_store_offers`) ───
+
+class _CreateStoreWideOfferDialog extends StatefulWidget {
+  final String storeId;
+  final DatabaseService databaseService;
+
+  const _CreateStoreWideOfferDialog({
+    required this.storeId,
+    required this.databaseService,
+  });
+
+  static Future<void> show(
+    BuildContext context, {
+    required String storeId,
+    required DatabaseService databaseService,
+  }) {
+    return showDialog<void>(
+      context: context,
+      builder: (ctx) => _CreateStoreWideOfferDialog(
+        storeId: storeId,
+        databaseService: databaseService,
+      ),
+    );
+  }
+
+  @override
+  State<_CreateStoreWideOfferDialog> createState() =>
+      _CreateStoreWideOfferDialogState();
+}
+
+class _CreateStoreWideOfferDialogState extends State<_CreateStoreWideOfferDialog> {
+  final _customPct = TextEditingController(text: '10');
+  final _priceMin = TextEditingController();
+  final _priceMax = TextEditingController();
+  final _minOrder = TextEditingController();
+  DateTime? _validUntil;
+  bool _filterPriceRange = false;
+  bool _requireMinOrder = false;
+
+  static const _quick = <double>[10, 15, 20, 25, 30, 50];
+
+  @override
+  void dispose() {
+    _customPct.dispose();
+    _priceMin.dispose();
+    _priceMax.dispose();
+    _minOrder.dispose();
+    super.dispose();
+  }
+
+  void _setPct(double v) {
+    setState(() => _customPct.text = v.round().toString());
+  }
+
+  double _parsedPct() =>
+      double.tryParse(_customPct.text.trim()) ?? 0;
+
+  String _previewTitle() {
+    final p = _parsedPct();
+    if (p <= 0) return '—';
+    if (_requireMinOrder) {
+      final mo = double.tryParse(_minOrder.text.trim()) ?? 0;
+      if (mo > 0) {
+        return '${p.round()}% Off on Orders Above ${mo.toStringAsFixed(0)} JOD';
+      }
+    }
+    return '${p.round()}% Off Store-Wide';
+  }
+
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final d = await showDatePicker(
+      context: context,
+      initialDate: _validUntil ?? now.add(const Duration(days: 1)),
+      firstDate: now,
+      lastDate: DateTime(now.year + 3),
+    );
+    if (d != null) setState(() => _validUntil = d);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: const Color(0xFFF0F9FA),
+      titlePadding: const EdgeInsets.fromLTRB(20, 16, 8, 0),
+      title: Row(
+        children: [
+          Icon(Icons.storefront_outlined, color: _kOrange, size: 26),
+          const SizedBox(width: 8),
+          const Expanded(
+            child: Text(
+              'Create Store-Wide Offer',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: _kBrown,
+              ),
+            ),
+          ),
+          IconButton(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.close),
+          ),
+        ],
+      ),
+      content: SizedBox(
+        width: 380,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Apply a discount to all products in your store',
+                style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Quick Discount Selection',
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: _kBrown,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _quick.map((v) {
+                  final sel = _customPct.text.trim() == v.round().toString();
+                  return ChoiceChip(
+                    label: Text('${v.round()}%'),
+                    selected: sel,
+                    onSelected: (_) => _setPct(v),
+                    selectedColor: _kOrange,
+                    labelStyle: TextStyle(
+                      color: sel ? Colors.white : _kBrown,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _customPct,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Or Enter Custom Discount (%)',
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Valid Until *',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: _kBrown,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 4),
+              OutlinedButton.icon(
+                onPressed: _pickDate,
+                icon: const Icon(Icons.calendar_today, size: 18),
+                label: Text(
+                  _validUntil == null
+                      ? 'mm/dd/yyyy'
+                      : DateFormat.yMd().format(_validUntil!),
+                ),
+              ),
+              const SizedBox(height: 12),
+              CheckboxListTile(
+                value: _filterPriceRange,
+                onChanged: (v) =>
+                    setState(() => _filterPriceRange = v ?? false),
+                title: const Text('Apply to products in specific price range'),
+                controlAffinity: ListTileControlAffinity.leading,
+                contentPadding: EdgeInsets.zero,
+              ),
+              if (_filterPriceRange) ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _priceMin,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Min Price (JOD)',
+                          hintText: 'e.g., 10',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: _priceMax,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Max Price (JOD)',
+                          hintText: 'e.g., 100',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              CheckboxListTile(
+                value: _requireMinOrder,
+                onChanged: (v) => setState(() => _requireMinOrder = v ?? false),
+                title: const Text('Require minimum order amount'),
+                controlAffinity: ListTileControlAffinity.leading,
+                contentPadding: EdgeInsets.zero,
+              ),
+              if (_requireMinOrder)
+                TextField(
+                  controller: _minOrder,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Minimum order (JOD)',
+                  ),
+                ),
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFE8DC),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: _kOrange.withValues(alpha: 0.5)),
+                ),
+                child: Text(
+                  'Preview: ${_previewTitle()}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: _kBrown,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        OutlinedButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: _kOrange),
+          onPressed: () async {
+            final pct = _parsedPct();
+            if (pct <= 0 || pct > 100) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Enter a valid discount %.')),
+              );
+              return;
+            }
+            if (_validUntil == null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Valid until date is required.')),
+              );
+              return;
+            }
+            final minJ =
+                _requireMinOrder ? double.tryParse(_minOrder.text.trim()) ?? 0 : 0;
+            final title = _previewTitle();
+            final desc =
+                '${pct.round()}% discount when conditions are met. Valid until ${DateFormat.yMMMd().format(_validUntil!)}.';
+            final fields = <String, dynamic>{
+              'kind': 'store_wide',
+              'title': title,
+              'description': desc,
+              'discountPercent': pct,
+              'discountLabel': '${pct.round()}% OFF',
+              'minOrderJod': minJ,
+              'validUntil': Timestamp.fromDate(_validUntil!),
+              'validUntilText': DateFormat.yMMMd().format(_validUntil!),
+              'filterByPriceRange': _filterPriceRange,
+            };
+            if (_filterPriceRange) {
+              fields['priceMinJod'] =
+                  double.tryParse(_priceMin.text.trim()) ?? 0;
+              fields['priceMaxJod'] =
+                  double.tryParse(_priceMax.text.trim()) ?? 0;
+            }
+            try {
+              await widget.databaseService.createPetStoreOffer(
+                storeId: widget.storeId,
+                fields: fields,
+              );
+              if (!context.mounted) return;
+              Navigator.pop(context);
+            } catch (e) {
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('$e')),
+              );
+            }
+          },
+          child: const Text('Create Offer'),
+        ),
+      ],
+    );
+  }
+}
+
+class _CreateProductSaleOfferDialog extends StatefulWidget {
+  final String storeId;
+  final DatabaseService databaseService;
+  final List<Map<String, dynamic>> products;
+
+  const _CreateProductSaleOfferDialog({
+    required this.storeId,
+    required this.databaseService,
+    required this.products,
+  });
+
+  static Future<void> show(
+    BuildContext context, {
+    required String storeId,
+    required DatabaseService databaseService,
+    required List<Map<String, dynamic>> products,
+  }) {
+    return showDialog<void>(
+      context: context,
+      builder: (ctx) => _CreateProductSaleOfferDialog(
+        storeId: storeId,
+        databaseService: databaseService,
+        products: products,
+      ),
+    );
+  }
+
+  @override
+  State<_CreateProductSaleOfferDialog> createState() =>
+      _CreateProductSaleOfferDialogState();
+}
+
+class _CreateProductSaleOfferDialogState
+    extends State<_CreateProductSaleOfferDialog> {
+  String? _productId;
+  final _customPct = TextEditingController(text: '15');
+  final _title = TextEditingController();
+  final _desc = TextEditingController();
+  DateTime? _validUntil;
+
+  static const _quick = <double>[10, 15, 20, 25, 30, 50];
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.products.isNotEmpty) {
+      _productId = widget.products.first['id']?.toString();
+    }
+  }
+
+  @override
+  void dispose() {
+    _customPct.dispose();
+    _title.dispose();
+    _desc.dispose();
+    super.dispose();
+  }
+
+  void _setPct(double v) {
+    setState(() => _customPct.text = v.round().toString());
+  }
+
+  double _parsedPct() =>
+      double.tryParse(_customPct.text.trim()) ?? 0;
+
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final d = await showDatePicker(
+      context: context,
+      initialDate: _validUntil ?? now.add(const Duration(days: 1)),
+      firstDate: now,
+      lastDate: DateTime(now.year + 3),
+    );
+    if (d != null) setState(() => _validUntil = d);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: const Color(0xFFF0F9FA),
+      titlePadding: const EdgeInsets.fromLTRB(20, 16, 8, 0),
+      title: Row(
+        children: [
+          Icon(Icons.inventory_2_outlined, color: _kBlueOffer, size: 26),
+          const SizedBox(width: 8),
+          const Expanded(
+            child: Text(
+              'Create Product Sale',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: _kBrown,
+              ),
+            ),
+          ),
+          IconButton(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.close),
+          ),
+        ],
+      ),
+      content: SizedBox(
+        width: 380,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Create a special sale offer for a specific product',
+                style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              if (widget.products.isEmpty)
+                const Text('Add at least one product first.')
+              else
+                DropdownButtonFormField<String>(
+                  initialValue: _productId,
+                  decoration: const InputDecoration(
+                    labelText: 'Select Product *',
+                  ),
+                  items: widget.products
+                      .map(
+                        (p) => DropdownMenuItem(
+                          value: p['id']?.toString(),
+                          child: Text(
+                            (p['title'] ?? p['id']).toString(),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (v) => setState(() => _productId = v),
+                ),
+              const SizedBox(height: 12),
+              const Text(
+                'Quick Discount Selection',
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: _kBrown,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _quick.map((v) {
+                  final sel = _customPct.text.trim() == v.round().toString();
+                  return ChoiceChip(
+                    label: Text('${v.round()}%'),
+                    selected: sel,
+                    onSelected: (_) => _setPct(v),
+                    selectedColor: _kBlueOffer,
+                    labelStyle: TextStyle(
+                      color: sel ? Colors.white : _kBrown,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _customPct,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Or Enter Custom Discount (%)',
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _title,
+                decoration: const InputDecoration(
+                  labelText: 'Offer title (optional)',
+                  hintText: 'Auto from product & discount if empty',
+                ),
+              ),
+              TextField(
+                controller: _desc,
+                maxLines: 2,
+                decoration: const InputDecoration(
+                  labelText: 'Description (optional)',
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Valid Until *',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: _kBrown,
+                  fontSize: 13,
+                ),
+              ),
+              OutlinedButton.icon(
+                onPressed: _pickDate,
+                icon: const Icon(Icons.calendar_today, size: 18),
+                label: Text(
+                  _validUntil == null
+                      ? 'mm/dd/yyyy'
+                      : DateFormat.yMd().format(_validUntil!),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        OutlinedButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: _kBlueOffer),
+          onPressed: widget.products.isEmpty || _productId == null
+              ? null
+              : () async {
+                  final pct = _parsedPct();
+                  if (pct <= 0 || pct > 100) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Enter a valid discount %.')),
+                    );
+                    return;
+                  }
+                  if (_validUntil == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Valid until date is required.'),
+                      ),
+                    );
+                    return;
+                  }
+                  final pr = widget.products.firstWhere(
+                    (e) => e['id']?.toString() == _productId,
+                    orElse: () => <String, dynamic>{},
+                  );
+                  final pTitle = (pr['title'] ?? '').toString();
+                  final offerTitle = _title.text.trim().isEmpty
+                      ? '${pct.round()}% Off $pTitle'
+                      : _title.text.trim();
+                  try {
+                    await widget.databaseService.createPetStoreOffer(
+                      storeId: widget.storeId,
+                      fields: {
+                        'kind': 'product_sale',
+                        'productId': _productId,
+                        'productTitle': pTitle,
+                        'title': offerTitle,
+                        'description': _desc.text.trim(),
+                        'discountPercent': pct,
+                        'discountLabel': '${pct.round()}% OFF',
+                        'validUntil': Timestamp.fromDate(_validUntil!),
+                        'validUntilText':
+                            DateFormat.yMMMd().format(_validUntil!),
+                      },
+                    );
+                    if (!context.mounted) return;
+                    Navigator.pop(context);
+                  } catch (e) {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('$e')),
+                    );
+                  }
+                },
+          child: const Text('Create Sale'),
+        ),
+      ],
+    );
+  }
+}
+
+class _EditPetStoreOfferDialog extends StatefulWidget {
+  final String storeId;
+  final DatabaseService databaseService;
+  final String offerId;
+  final Map<String, dynamic> initial;
+
+  const _EditPetStoreOfferDialog({
+    required this.storeId,
+    required this.databaseService,
+    required this.offerId,
+    required this.initial,
+  });
+
+  static Future<void> show(
+    BuildContext context, {
+    required String storeId,
+    required DatabaseService databaseService,
+    required String offerId,
+    required Map<String, dynamic> initial,
+  }) {
+    return showDialog<void>(
+      context: context,
+      builder: (ctx) => _EditPetStoreOfferDialog(
+        storeId: storeId,
+        databaseService: databaseService,
+        offerId: offerId,
+        initial: initial,
+      ),
+    );
+  }
+
+  @override
+  State<_EditPetStoreOfferDialog> createState() =>
+      _EditPetStoreOfferDialogState();
+}
+
+class _EditPetStoreOfferDialogState extends State<_EditPetStoreOfferDialog> {
+  late String _kind;
+  final _title = TextEditingController();
+  final _desc = TextEditingController();
+  final _disc = TextEditingController();
+  final _minJ = TextEditingController();
+  final _priceMin = TextEditingController();
+  final _priceMax = TextEditingController();
+  DateTime? _until;
+  List<Map<String, dynamic>> _products = [];
+  String? _productId;
+
+  @override
+  void initState() {
+    super.initState();
+    _kind = (widget.initial['kind'] ?? 'store_wide').toString();
+    _title.text = (widget.initial['title'] ?? '').toString();
+    _desc.text = (widget.initial['description'] ?? '').toString();
+    _disc.text =
+        ((widget.initial['discountPercent'] as num?)?.toString() ?? '');
+    _minJ.text =
+        ((widget.initial['minOrderJod'] as num?)?.toString() ?? '');
+    _priceMin.text =
+        ((widget.initial['priceMinJod'] as num?)?.toString() ?? '');
+    _priceMax.text =
+        ((widget.initial['priceMaxJod'] as num?)?.toString() ?? '');
+    final vu = widget.initial['validUntil'];
+    if (vu is Timestamp) _until = vu.toDate();
+    _productId = widget.initial['productId']?.toString();
+    _loadProducts();
+  }
+
+  Future<void> _loadProducts() async {
+    final list = await widget.databaseService
+        .streamProductsForStoreOwner(widget.storeId)
+        .first;
+    if (mounted) setState(() => _products = list);
+  }
+
+  @override
+  void dispose() {
+    _title.dispose();
+    _desc.dispose();
+    _disc.dispose();
+    _minJ.dispose();
+    _priceMin.dispose();
+    _priceMax.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final d = await showDatePicker(
+      context: context,
+      initialDate: _until ?? now.add(const Duration(days: 1)),
+      firstDate: now,
+      lastDate: DateTime(now.year + 3),
+    );
+    if (d != null) setState(() => _until = d);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isStore = _kind == 'store_wide';
+    return AlertDialog(
+      backgroundColor: const Color(0xFFF0F9FA),
+      title: const Text(
+        'Edit Offer',
+        style: TextStyle(
+          fontWeight: FontWeight.w800,
+          color: _kBrown,
+        ),
+      ),
+      content: SizedBox(
+        width: 400,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Update offer details and settings',
+                style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: isStore ? 'store_wide' : 'product_sale',
+                decoration: const InputDecoration(labelText: 'Offer Type'),
+                items: const [
+                  DropdownMenuItem(
+                    value: 'store_wide',
+                    child: Text('Store-Wide Offer'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'product_sale',
+                    child: Text('Product Sale'),
+                  ),
+                ],
+                onChanged: (v) => setState(() => _kind = v ?? 'store_wide'),
+              ),
+              if (!isStore && _products.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (!isStore && _products.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  initialValue: _productId != null &&
+                          _products.any((p) => p['id']?.toString() == _productId)
+                      ? _productId
+                      : _products.first['id']?.toString(),
+                  decoration: const InputDecoration(labelText: 'Select Product *'),
+                  items: _products
+                      .map(
+                        (p) => DropdownMenuItem(
+                          value: p['id']?.toString(),
+                          child: Text(
+                            (p['title'] ?? p['id']).toString(),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (v) => setState(() => _productId = v),
+                ),
+              ],
+              TextField(
+                controller: _title,
+                decoration: const InputDecoration(labelText: 'Offer Title'),
+              ),
+              TextField(
+                controller: _desc,
+                maxLines: 3,
+                decoration: const InputDecoration(labelText: 'Description'),
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _disc,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Discount (%)',
+                      ),
+                    ),
+                  ),
+                  if (isStore) ...[
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: _minJ,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Min order (JOD)',
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              if (isStore) ...[
+                const SizedBox(height: 4),
+                const Text(
+                  'Price Range (Optional)',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: _kBrown,
+                  ),
+                ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _priceMin,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Min Price (JOD)',
+                          hintText: 'e.g., 10',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: _priceMax,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Max Price (JOD)',
+                          hintText: 'e.g., 100',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: _pickDate,
+                icon: const Icon(Icons.calendar_today, size: 18),
+                label: Text(
+                  _until == null
+                      ? 'Valid Until'
+                      : DateFormat.yMd().format(_until!),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        OutlinedButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: _kTeal),
+          onPressed: () async {
+            final pct = double.tryParse(_disc.text.trim()) ?? 0;
+            if (pct <= 0 || pct > 100) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Invalid discount %.')),
+              );
+              return;
+            }
+            final patch = <String, dynamic>{
+              'kind': _kind,
+              'title': _title.text.trim(),
+              'description': _desc.text.trim(),
+              'discountPercent': pct,
+              'discountLabel': '${pct.round()}% OFF',
+            };
+            if (_until != null) {
+              patch['validUntil'] = Timestamp.fromDate(_until!);
+              patch['validUntilText'] = DateFormat.yMMMd().format(_until!);
+            }
+            if (_kind == 'store_wide') {
+              patch['minOrderJod'] = double.tryParse(_minJ.text.trim()) ?? 0;
+              patch['priceMinJod'] = double.tryParse(_priceMin.text.trim()) ?? 0;
+              patch['priceMaxJod'] = double.tryParse(_priceMax.text.trim()) ?? 0;
+              patch.remove('productId');
+              patch.remove('productTitle');
+            } else {
+              final pid = _productId ??
+                  widget.initial['productId']?.toString();
+              if (pid == null || pid.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Select a product.')),
+                );
+                return;
+              }
+              Map<String, dynamic>? pr;
+              for (final e in _products) {
+                if (e['id']?.toString() == pid) {
+                  pr = e;
+                  break;
+                }
+              }
+              patch['productId'] = pid;
+              patch['productTitle'] =
+                  (pr?['title'] ?? widget.initial['productTitle'] ?? '')
+                      .toString();
+            }
+            try {
+              await widget.databaseService.updatePetStoreOffer(
+                storeId: widget.storeId,
+                offerId: widget.offerId,
+                patch: patch,
+              );
+              if (!context.mounted) return;
+              Navigator.pop(context);
+            } catch (e) {
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('$e')),
+              );
+            }
+          },
+          child: const Text('Update Offer'),
+        ),
+      ],
+    );
+  }
+}
+
 // ─── Offers (Firestore `users/{storeId}/pet_store_offers`) ───────────────────
 
 class _OffersTab extends StatefulWidget {
@@ -3149,173 +4051,16 @@ class _OffersTabState extends State<_OffersTab> {
     super.dispose();
   }
 
-  Future<void> _createStoreWide(BuildContext context) async {
-    final title = TextEditingController();
-    final desc = TextEditingController();
-    final disc = TextEditingController();
-    final minJ = TextEditingController();
-    final until = TextEditingController();
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Store-wide offer'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                  controller: title,
-                  decoration: const InputDecoration(labelText: 'Title')),
-              TextField(
-                  controller: desc,
-                  decoration: const InputDecoration(labelText: 'Description')),
-              TextField(
-                  controller: disc,
-                  decoration: const InputDecoration(labelText: 'Discount %')),
-              TextField(
-                  controller: minJ,
-                  decoration:
-                      const InputDecoration(labelText: 'Min order (JOD)')),
-              TextField(
-                  controller: until,
-                  decoration:
-                      const InputDecoration(labelText: 'Valid until (text)')),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: _kOrange),
-            onPressed: () async {
-              final p = double.tryParse(disc.text.trim()) ?? 0;
-              try {
-                await widget.databaseService.createPetStoreOffer(
-                  storeId: widget.storeId,
-                  fields: {
-                    'kind': 'store_wide',
-                    'title': title.text.trim(),
-                    'description': desc.text.trim(),
-                    'discountPercent': p,
-                    'discountLabel': '${p.round()}% OFF',
-                    'minOrderJod': double.tryParse(minJ.text.trim()) ?? 0,
-                    'validUntilText': until.text.trim(),
-                  },
-                );
-                if (ctx.mounted) Navigator.pop(ctx);
-              } catch (e) {
-                if (ctx.mounted) {
-                  ScaffoldMessenger.of(ctx).showSnackBar(
-                    SnackBar(content: Text('$e')),
-                  );
-                }
-              }
-            },
-            child: const Text('Create'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _createProductSale(BuildContext context) async {
+  Future<void> _openProductSaleDialog(BuildContext context) async {
     final products = await widget.databaseService
         .streamProductsForStoreOwner(widget.storeId)
         .first;
     if (!context.mounted) return;
-    String? pid = products.isNotEmpty ? products.first['id']?.toString() : null;
-    final title = TextEditingController();
-    final desc = TextEditingController();
-    final disc = TextEditingController();
-    final until = TextEditingController();
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setModal) => AlertDialog(
-          title: const Text('Product sale'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (products.isEmpty)
-                  const Text('Add a product first.')
-                else
-                  DropdownButtonFormField<String>(
-                    initialValue: pid,
-                    decoration: const InputDecoration(labelText: 'Product'),
-                    items: products
-                        .map(
-                          (p) => DropdownMenuItem(
-                            value: p['id']?.toString(),
-                            child: Text(
-                              (p['title'] ?? p['id']).toString(),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (v) => setModal(() => pid = v),
-                  ),
-                TextField(
-                    controller: title,
-                    decoration: const InputDecoration(labelText: 'Title')),
-                TextField(
-                    controller: desc,
-                    decoration: const InputDecoration(labelText: 'Description')),
-                TextField(
-                    controller: disc,
-                    decoration: const InputDecoration(labelText: 'Discount %')),
-                TextField(
-                    controller: until,
-                    decoration:
-                        const InputDecoration(labelText: 'Valid until (text)')),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-            FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: _kBlueOffer),
-              onPressed: pid == null
-                  ? null
-                  : () async {
-                      final p = double.tryParse(disc.text.trim()) ?? 0;
-                      final pr = products.firstWhere(
-                        (e) => e['id']?.toString() == pid,
-                        orElse: () => {},
-                      );
-                      try {
-                        await widget.databaseService.createPetStoreOffer(
-                          storeId: widget.storeId,
-                          fields: {
-                            'kind': 'product_sale',
-                            'productId': pid,
-                            'productTitle': (pr['title'] ?? '').toString(),
-                            'title': title.text.trim().isEmpty
-                                ? '${p.round()}% off ${pr['title']}'
-                                : title.text.trim(),
-                            'description': desc.text.trim(),
-                            'discountPercent': p,
-                            'discountLabel': '${p.round()}% OFF',
-                            'validUntilText': until.text.trim(),
-                          },
-                        );
-                        if (ctx.mounted) Navigator.pop(ctx);
-                      } catch (e) {
-                        if (ctx.mounted) {
-                          ScaffoldMessenger.of(ctx).showSnackBar(
-                            SnackBar(content: Text('$e')),
-                          );
-                        }
-                      }
-                    },
-              child: const Text('Create'),
-            ),
-          ],
-        ),
-      ),
+    await _CreateProductSaleOfferDialog.show(
+      context,
+      storeId: widget.storeId,
+      databaseService: widget.databaseService,
+      products: products,
     );
   }
 
@@ -3324,6 +4069,39 @@ class _OffersTabState extends State<_OffersTab> {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: widget.databaseService.streamPetStoreOffers(widget.storeId),
       builder: (context, snap) {
+        if (snap.hasError) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error_outline, size: 48, color: Colors.red.shade400),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Could not load offers.',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: Colors.grey.shade800,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${snap.error}',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Deploy Firestore rules and indexes, or check your connection.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
         if (!snap.hasData) {
           return const Center(child: CircularProgressIndicator(color: _kTeal));
         }
@@ -3339,15 +4117,26 @@ class _OffersTabState extends State<_OffersTab> {
           docs = docs.where((d) {
             final m = d.data();
             final blob =
-                '${m['title']} ${m['description']} ${m['discountLabel']}'
+                '${m['title']} ${m['description']} ${m['discountLabel']} '
+                    '${m['productTitle'] ?? ''}'
                     .toLowerCase();
             return blob.contains(q);
           }).toList();
         }
-        final storeWide =
-            docs.where((d) => d.data()['kind'] == 'store_wide').toList();
-        final productSales =
-            docs.where((d) => d.data()['kind'] == 'product_sale').toList();
+        bool isActive(QueryDocumentSnapshot<Map<String, dynamic>> d) =>
+            d.data()['isActive'] != false;
+
+        List<QueryDocumentSnapshot<Map<String, dynamic>>> byKind(
+          String kind,
+        ) =>
+            docs.where((d) => d.data()['kind'] == kind).toList();
+
+        final storeWide = byKind('store_wide');
+        final productSales = byKind('product_sale');
+        final storeActive = storeWide.where(isActive).toList();
+        final storeInactive = storeWide.where((d) => !isActive(d)).toList();
+        final productActive = productSales.where(isActive).toList();
+        final productInactive = productSales.where((d) => !isActive(d)).toList();
 
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
@@ -3380,44 +4169,100 @@ class _OffersTabState extends State<_OffersTab> {
             ),
             const SizedBox(height: 14),
             _createOfferHeroCard(
+              leadingIcon: Icons.storefront_outlined,
               title: 'Store-Wide Offer',
               subtitle: 'Apply discount to all products in your store',
               color: _kOrange,
-              onPressed: () => _createStoreWide(context),
+              onPressed: () => _CreateStoreWideOfferDialog.show(
+                context,
+                storeId: widget.storeId,
+                databaseService: widget.databaseService,
+              ),
               buttonLabel: '+ Create Store-Wide Offer',
             ),
             const SizedBox(height: 12),
             _createOfferHeroCard(
+              leadingIcon: Icons.inventory_2_outlined,
               title: 'Product Sale',
               subtitle: 'Create discount for specific products',
               color: _kBlueOffer,
-              onPressed: () => _createProductSale(context),
+              onPressed: () => _openProductSaleDialog(context),
               buttonLabel: '+ Create Product Sale',
             ),
             const SizedBox(height: 20),
             _offerSectionHeader(
               icon: Icons.storefront_outlined,
               label: 'Store-Wide Offers',
-              count: storeWide.length,
+              count: storeActive.length,
             ),
-            ...storeWide.map((d) => _FirestoreOfferCard(
+            if (storeActive.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  'No active store-wide offers.',
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                ),
+              )
+            else
+              ...storeActive.map(
+                (d) => _FirestoreOfferCard(
                   doc: d,
                   storeId: widget.storeId,
                   databaseService: widget.databaseService,
                   orangeStyle: true,
-                )),
+                  inactiveList: false,
+                ),
+              ),
             const SizedBox(height: 16),
             _offerSectionHeader(
               icon: Icons.inventory_2_outlined,
               label: 'Product Sales',
-              count: productSales.length,
+              count: productActive.length,
             ),
-            ...productSales.map((d) => _FirestoreOfferCard(
+            if (productActive.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  'No active product sales.',
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                ),
+              )
+            else
+              ...productActive.map(
+                (d) => _FirestoreOfferCard(
                   doc: d,
                   storeId: widget.storeId,
                   databaseService: widget.databaseService,
                   orangeStyle: false,
-                )),
+                  inactiveList: false,
+                ),
+              ),
+            if (storeInactive.isNotEmpty || productInactive.isNotEmpty) ...[
+              const SizedBox(height: 20),
+              _offerSectionHeader(
+                icon: Icons.pause_circle_outline,
+                label: 'Inactive Offers',
+                count: storeInactive.length + productInactive.length,
+              ),
+              ...storeInactive.map(
+                (d) => _FirestoreOfferCard(
+                  doc: d,
+                  storeId: widget.storeId,
+                  databaseService: widget.databaseService,
+                  orangeStyle: true,
+                  inactiveList: true,
+                ),
+              ),
+              ...productInactive.map(
+                (d) => _FirestoreOfferCard(
+                  doc: d,
+                  storeId: widget.storeId,
+                  databaseService: widget.databaseService,
+                  orangeStyle: false,
+                  inactiveList: true,
+                ),
+              ),
+            ],
           ],
         );
       },
@@ -3448,6 +4293,7 @@ class _OffersTabState extends State<_OffersTab> {
   }
 
   Widget _createOfferHeroCard({
+    required IconData leadingIcon,
     required String title,
     required String subtitle,
     required Color color,
@@ -3473,7 +4319,7 @@ class _OffersTabState extends State<_OffersTab> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(Icons.percent, color: color),
+                child: Icon(leadingIcon, color: color),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -3519,23 +4365,143 @@ class _FirestoreOfferCard extends StatelessWidget {
   final String storeId;
   final DatabaseService databaseService;
   final bool orangeStyle;
+  final bool inactiveList;
 
   const _FirestoreOfferCard({
     required this.doc,
     required this.storeId,
     required this.databaseService,
     required this.orangeStyle,
+    required this.inactiveList,
   });
 
   @override
   Widget build(BuildContext context) {
     final m = doc.data();
-    final active = m['isActive'] != false;
     final color = orangeStyle ? _kOrange : _kBlueOffer;
     final light = Color.lerp(color, Colors.white, 0.9)!;
     final kind = (m['kind'] ?? '').toString();
-    final typeLabel =
-        kind == 'store_wide' ? 'Store-Wide' : 'Product Sale';
+    final typeLabel = kind == 'store_wide' ? 'Store-Wide' : 'Product Sale';
+    final validStr = _formatPetStoreOfferValidUntil(m);
+    final minJ = (m['minOrderJod'] as num?)?.toDouble() ?? 0;
+
+    if (inactiveList) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.grey.shade300),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      (m['title'] ?? '').toString(),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: _kBrown,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade200,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      typeLabel,
+                      style: const TextStyle(fontSize: 10),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                (m['description'] ?? '').toString(),
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  OutlinedButton(
+                    onPressed: () async {
+                      try {
+                        await databaseService.updatePetStoreOffer(
+                          storeId: storeId,
+                          offerId: doc.id,
+                          patch: {'isActive': true},
+                        );
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('$e')),
+                          );
+                        }
+                      }
+                    },
+                    child: const Text('Activate'),
+                  ),
+                  const SizedBox(width: 8),
+                  TextButton.icon(
+                    onPressed: () async {
+                      final ok = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Delete offer?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, false),
+                              child: const Text('Cancel'),
+                            ),
+                            FilledButton(
+                              onPressed: () => Navigator.pop(ctx, true),
+                              child: const Text('Delete'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (ok != true || !context.mounted) return;
+                      try {
+                        await databaseService.deletePetStoreOffer(
+                          storeId,
+                          doc.id,
+                        );
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('$e')),
+                          );
+                        }
+                      }
+                    },
+                    icon: const Icon(Icons.close, size: 18, color: Colors.red),
+                    label: const Text(
+                      'Delete',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final active = m['isActive'] != false;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -3597,7 +4563,7 @@ class _FirestoreOfferCard extends StatelessWidget {
               (m['description'] ?? '').toString(),
               style: TextStyle(color: Colors.grey.shade800, fontSize: 12),
             ),
-            if ((m['validUntilText'] ?? '').toString().isNotEmpty)
+            if (validStr.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 6),
                 child: Row(
@@ -3605,22 +4571,41 @@ class _FirestoreOfferCard extends StatelessWidget {
                     Icon(Icons.calendar_today, size: 14, color: color),
                     const SizedBox(width: 6),
                     Text(
-                      'Valid until: ${m['validUntilText']}',
+                      'Valid until: $validStr',
                       style: TextStyle(fontSize: 12, color: color),
                     ),
                   ],
                 ),
               ),
+            if (kind == 'store_wide' && minJ > 0)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  'Min order: ${minJ.toStringAsFixed(0)} JOD',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade800),
+                ),
+              ),
             const SizedBox(height: 10),
             Wrap(
               spacing: 8,
+              runSpacing: 8,
               children: [
+                OutlinedButton.icon(
+                  onPressed: () => _EditPetStoreOfferDialog.show(
+                    context,
+                    storeId: storeId,
+                    databaseService: databaseService,
+                    offerId: doc.id,
+                    initial: Map<String, dynamic>.from(m),
+                  ),
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  label: const Text('Edit'),
+                ),
                 OutlinedButton(
                   onPressed: () async {
-                    /* simple deactivate */
                     try {
                       await databaseService.updatePetStoreOffer(
-                    storeId: storeId,
+                        storeId: storeId,
                         offerId: doc.id,
                         patch: {'isActive': !active},
                       );
@@ -3636,9 +4621,28 @@ class _FirestoreOfferCard extends StatelessWidget {
                 ),
                 IconButton(
                   onPressed: () async {
+                    final ok = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('Delete offer?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: const Text('Cancel'),
+                          ),
+                          FilledButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            child: const Text('Delete'),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (ok != true || !context.mounted) return;
                     try {
                       await databaseService.deletePetStoreOffer(
-                          storeId, doc.id);
+                        storeId,
+                        doc.id,
+                      );
                     } catch (e) {
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -4105,6 +5109,17 @@ class _AuditTabState extends State<_AuditTab> {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: widget.databaseService.streamPetStoreAuditLogs(widget.storeId),
       builder: (context, snap) {
+        if (snap.hasError) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text(
+                'Could not load audit log: ${snap.error}',
+                textAlign: TextAlign.center,
+              ),
+            ),
+          );
+        }
         if (!snap.hasData) {
           return const Center(child: CircularProgressIndicator(color: _kTeal));
         }

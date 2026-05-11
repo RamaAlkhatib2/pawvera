@@ -883,20 +883,18 @@ class DatabaseService {
     } catch (_) {}
   }
 
+  /// No server-side [orderBy]: avoids composite-index / missing-field issues;
+  /// sort by `createdAt` in the UI instead.
   Stream<QuerySnapshot<Map<String, dynamic>>> streamPetStoreOffers(
     String storeId,
   ) {
-    return _petStoreOffersCol(storeId)
-        .orderBy('createdAt', descending: true)
-        .snapshots();
+    return _petStoreOffersCol(storeId).snapshots();
   }
 
   Stream<QuerySnapshot<Map<String, dynamic>>> streamPetStoreAuditLogs(
     String storeId,
   ) {
-    return _petStoreAuditCol(storeId)
-        .orderBy('createdAt', descending: true)
-        .snapshots();
+    return _petStoreAuditCol(storeId).snapshots();
   }
 
   Future<String> createPetStoreOffer({
