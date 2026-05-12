@@ -323,6 +323,43 @@ class DatabaseService {
 
   // --- Online Store: Browsing & Discovery ---
 
+  bool _isActivePetStoreOffer(Map<String, dynamic> offer) {
+    if (offer['isActive'] == false) return false;
+    final validUntil = offer['validUntil'];
+    if (validUntil is Timestamp) {
+      final endOfDay = validUntil.toDate().add(const Duration(days: 1));
+      if (DateTime.now().isAfter(endOfDay)) return false;
+    }
+    return true;
+  }
+
+  List<Map<String, dynamic>> _activeOffersFromSnapshot(
+    QuerySnapshot<Map<String, dynamic>> snapshot,
+  ) {
+    final rows = snapshot.docs
+        .map((doc) => {'id': doc.id, ...doc.data()})
+        .where(_isActivePetStoreOffer)
+        .toList();
+    rows.sort((a, b) {
+      final ap = ((a['discountPercent'] as num?)?.toDouble() ?? 0);
+      final bp = ((b['discountPercent'] as num?)?.toDouble() ?? 0);
+      return bp.compareTo(ap);
+    });
+    return rows;
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchActivePetStoreOffers(
+    String storeId,
+  ) async {
+    if (storeId.isEmpty) return <Map<String, dynamic>>[];
+    try {
+      final snapshot = await _petStoreOffersCol(storeId).get();
+      return _activeOffersFromSnapshot(snapshot);
+    } catch (_) {
+      return <Map<String, dynamic>>[];
+    }
+  }
+
   Stream<List<Map<String, dynamic>>> streamStores({
     String? searchQuery,
     String? category,
@@ -337,46 +374,66 @@ class DatabaseService {
         .where('role', isEqualTo: 'provider')
         .where('providerType', isEqualTo: 'Pet Supplies Store');
 
-    return query.snapshots().map((snapshot) {
+    return query.snapshots().asyncMap((snapshot) async {
       final normalizedQuery = (searchQuery ?? '').trim().toLowerCase();
       final normalizedCategory = (category ?? 'all').trim().toLowerCase();
 
-      final filteredDocs = snapshot.docs.where((doc) {
-        final data = doc.data();
+      final storeRows = await Future.wait(
+        snapshot.docs.map((doc) async {
+          final data = doc.data();
+          final offers = await _fetchActivePetStoreOffers(doc.id);
+          return {
+            ...data,
+            'id': doc.id,
+            // Surface `businessName` as `name` so the existing UI keeps working.
+            'name': (data['businessName'] ?? data['name'] ?? '').toString(),
+            'activeOffers': offers,
+            'hasActiveOffers':
+                offers.isNotEmpty ||
+                (data['offer'] ?? '').toString().trim().isNotEmpty,
+          };
+        }),
+      );
+
+      final filteredDocs = storeRows.where((data) {
         if (onlyActive && data['isActive'] != true) {
           return false;
         }
         final name = (data['businessName'] ?? data['name'] ?? '')
             .toString()
             .toLowerCase();
-        final description =
-            (data['description'] ?? '').toString().toLowerCase();
+        final description = (data['description'] ?? '')
+            .toString()
+            .toLowerCase();
         final tags = _storeTagsNormalized(data['tags']);
-        final hasOffers = (data['offer'] ?? '').toString().trim().isNotEmpty;
+        final hasOffers = data['hasActiveOffers'] == true;
 
-        final matchesSearch = normalizedQuery.isEmpty ||
+        final matchesSearch =
+            normalizedQuery.isEmpty ||
             name.contains(normalizedQuery) ||
             description.contains(normalizedQuery);
-        final matchesCategory = normalizedCategory == 'all' ||
-            tags.contains(normalizedCategory);
+        final matchesCategory =
+            normalizedCategory == 'all' || tags.contains(normalizedCategory);
         final matchesOffer = !offersOnly || hasOffers;
 
         return matchesSearch && matchesCategory && matchesOffer;
-      }).map((doc) {
-        final data = doc.data();
-        return {
-          ...data,
-          'id': doc.id,
-          // Surface `businessName` as `name` so the existing UI keeps working.
-          'name': (data['businessName'] ?? data['name'] ?? '').toString(),
-        };
       }).toList();
 
       filteredDocs.sort(
-        (a, b) => (a['name'] ?? '').toString().compareTo((b['name'] ?? '').toString()),
+        (a, b) => (a['name'] ?? '').toString().compareTo(
+          (b['name'] ?? '').toString(),
+        ),
       );
       return filteredDocs;
     });
+  }
+
+  Stream<List<Map<String, dynamic>>> streamActivePetStoreOffers(
+    String storeId,
+  ) {
+    return _petStoreOffersCol(
+      storeId,
+    ).snapshots().map(_activeOffersFromSnapshot);
   }
 
   Stream<List<Map<String, dynamic>>> streamStoreProducts(
@@ -398,8 +455,9 @@ class DatabaseService {
             if (data['isActive'] == false) return false;
             final title = (data['title'] ?? '').toString().toLowerCase();
             final desc = (data['description'] ?? '').toString().toLowerCase();
-            final productCategory =
-                (data['category'] ?? '').toString().toLowerCase();
+            final productCategory = (data['category'] ?? '')
+                .toString()
+                .toLowerCase();
             final hasOffer = (data['offer'] ?? '').toString().trim().isNotEmpty;
 
             final matchesSearch =
@@ -500,6 +558,16 @@ class DatabaseService {
         .snapshots();
   }
 
+  Stream<DocumentSnapshot<Map<String, dynamic>>> streamWishlistItem(
+    String productId,
+  ) {
+    return _usersCart
+        .doc(_uid)
+        .collection('wishlist_items')
+        .doc(productId)
+        .snapshots();
+  }
+
   Future<void> toggleWishlistItem({
     required String storeId,
     required String productId,
@@ -516,12 +584,17 @@ class DatabaseService {
       } else {
         await ref.set({
           'id': productId,
+          'itemType': 'product',
           'storeId': storeId,
           'productId': productId,
           'userId': _uid,
-          'title': productSnapshot['title'],
+          'title': productSnapshot['title'] ?? productSnapshot['name'],
+          'brand': productSnapshot['brand'],
           'price': productSnapshot['price'],
-          'image': productSnapshot['image'],
+          'image': productSnapshot['image'] ?? productSnapshot['imageUrl'],
+          'storeName': productSnapshot['storeName'],
+          'ratingAvg': productSnapshot['ratingAvg'],
+          'ratingCount': productSnapshot['ratingCount'],
           'updatedAt': FieldValue.serverTimestamp(),
           'createdAt': FieldValue.serverTimestamp(),
         });
@@ -540,6 +613,62 @@ class DatabaseService {
           .delete();
     } catch (_) {
       throw Exception('Unable to remove wishlist item right now.');
+    }
+  }
+
+  String _favoriteStoreDocId(String storeId) => 'store_$storeId';
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> streamFavoriteStores() {
+    return _usersCart
+        .doc(_uid)
+        .collection('wishlist_items')
+        .where('itemType', isEqualTo: 'store')
+        .snapshots();
+  }
+
+  Stream<DocumentSnapshot<Map<String, dynamic>>> streamFavoriteStore(
+    String storeId,
+  ) {
+    return _usersCart
+        .doc(_uid)
+        .collection('wishlist_items')
+        .doc(_favoriteStoreDocId(storeId))
+        .snapshots();
+  }
+
+  Future<void> toggleFavoriteStore({
+    required String storeId,
+    required Map<String, dynamic> storeSnapshot,
+  }) async {
+    if (storeId.trim().isEmpty) {
+      throw Exception('Invalid store.');
+    }
+    try {
+      final ref = _usersCart
+          .doc(_uid)
+          .collection('wishlist_items')
+          .doc(_favoriteStoreDocId(storeId));
+      final existing = await ref.get();
+      if (existing.exists) {
+        await ref.delete();
+      } else {
+        await ref.set({
+          'id': storeId,
+          'itemType': 'store',
+          'storeId': storeId,
+          'userId': _uid,
+          'name': storeSnapshot['name'] ?? storeSnapshot['businessName'],
+          'image': storeSnapshot['image'] ?? storeSnapshot['storeImageUrl'],
+          'description': storeSnapshot['description'],
+          'location': storeSnapshot['location'] ?? storeSnapshot['address'],
+          'ratingAvg': storeSnapshot['ratingAvg'],
+          'ratingCount': storeSnapshot['ratingCount'],
+          'updatedAt': FieldValue.serverTimestamp(),
+          'createdAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      }
+    } catch (_) {
+      throw Exception('Unable to update favorite stores. Please try again.');
     }
   }
 
@@ -566,10 +695,23 @@ class DatabaseService {
                 ((item['quantity'] as num?)?.toInt() ?? 1),
       );
       final deliveryFee = items.isEmpty ? 0.0 : 5.0;
-      final total = subtotal + deliveryFee;
+      final offers = await _fetchActivePetStoreOffers(storeId);
+      Map<String, dynamic>? appliedOffer;
+      double discount = 0;
+      for (final offer in offers.where((o) => o['kind'] == 'store_wide')) {
+        final minOrder = ((offer['minOrderJod'] as num?)?.toDouble() ?? 0);
+        final pct = ((offer['discountPercent'] as num?)?.toDouble() ?? 0);
+        if (pct <= 0 || subtotal < minOrder) continue;
+        final value = subtotal * (pct / 100);
+        if (value > discount) {
+          discount = value;
+          appliedOffer = offer;
+        }
+      }
+      final total = subtotal - discount + deliveryFee;
       final orderRef = _orders.doc();
 
-      await orderRef.set({
+      final orderData = {
         'id': orderRef.id,
         'storeId': storeId,
         'userId': _uid,
@@ -579,11 +721,16 @@ class DatabaseService {
         'paymentStatus': paymentMethod == 'credit' ? 'paid' : 'pending',
         'status': 'pending',
         'subtotal': subtotal,
+        'discount': discount,
         'deliveryFee': deliveryFee,
         'total': total,
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
-      });
+      };
+      if (appliedOffer != null) {
+        orderData['appliedOffer'] = appliedOffer;
+      }
+      await orderRef.set(orderData);
 
       await clearMyCart();
       return orderRef.id;
@@ -866,7 +1013,9 @@ class DatabaseService {
   }) {
     final query = _products.where('storeId', isEqualTo: storeId);
     return query.snapshots().map((snapshot) {
-      var rows = snapshot.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList();
+      var rows = snapshot.docs
+          .map((doc) => {'id': doc.id, ...doc.data()})
+          .toList();
       if (!includeInactive) {
         rows = rows.where((p) => p['isActive'] != false).toList();
       }
@@ -875,6 +1024,7 @@ class DatabaseService {
         if (v is Timestamp) return v.toDate();
         return null;
       }
+
       rows.sort((a, b) {
         final da = ts(a);
         final db = ts(b);
@@ -917,8 +1067,9 @@ class DatabaseService {
     );
   }
 
-  CollectionReference<Map<String, dynamic>> _petStoreOffersCol(String storeId) =>
-      _db.collection('users').doc(storeId).collection('pet_store_offers');
+  CollectionReference<Map<String, dynamic>> _petStoreOffersCol(
+    String storeId,
+  ) => _db.collection('users').doc(storeId).collection('pet_store_offers');
 
   CollectionReference<Map<String, dynamic>> _petStoreAuditCol(String storeId) =>
       _db.collection('users').doc(storeId).collection('pet_store_audit_logs');
@@ -998,13 +1149,10 @@ class DatabaseService {
       final d = await _db.collection('users').doc(uid).get();
       final m = d.data();
       if (m == null) return null;
-      final s = (m['businessName'] ??
-              m['fullName'] ??
-              m['name'] ??
-              m['email'] ??
-              '')
-          .toString()
-          .trim();
+      final s =
+          (m['businessName'] ?? m['fullName'] ?? m['name'] ?? m['email'] ?? '')
+              .toString()
+              .trim();
       return s.isEmpty ? null : s;
     } catch (_) {
       return null;
@@ -1027,15 +1175,12 @@ class DatabaseService {
         return v.isEmpty ? null : v;
       }
 
-      final name = pick('businessName') ??
+      final name =
+          pick('businessName') ??
           pick('fullName') ??
           pick('name') ??
           pick('email');
-      return {
-        'name': name,
-        'email': pick('email'),
-        'phone': pick('phone'),
-      };
+      return {'name': name, 'email': pick('email'), 'phone': pick('phone')};
     } catch (_) {
       return {'name': null, 'email': null, 'phone': null};
     }
@@ -1082,7 +1227,8 @@ class DatabaseService {
       throw Exception('Store not found.');
     }
     final data = userDoc.data() ?? const <String, dynamic>{};
-    final isPetSuppliesProvider = data['role'] == 'provider' &&
+    final isPetSuppliesProvider =
+        data['role'] == 'provider' &&
         data['providerType'] == 'Pet Supplies Store';
     if (!isPetSuppliesProvider) {
       throw Exception('You do not have permission to manage this store.');

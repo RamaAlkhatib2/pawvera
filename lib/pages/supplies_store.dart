@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/database_service.dart';
-import 'store_details.dart';
+import 'store_details.dart' as store_pages;
 
 class SuppliesStore extends StatefulWidget {
   const SuppliesStore({super.key});
@@ -12,14 +12,34 @@ class SuppliesStore extends StatefulWidget {
 
 class _SuppliesStoreState extends State<SuppliesStore> {
   final DatabaseService _databaseService = DatabaseService();
+  final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String _selectedCategory = 'All';
   String _selectedSort = 'Nearest';
   bool _showOnlyOffers = false;
+  bool _showFavoriteStores = false;
+  final Map<String, bool> _favoriteStoreOverrides = {};
 
   @override
   void initState() {
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _toggleFavoriteStoresFilter() {
+    setState(() {
+      _searchController.clear();
+      _searchQuery = '';
+      _selectedCategory = 'All';
+      _selectedSort = 'Nearest';
+      _showOnlyOffers = false;
+      _showFavoriteStores = !_showFavoriteStores;
+    });
   }
 
   List<Map<String, dynamic>> _sortedStores(List<Map<String, dynamic>> stores) {
@@ -37,7 +57,11 @@ class _SuppliesStoreState extends State<SuppliesStore> {
         ),
       );
     } else {
-      list.sort((a, b) => (a['name'] ?? '').toString().compareTo((b['name'] ?? '').toString()));
+      list.sort(
+        (a, b) => (a['name'] ?? '').toString().compareTo(
+          (b['name'] ?? '').toString(),
+        ),
+      );
     }
     return list;
   }
@@ -64,7 +88,10 @@ class _SuppliesStoreState extends State<SuppliesStore> {
                 fontSize: 20,
               ),
             ),
-            Text('Choose a store', style: TextStyle(color: Colors.grey, fontSize: 14)),
+            Text(
+              'Choose a store',
+              style: TextStyle(color: Colors.grey, fontSize: 14),
+            ),
           ],
         ),
         actions: [
@@ -72,9 +99,14 @@ class _SuppliesStoreState extends State<SuppliesStore> {
             context,
             Icons.favorite_border,
             'Wishlist',
-            const MyWishlistPage(),
+            const store_pages.MyWishlistPage(),
           ),
-          _buildTopButton(context, Icons.history, 'Orders', const MyOrdersPage()),
+          _buildTopButton(
+            context,
+            Icons.history,
+            'Orders',
+            const MyOrdersPage(),
+          ),
           const SizedBox(width: 10),
         ],
       ),
@@ -83,6 +115,7 @@ class _SuppliesStoreState extends State<SuppliesStore> {
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: TextField(
+              controller: _searchController,
               onChanged: (value) => setState(() => _searchQuery = value),
               decoration: InputDecoration(
                 hintText: 'Search products or stores...',
@@ -102,18 +135,29 @@ class _SuppliesStoreState extends State<SuppliesStore> {
               children: [
                 Expanded(
                   child: PopupMenuButton<String>(
-                    onSelected: (value) => setState(() => _selectedSort = value),
+                    onSelected: (value) =>
+                        setState(() => _selectedSort = value),
                     itemBuilder: (context) => const [
-                      PopupMenuItem(value: 'Nearest', child: Text('Sort: Nearest')),
-                      PopupMenuItem(value: 'Top Rated', child: Text('Sort: Top Rated')),
-                      PopupMenuItem(value: 'Popular', child: Text('Sort: Popular')),
+                      PopupMenuItem(
+                        value: 'Nearest',
+                        child: Text('Sort: Nearest'),
+                      ),
+                      PopupMenuItem(
+                        value: 'Top Rated',
+                        child: Text('Sort: Top Rated'),
+                      ),
+                      PopupMenuItem(
+                        value: 'Popular',
+                        child: Text('Sort: Popular'),
+                      ),
                     ],
                     child: _pill('Sort: $_selectedSort'),
                   ),
                 ),
                 const SizedBox(width: 8),
                 GestureDetector(
-                  onTap: () => setState(() => _showOnlyOffers = !_showOnlyOffers),
+                  onTap: () =>
+                      setState(() => _showOnlyOffers = !_showOnlyOffers),
                   child: _pill(
                     'Offers Only',
                     selected: _showOnlyOffers,
@@ -123,30 +167,100 @@ class _SuppliesStoreState extends State<SuppliesStore> {
               ],
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              stream: _databaseService.streamFavoriteStores(),
+              builder: (context, favoriteSnapshot) {
+                final favoriteCount = favoriteSnapshot.data?.docs.length ?? 0;
+                return InkWell(
+                  onTap: _toggleFavoriteStoresFilter,
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: _showFavoriteStores
+                          ? const Color(0xFF5BA092)
+                          : const Color(0xFFEFFBFC),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.teal.shade100),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.teal.withValues(alpha: 0.12),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          _showFavoriteStores
+                              ? Icons.favorite
+                              : Icons.favorite_border,
+                          size: 19,
+                          color: _showFavoriteStores
+                              ? Colors.white
+                              : const Color(0xFF5A3E2B),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          _showFavoriteStores
+                              ? 'Favorite Stores ($favoriteCount)'
+                              : 'Show All Stores',
+                          style: TextStyle(
+                            color: _showFavoriteStores
+                                ? Colors.white
+                                : const Color(0xFF5A3E2B),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
           const SizedBox(height: 8),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
-              children: ['All', 'Food', 'Toys', 'Accessories', 'Health'].map((category) {
+              children: ['All', 'Food', 'Toys', 'Accessories', 'Health'].map((
+                category,
+              ) {
                 final isSelected = _selectedCategory == category;
                 return GestureDetector(
                   onTap: () => setState(() => _selectedCategory = category),
                   child: Container(
                     margin: const EdgeInsets.only(right: 10),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
-                      color: isSelected ? const Color(0xFF5BA092) : Colors.white,
+                      color: isSelected
+                          ? const Color(0xFF5BA092)
+                          : Colors.white,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                        color: isSelected ? Colors.transparent : Colors.grey.shade200,
+                        color: isSelected
+                            ? Colors.transparent
+                            : Colors.grey.shade200,
                       ),
                     ),
                     child: Text(
                       category,
                       style: TextStyle(
-                        color: isSelected ? Colors.white : const Color(0xFF5A3E2B),
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        color: isSelected
+                            ? Colors.white
+                            : const Color(0xFF5A3E2B),
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                       ),
                     ),
                   ),
@@ -156,34 +270,73 @@ class _SuppliesStoreState extends State<SuppliesStore> {
           ),
           const SizedBox(height: 16),
           Expanded(
-            child: StreamBuilder<List<Map<String, dynamic>>>(
-              stream: _databaseService.streamStores(
-                searchQuery: _searchQuery,
-                category: _selectedCategory,
-                offersOnly: _showOnlyOffers,
-              ),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator(color: Color(0xFF5BA092)));
+            child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              stream: _databaseService.streamFavoriteStores(),
+              builder: (context, favoriteSnapshot) {
+                final favoriteIds =
+                    favoriteSnapshot.data?.docs
+                        .map(
+                          (doc) => (doc.data()['storeId'] ?? doc.id).toString(),
+                        )
+                        .toSet() ??
+                    <String>{};
+                for (final entry in _favoriteStoreOverrides.entries) {
+                  if (entry.value) {
+                    favoriteIds.add(entry.key);
+                  } else {
+                    favoriteIds.remove(entry.key);
+                  }
                 }
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Text(
-                      'Could not load stores. Please try again.',
-                      style: TextStyle(color: Colors.red.shade400),
-                    ),
-                  );
-                }
-                final stores = _sortedStores(snapshot.data ?? []);
-                if (stores.isEmpty) {
-                  return const Center(child: Text('No stores found!'));
-                }
-                return ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: stores.length,
-                  itemBuilder: (context, index) {
-                    final store = stores[index];
-                    return _buildStoreCard(context, store);
+                return StreamBuilder<List<Map<String, dynamic>>>(
+                  stream: _databaseService.streamStores(
+                    searchQuery: _searchQuery,
+                    category: _selectedCategory,
+                    offersOnly: _showOnlyOffers,
+                  ),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF5BA092),
+                        ),
+                      );
+                    }
+                    if (snapshot.hasError) {
+                      return Center(
+                        child: Text(
+                          'Could not load stores. Please try again.',
+                          style: TextStyle(color: Colors.red.shade400),
+                        ),
+                      );
+                    }
+                    final allStores = _sortedStores(snapshot.data ?? []);
+                    final stores = _showFavoriteStores
+                        ? allStores
+                              .where(
+                                (store) => favoriteIds.contains(
+                                  (store['id'] ?? '').toString(),
+                                ),
+                              )
+                              .toList()
+                        : allStores;
+                    if (stores.isEmpty) {
+                      return Center(
+                        child: Text(
+                          _showFavoriteStores
+                              ? 'No favorite stores yet. Tap the heart icon on stores to save your favorites!'
+                              : 'No stores found!',
+                          textAlign: TextAlign.center,
+                        ),
+                      );
+                    }
+                    return ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: stores.length,
+                      itemBuilder: (context, index) {
+                        final store = stores[index];
+                        return _buildStoreCard(context, store);
+                      },
+                    );
                   },
                 );
               },
@@ -208,10 +361,19 @@ class _SuppliesStoreState extends State<SuppliesStore> {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 18, color: selected ? const Color(0xFF3AA78E) : const Color(0xFF5A3E2B)),
+            Icon(
+              icon,
+              size: 18,
+              color: selected
+                  ? const Color(0xFF3AA78E)
+                  : const Color(0xFF5A3E2B),
+            ),
             const SizedBox(width: 6),
           ],
-          Text(label, style: const TextStyle(fontSize: 13, color: Color(0xFF5A3E2B))),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 13, color: Color(0xFF5A3E2B)),
+          ),
           if (icon == null) ...[
             const SizedBox(width: 4),
             const Icon(Icons.arrow_drop_down, color: Colors.grey),
@@ -228,7 +390,8 @@ class _SuppliesStoreState extends State<SuppliesStore> {
     Widget page,
   ) {
     return GestureDetector(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => page)),
+      onTap: () =>
+          Navigator.push(context, MaterialPageRoute(builder: (_) => page)),
       child: Container(
         margin: const EdgeInsets.only(left: 8, top: 8, bottom: 8),
         padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -257,23 +420,34 @@ class _SuppliesStoreState extends State<SuppliesStore> {
 
   Widget _buildStoreCard(BuildContext context, Map<String, dynamic> store) {
     final name = (store['name'] ?? 'Store').toString();
-    final rating = ((store['ratingAvg'] as num?)?.toDouble() ?? 0).toStringAsFixed(1);
-    final tags = (store['tags'] as List?)?.cast<String>() ?? <String>[];
-    final offer = (store['offer'] ?? '').toString();
+    final rating = ((store['ratingAvg'] as num?)?.toDouble() ?? 0)
+        .toStringAsFixed(1);
+    final tags = ((store['tags'] as List?) ?? const [])
+        .map((tag) => tag.toString())
+        .where((tag) => tag.trim().isNotEmpty)
+        .toList();
+    final activeOffers =
+        (store['activeOffers'] as List?)?.cast<Map<String, dynamic>>() ??
+        const <Map<String, dynamic>>[];
+    final offer = activeOffers.isNotEmpty
+        ? (activeOffers.first['title'] ?? '').toString()
+        : (store['offer'] ?? '').toString();
 
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => StoreDetails(
+            builder: (_) => store_pages.StoreDetails(
               storeData: {
                 'id': store['id'],
                 'name': name,
-                'image': store['image'],
-                'location': store['location'] ?? '',
-                'distance': store['distance'] ?? '',
-                'time': store['hours'] ?? '9AM - 9PM',
+                'image': store['image'] ?? store['storeImageUrl'],
+                'description': store['description'] ?? '',
+                'address': store['address'] ?? store['street'] ?? '',
+                'location': store['location'] ?? store['city'] ?? '',
+                'distance': store['distance'] ?? 'Nearby',
+                'time': store['businessHours'] ?? store['hours'] ?? '9AM - 9PM',
                 'rating': rating,
                 'reviews': '(${store['ratingCount'] ?? 0})',
                 'categories': tags,
@@ -294,6 +468,7 @@ class _SuppliesStoreState extends State<SuppliesStore> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
                   width: 80,
@@ -329,33 +504,69 @@ class _SuppliesStoreState extends State<SuppliesStore> {
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF3AA78E),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              '★ $rating',
-                              style: const TextStyle(color: Colors.white, fontSize: 12),
-                            ),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 5),
+                            child: _storeRatingBadge(rating),
                           ),
                         ],
                       ),
                       const SizedBox(height: 4),
                       Text(
                         (store['description'] ?? '').toString(),
-                        style: const TextStyle(color: Colors.black, fontSize: 13),
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 13,
+                        ),
                       ),
                     ],
                   ),
+                ),
+                const SizedBox(width: 8),
+                StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+                  stream: _databaseService.streamFavoriteStore(
+                    (store['id'] ?? '').toString(),
+                  ),
+                  builder: (context, snapshot) {
+                    final storeId = (store['id'] ?? '').toString();
+                    final backendFavorite = snapshot.data?.exists == true;
+                    final isFavorite =
+                        _favoriteStoreOverrides[storeId] ?? backendFavorite;
+                    return _storeFavoriteButton(
+                      isFavorite: isFavorite,
+                      onTap: () async {
+                        final nextFavorite = !isFavorite;
+                        setState(() {
+                          _favoriteStoreOverrides[storeId] = nextFavorite;
+                        });
+                        try {
+                          await _databaseService.toggleFavoriteStore(
+                            storeId: storeId,
+                            storeSnapshot: store,
+                          );
+                        } catch (e) {
+                          if (mounted) {
+                            setState(() {
+                              _favoriteStoreOverrides[storeId] = isFavorite;
+                            });
+                          }
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(
+                            context,
+                          ).showSnackBar(SnackBar(content: Text('$e')));
+                        }
+                      },
+                    );
+                  },
                 ),
               ],
             ),
             if (offer.isNotEmpty) ...[
               const SizedBox(height: 10),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.orange.shade50,
                   borderRadius: BorderRadius.circular(8),
@@ -388,7 +599,11 @@ class _SuppliesStoreState extends State<SuppliesStore> {
             const Divider(),
             Row(
               children: [
-                const Icon(Icons.location_on_outlined, size: 14, color: Colors.grey),
+                const Icon(
+                  Icons.location_on_outlined,
+                  size: 14,
+                  color: Colors.grey,
+                ),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
@@ -409,6 +624,57 @@ class _SuppliesStoreState extends State<SuppliesStore> {
       ),
     );
   }
+
+  Widget _storeRatingBadge(String rating) {
+    return Container(
+      height: 28,
+      padding: const EdgeInsets.symmetric(horizontal: 9),
+      decoration: BoxDecoration(
+        color: const Color(0xFF4FA294),
+        borderRadius: BorderRadius.circular(9),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.star, color: Colors.white, size: 15),
+          const SizedBox(width: 4),
+          Text(
+            rating,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _storeFavoriteButton({
+    required bool isFavorite,
+    required Future<void> Function() onTap,
+  }) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(10),
+      elevation: 2,
+      shadowColor: Colors.black.withValues(alpha: 0.10),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: SizedBox(
+          width: 40,
+          height: 40,
+          child: Icon(
+            isFavorite ? Icons.favorite : Icons.favorite_border,
+            color: isFavorite ? Colors.redAccent : Colors.blueGrey.shade300,
+            size: 21,
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class MyWishlistPage extends StatelessWidget {
@@ -422,7 +688,10 @@ class MyWishlistPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text(
           'My Wishlist',
-          style: TextStyle(color: Color(0xFF5A3E2B), fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: Color(0xFF5A3E2B),
+            fontWeight: FontWeight.bold,
+          ),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
@@ -435,12 +704,16 @@ class MyWishlistPage extends StatelessWidget {
         stream: service.streamMyWishlist(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: Color(0xFF5BA092)));
+            return const Center(
+              child: CircularProgressIndicator(color: Color(0xFF5BA092)),
+            );
           }
           if (snapshot.hasError) {
             return const Center(child: Text('Could not load wishlist.'));
           }
-          final docs = snapshot.data?.docs ?? [];
+          final docs = (snapshot.data?.docs ?? [])
+              .where((doc) => doc.data()['itemType'] != 'store')
+              .toList();
           if (docs.isEmpty) {
             return const Center(child: Text('Your wishlist is empty'));
           }
@@ -463,104 +736,335 @@ class MyWishlistPage extends StatelessWidget {
   }
 }
 
-class MyOrdersPage extends StatelessWidget {
+class MyOrdersPage extends StatefulWidget {
   const MyOrdersPage({super.key});
+
+  @override
+  State<MyOrdersPage> createState() => _MyOrdersPageState();
+}
+
+class _MyOrdersPageState extends State<MyOrdersPage> {
+  final _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  bool _matchesOrder(String orderId, Map<String, dynamic> order) {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return true;
+    final items = _orderLineItems(
+      order,
+    ).map((item) => (item['title'] ?? '').toString()).join(' ');
+    final haystack = '$orderId ${order['storeName']} ${order['status']} $items'
+        .toLowerCase();
+    return haystack.contains(q);
+  }
 
   @override
   Widget build(BuildContext context) {
     final service = DatabaseService();
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F7F8),
-      appBar: AppBar(
-        title: const Text(
-          'My Orders',
-          style: TextStyle(color: Color(0xFF5A3E2B), fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
+      backgroundColor: const Color(0xFFEFFBFC),
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
         stream: service.streamMyOrders(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: Color(0xFF5BA092)));
+            return const Center(
+              child: CircularProgressIndicator(color: Color(0xFF5BA092)),
+            );
           }
           if (snapshot.hasError) {
             return const Center(child: Text('Could not load orders.'));
           }
-          final docs = snapshot.data?.docs ?? [];
-          if (docs.isEmpty) {
-            return const Center(child: Text('No orders yet.'));
-          }
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: docs.length,
-            itemBuilder: (context, index) {
-              final orderId = docs[index].id;
-              final order = docs[index].data();
-              final status = (order['status'] ?? '').toString().toLowerCase();
-              final canRate = status == 'completed' || status == 'delivered';
-              return Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+          final allDocs = snapshot.data?.docs ?? [];
+          final docs = allDocs
+              .where((doc) => _matchesOrder(doc.id, doc.data()))
+              .toList();
+          return SafeArea(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(22, 14, 22, 16),
+                  child: Row(
                     children: [
-                      Row(
+                      _topSquareButton(
+                        icon: Icons.arrow_back,
+                        onTap: () => Navigator.pop(context),
+                      ),
+                      const SizedBox(width: 14),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Order #$orderId',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF5A3E2B),
-                                  ),
-                                ),
-                                Text('Status: ${order['status'] ?? 'pending'}'),
-                              ],
+                          const Text(
+                            'My Orders',
+                            style: TextStyle(
+                              color: Color(0xFF5A3E2B),
+                              fontSize: 24,
+                              fontWeight: FontWeight.w800,
                             ),
                           ),
                           Text(
-                            '${order['total'] ?? 0} JOD',
-                            style: const TextStyle(fontWeight: FontWeight.w600),
+                            '${allDocs.length} total orders',
+                            style: TextStyle(color: Colors.blueGrey.shade600),
                           ),
                         ],
                       ),
-                      if (canRate) ...[
-                        const SizedBox(height: 8),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton.icon(
-                            onPressed: () {
-                              showModalBottomSheet<void>(
-                                context: context,
-                                isScrollControlled: true,
-                                backgroundColor: Colors.transparent,
-                                builder: (ctx) => _RatePetStoreOrderSheet(
-                                  databaseService: service,
-                                  orderDocId: orderId,
-                                  order: order,
-                                ),
-                              );
-                            },
-                            icon: const Icon(Icons.star_outline, size: 20, color: Color(0xFF5BA092)),
-                            label: const Text(
-                              'Rate order',
-                              style: TextStyle(color: Color(0xFF5A3E2B)),
-                            ),
-                          ),
-                        ),
-                      ],
                     ],
                   ),
                 ),
-              );
-            },
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(22, 0, 22, 14),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (value) => setState(() => _query = value),
+                    decoration: InputDecoration(
+                      hintText: 'Search by order ID, store, status, items...',
+                      prefixIcon: const Icon(
+                        Icons.search,
+                        color: Colors.blueGrey,
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: Colors.teal.shade100),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: Colors.teal.shade100),
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: docs.isEmpty
+                      ? const Center(child: Text('No orders found.'))
+                      : ListView.builder(
+                          padding: const EdgeInsets.fromLTRB(22, 0, 22, 22),
+                          itemCount: docs.length,
+                          itemBuilder: (context, index) {
+                            final orderId = docs[index].id;
+                            final order = docs[index].data();
+                            final status = (order['status'] ?? 'pending')
+                                .toString();
+                            final normalizedStatus = status.toLowerCase();
+                            final canRate =
+                                normalizedStatus == 'completed' ||
+                                normalizedStatus == 'delivered';
+                            return _OrderCard(
+                              orderId: orderId,
+                              order: order,
+                              onRate: canRate
+                                  ? () {
+                                      showModalBottomSheet<void>(
+                                        context: context,
+                                        isScrollControlled: true,
+                                        backgroundColor: Colors.transparent,
+                                        builder: (ctx) =>
+                                            _RatePetStoreOrderSheet(
+                                              databaseService: service,
+                                              orderDocId: orderId,
+                                              order: order,
+                                            ),
+                                      );
+                                    }
+                                  : null,
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _topSquareButton({
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(10),
+      elevation: 2,
+      shadowColor: Colors.teal.withValues(alpha: 0.18),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: SizedBox(
+          width: 46,
+          height: 46,
+          child: Icon(icon, color: const Color(0xFF5A3E2B)),
+        ),
+      ),
+    );
+  }
+}
+
+class _OrderCard extends StatelessWidget {
+  const _OrderCard({
+    required this.orderId,
+    required this.order,
+    required this.onRate,
+  });
+
+  final String orderId;
+  final Map<String, dynamic> order;
+  final VoidCallback? onRate;
+
+  String _dateText() {
+    final value = order['createdAt'];
+    if (value is Timestamp) {
+      final d = value.toDate();
+      return '${d.month}/${d.day}/${d.year}';
+    }
+    return '';
+  }
+
+  Color _statusColor(String status) {
+    final s = status.toLowerCase();
+    if (s == 'delivered' || s == 'completed') return Colors.green;
+    if (s.contains('delivery')) return const Color(0xFF6558F5);
+    return const Color(0xFF4FA294);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final status = (order['status'] ?? 'pending').toString();
+    final storeName = (order['storeName'] ?? 'Store').toString();
+    final total = ((order['total'] as num?)?.toDouble() ?? 0);
+    final items = _orderLineItems(order);
+    final date = _dateText();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.teal.shade100),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(
+                      'Order #$orderId',
+                      style: const TextStyle(
+                        color: Color(0xFF5A3E2B),
+                        fontSize: 19,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _statusColor(status),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        status,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                '${total.toStringAsFixed(2)} JOD',
+                style: const TextStyle(
+                  color: Colors.green,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          if (date.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(date, style: TextStyle(color: Colors.blueGrey.shade600)),
+          ],
+          const SizedBox(height: 16),
+          Text.rich(
+            TextSpan(
+              text: 'Store: ',
+              style: TextStyle(color: Colors.blueGrey.shade700),
+              children: [
+                TextSpan(
+                  text: storeName,
+                  style: const TextStyle(
+                    color: Color(0xFF5A3E2B),
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Items: ${items.length} product(s)',
+            style: TextStyle(color: Colors.blueGrey.shade700),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              items
+                  .map((item) {
+                    final title = (item['title'] ?? 'Product').toString();
+                    final qty = ((item['quantity'] as num?)?.toInt() ?? 1);
+                    return '• $title x$qty';
+                  })
+                  .join('\n'),
+              style: TextStyle(color: Colors.blueGrey.shade700),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () {},
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Order Again'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: onRate,
+                  icon: const Icon(Icons.star_outline),
+                  label: const Text('Rate Order'),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -592,7 +1096,8 @@ class _RatePetStoreOrderSheet extends StatefulWidget {
   final Map<String, dynamic> order;
 
   @override
-  State<_RatePetStoreOrderSheet> createState() => _RatePetStoreOrderSheetState();
+  State<_RatePetStoreOrderSheet> createState() =>
+      _RatePetStoreOrderSheetState();
 }
 
 class _RatePetStoreOrderSheetState extends State<_RatePetStoreOrderSheet> {
@@ -655,7 +1160,8 @@ class _RatePetStoreOrderSheetState extends State<_RatePetStoreOrderSheet> {
       return;
     }
     final productChoices = _productChoices();
-    if (productChoices.isNotEmpty && (_productId == null || _productId!.isEmpty)) {
+    if (productChoices.isNotEmpty &&
+        (_productId == null || _productId!.isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Choose a product to rate.')),
       );
@@ -686,9 +1192,7 @@ class _RatePetStoreOrderSheetState extends State<_RatePetStoreOrderSheet> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$e')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -738,7 +1242,8 @@ class _RatePetStoreOrderSheetState extends State<_RatePetStoreOrderSheet> {
                 ...() {
                   final productChoiceList = _productChoices();
                   if (productChoiceList.isEmpty) return <Widget>[];
-                  final selected = _productId != null &&
+                  final selected =
+                      _productId != null &&
                           productChoiceList.any((e) => e.key == _productId)
                       ? _productId!
                       : productChoiceList.first.key;
@@ -754,7 +1259,10 @@ class _RatePetStoreOrderSheetState extends State<_RatePetStoreOrderSheet> {
                           .map(
                             (e) => DropdownMenuItem<String>(
                               value: e.key,
-                              child: Text(e.value, overflow: TextOverflow.ellipsis),
+                              child: Text(
+                                e.value,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                           )
                           .toList(),
@@ -780,7 +1288,10 @@ class _RatePetStoreOrderSheetState extends State<_RatePetStoreOrderSheet> {
                     const SizedBox(height: 16),
                   ];
                 }(),
-                const Text('Store rating', style: TextStyle(fontWeight: FontWeight.w600)),
+                const Text(
+                  'Store rating',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
                 _starRow(
                   value: _storeStars,
                   onChanged: (n) => setState(() => _storeStars = n),
@@ -804,7 +1315,10 @@ class _RatePetStoreOrderSheetState extends State<_RatePetStoreOrderSheet> {
                       ? const SizedBox(
                           height: 22,
                           width: 22,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
                       : const Text('Submit review'),
                 ),
