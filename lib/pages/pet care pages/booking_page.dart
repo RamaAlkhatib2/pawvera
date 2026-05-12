@@ -44,6 +44,8 @@ class _BookingPageState extends State<BookingPage> {
 
   String _countryCode =
       "+962"; // default to Jordan, will be fetched from user data
+  String _userCountry =
+      "Jordan"; // user's country name, used for phone length validation
 
   static const Map<String, String> _countryCodes = {
     "Jordan": "+962",
@@ -51,6 +53,15 @@ class _BookingPageState extends State<BookingPage> {
     "UAE": "+971",
     "Egypt": "+20",
     "Palestine": "+970",
+  };
+
+  /// Expected phone digit lengths (without country code) per country.
+  static const Map<String, int> _countryPhoneLengths = {
+    "Jordan": 9,
+    "Saudi Arabia": 9,
+    "UAE": 9,
+    "Egypt": 10,
+    "Palestine": 9,
   };
 
   @override
@@ -68,10 +79,38 @@ class _BookingPageState extends State<BookingPage> {
         if (country != null && _countryCodes.containsKey(country)) {
           setState(() {
             _countryCode = _countryCodes[country]!;
+            _userCountry = country;
           });
         }
       }
     });
+  }
+
+  /// Validates that the phone number has the correct digit count for the user's country.
+  /// Returns null if valid, or an error message string if invalid.
+  String? _validatePhone() {
+    final digitsOnly = _phoneController.text.replaceAll(RegExp(r'\D'), '');
+    final expectedLength = _countryPhoneLengths[_userCountry];
+    if (expectedLength == null) return null; // unknown country, skip validation
+    if (digitsOnly.length != expectedLength) {
+      return 'Phone number must be $expectedLength digits for $_userCountry';
+    }
+    return null;
+  }
+
+  /// Validates that the email follows a standard format (contains '@' and a valid domain).
+  /// Returns null if valid, or an error message string if invalid.
+  String? _validateEmail() {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) return 'Please enter your email';
+    // Basic email regex: local@domain.tld
+    final emailRegex = RegExp(
+      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+    );
+    if (!emailRegex.hasMatch(email)) {
+      return 'Please enter a valid email address (e.g., name@example.com)';
+    }
+    return null;
   }
 
   final List<String> _timeSlots = [
@@ -323,18 +362,23 @@ class _BookingPageState extends State<BookingPage> {
                         _selectedTime != null &&
                         _selectedPet != null)
                     ? () {
-                        if (_emailController.text.isNotEmpty) {
-                          _showVerificationDialog(
+                        // Validate phone number length based on user's country
+                        final phoneError = _validatePhone();
+                        if (phoneError != null) {
+                          ScaffoldMessenger.of(
                             context,
-                            _emailController.text,
-                          );
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text("Please enter your email"),
-                            ),
-                          );
+                          ).showSnackBar(SnackBar(content: Text(phoneError)));
+                          return;
                         }
+                        // Validate email format
+                        final emailError = _validateEmail();
+                        if (emailError != null) {
+                          ScaffoldMessenger.of(
+                            context,
+                          ).showSnackBar(SnackBar(content: Text(emailError)));
+                          return;
+                        }
+                        _showVerificationDialog(context, _emailController.text);
                       }
                     : null,
                 style: ElevatedButton.styleFrom(
