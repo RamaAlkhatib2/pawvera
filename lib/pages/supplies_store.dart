@@ -421,7 +421,8 @@ class _SuppliesStoreState extends State<SuppliesStore> {
 
   Widget _buildStoreCard(BuildContext context, Map<String, dynamic> store) {
     final name = (store['name'] ?? 'Store').toString();
-    final rating = ((store['ratingAvg'] as num?)?.toDouble() ?? 0)
+    final storeId = (store['id'] ?? '').toString();
+    final fallbackRating = ((store['ratingAvg'] as num?)?.toDouble() ?? 0)
         .toStringAsFixed(1);
     final tags = ((store['tags'] as List?) ?? const [])
         .map((tag) => tag.toString())
@@ -449,7 +450,7 @@ class _SuppliesStoreState extends State<SuppliesStore> {
                 'location': store['location'] ?? store['city'] ?? '',
                 'distance': store['distance'] ?? 'Nearby',
                 'time': store['businessHours'] ?? store['hours'] ?? '9AM - 9PM',
-                'rating': rating,
+                'rating': fallbackRating,
                 'reviews': '(${store['ratingCount'] ?? 0})',
                 'categories': tags,
               },
@@ -507,7 +508,10 @@ class _SuppliesStoreState extends State<SuppliesStore> {
                           ),
                           Padding(
                             padding: const EdgeInsets.only(top: 5),
-                            child: _storeRatingBadge(rating),
+                            child: _liveStoreRatingBadge(
+                              storeId,
+                              fallbackRating,
+                            ),
                           ),
                         ],
                       ),
@@ -623,6 +627,48 @@ class _SuppliesStoreState extends State<SuppliesStore> {
           ],
         ),
       ),
+    );
+  }
+
+  /// Matches [store_details] store-review filter (single-field Firestore query).
+  bool _storeReviewDocIsStore(Map<String, dynamic> m) {
+    final t = (m['type'] ?? '').toString();
+    if (t == 'product') return false;
+    if (t == 'store') return true;
+    return (m['productId'] ?? '').toString().trim().isEmpty;
+  }
+
+  double _averageRatingFromStoreReviewDocs(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+  ) {
+    if (docs.isEmpty) return 0;
+    var sum = 0.0;
+    for (final d in docs) {
+      sum += ((d.data()['stars'] as num?)?.toDouble() ?? 0).clamp(0, 5);
+    }
+    return sum / docs.length;
+  }
+
+  Widget _liveStoreRatingBadge(String storeId, String fallbackRating) {
+    if (storeId.trim().isEmpty) {
+      return _storeRatingBadge(fallbackRating);
+    }
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: _databaseService.streamStoreReviews(storeId),
+      builder: (context, snap) {
+        var label = fallbackRating;
+        if (snap.connectionState == ConnectionState.waiting) {
+          label = '…';
+        } else if (!snap.hasError && snap.hasData) {
+          final raw = snap.data?.docs ?? [];
+          final docs =
+              raw.where((d) => _storeReviewDocIsStore(d.data())).toList();
+          final avg = _averageRatingFromStoreReviewDocs(docs);
+          final n = docs.length;
+          label = '${avg.toStringAsFixed(1)} ($n)';
+        }
+        return _storeRatingBadge(label);
+      },
     );
   }
 

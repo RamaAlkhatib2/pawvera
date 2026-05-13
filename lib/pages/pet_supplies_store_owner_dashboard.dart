@@ -513,7 +513,16 @@ class _OverviewTab extends StatelessWidget {
                   builder: (context, revSnap) {
                     final orders = orderSnap.data?.docs ?? [];
                     final products = prodSnap.data ?? [];
-                    final reviews = revSnap.data?.docs ?? [];
+                    final reviewDocs = revSnap.data?.docs ?? [];
+                    final reviews = reviewDocs
+                        .where((d) {
+                          final m = d.data();
+                          final t = (m['type'] ?? '').toString();
+                          if (t == 'product') return false;
+                          if (t == 'store') return true;
+                          return (m['productId'] ?? '').toString().trim().isEmpty;
+                        })
+                        .toList();
 
                     final orderDocs = orderSnap.hasData
                         ? _sortedOrders(orderSnap.data!)

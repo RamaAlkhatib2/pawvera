@@ -273,8 +273,8 @@ class _StoreHero extends StatelessWidget {
     final service = DatabaseService();
     final name = _value('name', 'Pet Supplies Store');
     final image = _value('image');
-    final rating = _value('rating', '0.0');
-    final reviews = _value('reviews', '(0)');
+    final fallbackRating = _value('rating', '0.0');
+    final fallbackReviews = _value('reviews', '(0)');
     final categories =
         (storeData['categories'] as List?)?.cast<String>() ?? const <String>[];
     return Padding(
@@ -398,28 +398,75 @@ class _StoreHero extends StatelessWidget {
                             storeId: _storeId,
                             storeName: name,
                             databaseService: service,
-                            rating: rating,
-                            reviews: reviews,
                           ),
                         ),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 9,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.green.shade50,
-                            borderRadius: BorderRadius.circular(7),
-                          ),
-                          child: Text(
-                            '★ $rating $reviews',
-                            style: const TextStyle(
-                              color: Colors.green,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
+                        child: _storeId.trim().isEmpty
+                            ? Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 9,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.shade50,
+                                  borderRadius: BorderRadius.circular(7),
+                                ),
+                                child: Text(
+                                  '★ $fallbackRating $fallbackReviews',
+                                  style: const TextStyle(
+                                    color: Colors.green,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              )
+                            : StreamBuilder<
+                                QuerySnapshot<Map<String, dynamic>>>(
+                                stream:
+                                    service.streamStoreReviews(_storeId),
+                                builder: (context, snap) {
+                                  var label =
+                                      '★ $fallbackRating $fallbackReviews';
+                                  if (snap.connectionState ==
+                                      ConnectionState.waiting) {
+                                    label = '★ …';
+                                  } else if (!snap.hasError &&
+                                      snap.hasData) {
+                                    final raw = snap.data?.docs ?? [];
+                                    final docs = raw
+                                        .where(
+                                          (d) => _storeReviewDocIsStore(
+                                            d.data(),
+                                          ),
+                                        )
+                                        .toList();
+                                    final avg =
+                                        _averageRatingFromStoreReviewDocs(
+                                      docs,
+                                    );
+                                    final n = docs.length;
+                                    label =
+                                        '★ ${avg.toStringAsFixed(1)} ($n)';
+                                  }
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 9,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.green.shade50,
+                                      borderRadius: BorderRadius.circular(7),
+                                    ),
+                                    child: Text(
+                                      label,
+                                      style: const TextStyle(
+                                        color: Colors.green,
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
                       ),
                     ],
                   ),
@@ -1111,175 +1158,440 @@ class _FiltersPanel extends StatelessWidget {
   }
 }
 
+bool _storeReviewDocIsStore(Map<String, dynamic> m) {
+  final t = (m['type'] ?? '').toString();
+  if (t == 'product') return false;
+  if (t == 'store') return true;
+  return (m['productId'] ?? '').toString().trim().isEmpty;
+}
+
+double _averageRatingFromStoreReviewDocs(
+  List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+) {
+  if (docs.isEmpty) return 0;
+  var sum = 0.0;
+  for (final d in docs) {
+    sum += ((d.data()['stars'] as num?)?.toDouble() ?? 0).clamp(0, 5);
+  }
+  return sum / docs.length;
+}
+
+List<Widget> _averageStarRow(double avg, {double size = 22}) {
+  final out = <Widget>[];
+  for (var i = 0; i < 5; i++) {
+    final threshold = i + 1.0;
+    IconData icon;
+    Color color;
+    if (avg >= threshold - 1e-6) {
+      icon = Icons.star_rounded;
+      color = Colors.amber.shade700;
+    } else if (avg >= threshold - 0.5) {
+      icon = Icons.star_half_rounded;
+      color = Colors.amber.shade700;
+    } else {
+      icon = Icons.star_outline_rounded;
+      color = Colors.grey.shade400;
+    }
+    out.add(Icon(icon, color: color, size: size));
+  }
+  return out;
+}
+
+String _formatReviewDate(dynamic createdAt) {
+  if (createdAt is Timestamp) {
+    final d = createdAt.toDate();
+    final y = d.year.toString().padLeft(4, '0');
+    final m = d.month.toString().padLeft(2, '0');
+    final day = d.day.toString().padLeft(2, '0');
+    return '$y-$m-$day';
+  }
+  return '';
+}
+
 class _StoreReviewsDialog extends StatelessWidget {
   const _StoreReviewsDialog({
     required this.storeId,
     required this.storeName,
     required this.databaseService,
-    required this.rating,
-    required this.reviews,
   });
 
   final String storeId;
   final String storeName;
   final DatabaseService databaseService;
-  final String rating;
-  final String reviews;
+
+  static const _mintBg = Color(0xFFF0F9F9);
+  static const _brown = Color(0xFF5A2F0E);
+  static const _teal = Color(0xFF4FA294);
 
   @override
   Widget build(BuildContext context) {
+    final maxH = MediaQuery.sizeOf(context).height * 0.78;
     return Dialog(
-      backgroundColor: const Color(0xFFEFFBFC),
-      insetPadding: const EdgeInsets.all(26),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 560, maxHeight: 640),
-        child: Padding(
-          padding: const EdgeInsets.all(22),
-          child: Column(
-            children: [
-              Row(
+      backgroundColor: _mintBg,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 22),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: SizedBox(
+        width: 520,
+        height: maxH.clamp(420.0, 640.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 4, 0),
+              child: Row(
                 children: [
                   const Spacer(),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
+                    icon: Icon(Icons.close, color: Colors.grey.shade700),
                   ),
                 ],
               ),
-              Text(
-                'Store Reviews',
-                style: const TextStyle(
-                  color: Color(0xFF5A2F0E),
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                ),
+            ),
+            Text(
+              'Store Reviews',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.brown.shade900,
+                fontSize: 24,
+                fontWeight: FontWeight.w900,
+                fontFamily: 'serif',
               ),
-              const SizedBox(height: 8),
-              Text(
+            ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Text(
                 'See what customers are saying about $storeName',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.blueGrey.shade700),
-              ),
-              const SizedBox(height: 20),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.75),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    Text(
-                      rating,
-                      style: const TextStyle(
-                        color: Color(0xFF5A2F0E),
-                        fontSize: 38,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Text(
-                        'Based on $reviews customer ratings',
-                        style: TextStyle(color: Colors.blueGrey.shade700),
-                      ),
-                    ),
-                  ],
+                style: TextStyle(
+                  color: Colors.blueGrey.shade700,
+                  fontSize: 14,
+                  height: 1.35,
                 ),
               ),
-              const SizedBox(height: 18),
-              Expanded(
-                child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                  stream: databaseService.streamStoreReviews(storeId),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(
-                        child: CircularProgressIndicator(
-                          color: Color(0xFF4FA294),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                stream: databaseService.streamStoreReviews(storeId),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: CircularProgressIndicator(color: _teal),
+                    );
+                  }
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Text(
+                          'Could not load reviews.\n${snapshot.error}',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.red.shade800),
                         ),
-                      );
-                    }
-                    final docs = snapshot.data?.docs ?? [];
-                    if (docs.isEmpty) {
-                      return const Center(child: Text('No reviews yet.'));
-                    }
-                    return ListView.separated(
-                      itemCount: docs.length,
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final data = docs[index].data();
-                        final name = (data['customerName'] ?? 'Customer')
-                            .toString();
-                        final comment = (data['comment'] ?? '').toString();
-                        final stars = ((data['stars'] as num?)?.toInt() ?? 0);
-                        return Container(
-                          padding: const EdgeInsets.all(14),
+                      ),
+                    );
+                  }
+                  final raw = snapshot.data?.docs ?? [];
+                  final docs = raw
+                      .where((d) => _storeReviewDocIsStore(d.data()))
+                      .toList()
+                    ..sort((a, b) {
+                      final ta = a.data()['createdAt'];
+                      final tb = b.data()['createdAt'];
+                      if (ta is Timestamp && tb is Timestamp) {
+                        return tb.compareTo(ta);
+                      }
+                      if (ta is Timestamp) return -1;
+                      if (tb is Timestamp) return 1;
+                      return 0;
+                    });
+
+                  final avg = _averageRatingFromStoreReviewDocs(docs);
+                  final count = docs.length;
+
+                  return Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(18),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.teal.shade100),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  CircleAvatar(
-                                    backgroundColor: const Color(0xFF4FA294),
-                                    child: Text(
-                                      name.isEmpty
-                                          ? '?'
-                                          : name[0].toUpperCase(),
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(
-                                      name,
-                                      style: const TextStyle(
-                                        color: Color(0xFF5A2F0E),
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: Colors.grey.shade200),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.04),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
                               ),
-                              const SizedBox(height: 8),
-                              Row(
-                                children: List.generate(
-                                  5,
-                                  (i) => Icon(
-                                    i < stars ? Icons.star : Icons.star_border,
-                                    color: Colors.amber.shade700,
-                                    size: 18,
-                                  ),
-                                ),
-                              ),
-                              if (comment.isNotEmpty) ...[
-                                const SizedBox(height: 8),
-                                Text(
-                                  comment,
-                                  style: TextStyle(
-                                    color: Colors.blueGrey.shade700,
-                                  ),
-                                ),
-                              ],
                             ],
                           ),
-                        );
-                      },
-                    );
-                  },
-                ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                flex: 2,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      avg.toStringAsFixed(1),
+                                      style: TextStyle(
+                                        color: Colors.brown.shade900,
+                                        fontSize: 40,
+                                        fontWeight: FontWeight.w900,
+                                        height: 1,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Row(children: _averageStarRow(avg)),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      '$count rating${count == 1 ? '' : 's'}',
+                                      style: TextStyle(
+                                        color: Colors.blueGrey.shade600,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Expanded(
+                                flex: 3,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(top: 6),
+                                  child: Text(
+                                    'Based on $count customer ${count == 1 ? 'review' : 'reviews'}',
+                                    style: TextStyle(
+                                      color: Colors.blueGrey.shade700,
+                                      fontSize: 15,
+                                      height: 1.35,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        if (docs.isEmpty)
+                          Expanded(
+                            child: Center(
+                              child: Text(
+                                'No reviews yet.',
+                                style: TextStyle(color: Colors.blueGrey.shade600),
+                              ),
+                            ),
+                          )
+                        else
+                          Expanded(
+                            child: ListView.separated(
+                              padding: EdgeInsets.zero,
+                              itemCount: docs.length,
+                              separatorBuilder: (_, _) =>
+                                  const SizedBox(height: 12),
+                              itemBuilder: (context, index) {
+                                final data = docs[index].data();
+                                final name =
+                                    (data['customerName'] ?? 'Customer')
+                                        .toString()
+                                        .trim();
+                                final displayName =
+                                    name.isEmpty ? 'Customer' : name;
+                                final comment =
+                                    (data['comment'] ?? '').toString().trim();
+                                final stars =
+                                    ((data['stars'] as num?)?.toInt() ?? 0)
+                                        .clamp(0, 5);
+                                final verified = (data['orderId'] ?? '')
+                                    .toString()
+                                    .trim()
+                                    .isNotEmpty;
+                                final dateStr =
+                                    _formatReviewDate(data['createdAt']);
+                                final initial = displayName.isNotEmpty
+                                    ? displayName[0].toUpperCase()
+                                    : '?';
+
+                                return Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(
+                                      color: Colors.grey.shade200,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          CircleAvatar(
+                                            radius: 22,
+                                            backgroundColor: _teal,
+                                            child: Text(
+                                              initial,
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w800,
+                                                fontSize: 18,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Row(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Expanded(
+                                                      child: Wrap(
+                                                        crossAxisAlignment:
+                                                            WrapCrossAlignment
+                                                                .center,
+                                                        spacing: 8,
+                                                        runSpacing: 6,
+                                                        children: [
+                                                          Text(
+                                                            displayName,
+                                                            style:
+                                                                const TextStyle(
+                                                              color: _brown,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w800,
+                                                              fontSize: 16,
+                                                            ),
+                                                          ),
+                                                          if (verified)
+                                                            Container(
+                                                              padding:
+                                                                  const EdgeInsets
+                                                                      .symmetric(
+                                                                horizontal: 8,
+                                                                vertical: 3,
+                                                              ),
+                                                              decoration:
+                                                                  BoxDecoration(
+                                                                color: Colors
+                                                                    .green
+                                                                    .shade50,
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            20),
+                                                                border: Border.all(
+                                                                  color: Colors
+                                                                      .green
+                                                                      .shade600,
+                                                                  width: 1,
+                                                                ),
+                                                              ),
+                                                              child: Row(
+                                                                mainAxisSize:
+                                                                    MainAxisSize
+                                                                        .min,
+                                                                children: [
+                                                                  Icon(
+                                                                    Icons
+                                                                        .verified_rounded,
+                                                                    size: 14,
+                                                                    color: Colors
+                                                                        .green
+                                                                        .shade700,
+                                                                  ),
+                                                                  const SizedBox(
+                                                                      width: 4),
+                                                                  Text(
+                                                                    'Verified',
+                                                                    style:
+                                                                        TextStyle(
+                                                                      fontSize:
+                                                                          11,
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .w700,
+                                                                      color: Colors
+                                                                          .green
+                                                                          .shade800,
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                    if (dateStr.isNotEmpty)
+                                                      Text(
+                                                        dateStr,
+                                                        style: TextStyle(
+                                                          color: Colors
+                                                              .blueGrey
+                                                              .shade600,
+                                                          fontSize: 12,
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                        ),
+                                                      ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 10),
+                                      Row(
+                                        children: List.generate(
+                                          5,
+                                          (i) => Icon(
+                                            i < stars
+                                                ? Icons.star_rounded
+                                                : Icons.star_outline_rounded,
+                                            color: Colors.amber.shade700,
+                                            size: 18,
+                                          ),
+                                        ),
+                                      ),
+                                      if (comment.isNotEmpty) ...[
+                                        const SizedBox(height: 10),
+                                        Text(
+                                          comment,
+                                          style: TextStyle(
+                                            color: Colors.blueGrey.shade800,
+                                            fontSize: 14,
+                                            height: 1.45,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                },
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

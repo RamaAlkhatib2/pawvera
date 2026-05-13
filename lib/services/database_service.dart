@@ -1002,31 +1002,26 @@ class DatabaseService {
     }
   }
 
+  /// Store-only reviews for buyers. Single-field [where] on [storeId] only;
+  /// filter `type == 'store'` and sort by [createdAt] in the UI (avoids composite index).
   Stream<QuerySnapshot<Map<String, dynamic>>> streamStoreReviews(
     String storeId,
   ) {
-    return _reviews
-        .where('storeId', isEqualTo: storeId)
-        .where('type', isEqualTo: 'store')
-        .orderBy('createdAt', descending: true)
-        .snapshots();
+    return _reviews.where('storeId', isEqualTo: storeId).snapshots();
   }
 
-  /// All reviews (store + product) for this supplier; sorted client-side.
+  /// All reviews for this supplier (store + product). Filter in UI if needed.
   Stream<QuerySnapshot<Map<String, dynamic>>> streamAllReviewsForStore(
     String storeId,
   ) {
     return _reviews.where('storeId', isEqualTo: storeId).snapshots();
   }
 
+  /// Product reviews; filter `type == 'product'` client-side.
   Stream<QuerySnapshot<Map<String, dynamic>>> streamProductReviews(
     String productId,
   ) {
-    return _reviews
-        .where('productId', isEqualTo: productId)
-        .where('type', isEqualTo: 'product')
-        .orderBy('createdAt', descending: true)
-        .snapshots();
+    return _reviews.where('productId', isEqualTo: productId).snapshots();
   }
 
   // --- Online Store: Store Owner Management ---
