@@ -22,6 +22,9 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
   final TextEditingController _searchController = TextEditingController();
   List<Map<String, dynamic>> filteredPets = [];
   String selectedCategory = "All";
+  String _ageFilter = "All";
+  bool _filterVaccinated = false;
+  bool _filterNeutered = false;
 
   List<Map<String, dynamic>> allPets = [
     {
@@ -46,6 +49,16 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
     _searchController.addListener(_applyFilters);
   }
 
+  double _parseAgeToYears(dynamic age) {
+    if (age == null) return 0;
+    final ageStr = age.toString().toLowerCase().trim();
+    final number =
+        double.tryParse(ageStr.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0;
+    if (ageStr.contains('month')) return number / 12;
+    if (ageStr.contains('week')) return number / 52;
+    return number;
+  }
+
   void _applyFilters() {
     setState(() {
       filteredPets = allPets.where((pet) {
@@ -54,7 +67,18 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
         );
         final matchesCategory =
             selectedCategory == "All" || pet["category"] == selectedCategory;
-        return matchesSearch && matchesCategory;
+
+        final ageYears = _parseAgeToYears(pet["age"]);
+        bool matchesAge = _ageFilter == "All";
+        if (_ageFilter == "Young") matchesAge = ageYears >= 0 && ageYears <= 2;
+        if (_ageFilter == "Adult") matchesAge = ageYears >= 3 && ageYears <= 7;
+        if (_ageFilter == "Senior") matchesAge = ageYears >= 8;
+
+        final matchesHealth =
+            (!_filterVaccinated || pet["isVaccinated"] == true) &&
+            (!_filterNeutered || pet["isNeutered"] == true);
+
+        return matchesSearch && matchesCategory && matchesAge && matchesHealth;
       }).toList();
     });
   }
@@ -105,6 +129,71 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
                   );
                   Navigator.pop(context);
                 },
+              ),
+              const Divider(),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Padding(
+                  padding: EdgeInsets.only(left: 16, top: 8, bottom: 4),
+                  child: Text(
+                    "Age Range",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: ["All", "Young", "Adult", "Senior"].map((range) {
+                  final isSelected = _ageFilter == range;
+                  return ChoiceChip(
+                    label: Text(
+                      range == "All"
+                          ? "All Ages"
+                          : range == "Young"
+                          ? "Young (0-2y)"
+                          : range == "Adult"
+                          ? "Adult (3-7y)"
+                          : "Senior (8+y)",
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isSelected ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                    selected: isSelected,
+                    selectedColor: primaryTeal,
+                    onSelected: (_) {
+                      setState(() => _ageFilter = range);
+                    },
+                  );
+                }).toList(),
+              ),
+              const Divider(),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Padding(
+                  padding: EdgeInsets.only(left: 16, top: 8, bottom: 4),
+                  child: Text(
+                    "Health Status",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+              CheckboxListTile(
+                title: const Text("Vaccinated"),
+                value: _filterVaccinated,
+                activeColor: primaryTeal,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                controlAffinity: ListTileControlAffinity.leading,
+                onChanged: (v) => setState(() => _filterVaccinated = v!),
+              ),
+              CheckboxListTile(
+                title: const Text("Neutered/Spayed"),
+                value: _filterNeutered,
+                activeColor: primaryTeal,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                controlAffinity: ListTileControlAffinity.leading,
+                onChanged: (v) => setState(() => _filterNeutered = v!),
               ),
             ],
           ),
