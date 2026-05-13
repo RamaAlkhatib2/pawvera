@@ -485,12 +485,10 @@ class DatabaseService {
 
   // --- Online Store: Cart & Wishlist ---
 
+  /// No [orderBy]: Firestore returns stable document-ID order. Ordering by
+  /// [updatedAt] made the edited line jump to the top whenever quantity changed.
   Stream<QuerySnapshot<Map<String, dynamic>>> streamMyCart() {
-    return _usersCart
-        .doc(_uid)
-        .collection('cart_items')
-        .orderBy('updatedAt', descending: true)
-        .snapshots();
+    return _usersCart.doc(_uid).collection('cart_items').snapshots();
   }
 
   Future<void> addOrUpdateCartItem({
@@ -505,7 +503,8 @@ class DatabaseService {
           .collection('cart_items')
           .doc(productId);
       final now = FieldValue.serverTimestamp();
-      await itemRef.set({
+      final existing = await itemRef.get();
+      final data = <String, dynamic>{
         'id': productId,
         'storeId': storeId,
         'productId': productId,
@@ -515,8 +514,11 @@ class DatabaseService {
         'image': productSnapshot['image'],
         'quantity': quantity,
         'updatedAt': now,
-        'createdAt': now,
-      }, SetOptions(merge: true));
+      };
+      if (!existing.exists) {
+        data['createdAt'] = now;
+      }
+      await itemRef.set(data, SetOptions(merge: true));
     } catch (_) {
       throw Exception('Unable to update cart item. Please try again.');
     }
