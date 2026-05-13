@@ -5268,24 +5268,54 @@ class _StoreSettingsTabState extends State<_StoreSettingsTab> {
                         height: 120,
                         width: double.infinity,
                         fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => Container(
+                          height: 120,
+                          width: double.infinity,
+                          color: Colors.grey.shade200,
+                          alignment: Alignment.center,
+                          child: const Text(
+                            'Could not load image',
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
                       ),
                     ),
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
                     onPressed: () async {
+                      final messenger = ScaffoldMessenger.of(context);
                       final picker = ImagePicker();
                       final file =
                           await picker.pickImage(source: ImageSource.gallery);
                       if (file == null) return;
                       final bytes = await file.readAsBytes();
-                      final url = await widget.databaseService
-                          .uploadStoreProfileImageBytes(
-                        storeId: widget.storeId,
-                        bytes: bytes,
-                        fileName: file.name,
-                      );
-                      if (!mounted) return;
-                      setState(() => _storeImageUrl = url);
+                      try {
+                        final url = await widget.databaseService
+                            .uploadStoreProfileImageBytes(
+                          storeId: widget.storeId,
+                          bytes: bytes,
+                          fileName: file.name,
+                        );
+                        await widget.databaseService.updateStoreProfile(
+                          widget.storeId,
+                          {
+                            'storeImageUrl': url,
+                            'image': url,
+                          },
+                        );
+                        if (!mounted) return;
+                        setState(() => _storeImageUrl = url);
+                        messenger.showSnackBar(
+                          const SnackBar(
+                            content: Text('Store photo saved'),
+                          ),
+                        );
+                      } catch (e) {
+                        if (!mounted) return;
+                        messenger.showSnackBar(
+                          SnackBar(content: Text('$e')),
+                        );
+                      }
                     },
                     icon: const Icon(Icons.photo_camera_outlined),
                     label: const Text('Store photo'),
@@ -5676,18 +5706,37 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
             ],
             OutlinedButton.icon(
             onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
               final picker = ImagePicker();
                 final file =
                     await picker.pickImage(source: ImageSource.gallery);
               if (file == null) return;
               final bytes = await file.readAsBytes();
-              final url = await widget.databaseService.uploadProductImageBytes(
-                storeId: widget.storeId,
-                bytes: bytes,
-                fileName: file.name,
-              );
-              if (!context.mounted) return;
-              setState(() => _imageUrl = url);
+              try {
+                final url = await widget.databaseService.uploadProductImageBytes(
+                  storeId: widget.storeId,
+                  bytes: bytes,
+                  fileName: file.name,
+                );
+                final pid =
+                    (widget.existingProduct?['id'] ?? '').toString().trim();
+                if (pid.isNotEmpty) {
+                  await widget.databaseService.updateProduct(pid, {
+                    'image': url,
+                    'imageUrl': url,
+                  });
+                }
+                if (!context.mounted) return;
+                setState(() => _imageUrl = url);
+                if (pid.isNotEmpty) {
+                  messenger.showSnackBar(
+                    const SnackBar(content: Text('Product image saved')),
+                  );
+                }
+              } catch (e) {
+                if (!context.mounted) return;
+                messenger.showSnackBar(SnackBar(content: Text('$e')));
+              }
             },
               icon: const Icon(Icons.upload_file),
               label: Text(_imageUrl.isEmpty ? 'Upload image' : 'Change image'),

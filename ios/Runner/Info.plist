@@ -66,5 +66,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>We need access to your photo library so you can set store and product images.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>We need camera access if you choose to take a new photo for your store or products.</string>
 </dict>
 </plist>

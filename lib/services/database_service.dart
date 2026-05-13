@@ -34,6 +34,11 @@ class DatabaseService {
   CollectionReference<Map<String, dynamic>> get _reviews =>
       _db.collection('reviews');
 
+  /// One shared stream per [storeId] so list rebuilds (search/favorites) do not
+  /// cancel/recreate Firestore listeners (which broke live store ratings on the list page).
+  final Map<String, Stream<QuerySnapshot<Map<String, dynamic>>>> _storeReviewsByStoreId =
+      {};
+
   // --- User Profile ---
 
   // Get current user data
@@ -1009,14 +1014,21 @@ class DatabaseService {
   Stream<QuerySnapshot<Map<String, dynamic>>> streamStoreReviews(
     String storeId,
   ) {
-    return _reviews.where('storeId', isEqualTo: storeId).snapshots();
+    final id = storeId.trim();
+    if (id.isEmpty) {
+      return const Stream<QuerySnapshot<Map<String, dynamic>>>.empty();
+    }
+    return _storeReviewsByStoreId.putIfAbsent(
+      id,
+      () => _reviews.where('storeId', isEqualTo: id).snapshots(),
+    );
   }
 
   /// All reviews for this supplier (store + product). Filter in UI if needed.
   Stream<QuerySnapshot<Map<String, dynamic>>> streamAllReviewsForStore(
     String storeId,
   ) {
-    return _reviews.where('storeId', isEqualTo: storeId).snapshots();
+    return streamStoreReviews(storeId);
   }
 
   /// Product reviews; filter `type == 'product'` client-side.

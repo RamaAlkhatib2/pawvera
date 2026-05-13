@@ -421,7 +421,7 @@ class _SuppliesStoreState extends State<SuppliesStore> {
 
   Widget _buildStoreCard(BuildContext context, Map<String, dynamic> store) {
     final name = (store['name'] ?? 'Store').toString();
-    final storeId = (store['id'] ?? '').toString();
+    final storeId = (store['id'] ?? '').toString().trim();
     final fallbackRating = ((store['ratingAvg'] as num?)?.toDouble() ?? 0)
         .toStringAsFixed(1);
     final tags = ((store['tags'] as List?) ?? const [])
@@ -434,6 +434,7 @@ class _SuppliesStoreState extends State<SuppliesStore> {
     final offer = activeOffers.isNotEmpty
         ? (activeOffers.first['title'] ?? '').toString()
         : (store['offer'] ?? '').toString();
+    final bannerUrl = store_pages.petStoreBannerImageUrl(store);
 
     return GestureDetector(
       onTap: () {
@@ -444,7 +445,8 @@ class _SuppliesStoreState extends State<SuppliesStore> {
               storeData: {
                 'id': store['id'],
                 'name': name,
-                'image': store['image'] ?? store['storeImageUrl'],
+                'image': bannerUrl,
+                'storeImageUrl': bannerUrl,
                 'description': store['description'] ?? '',
                 'address': store['address'] ?? store['street'] ?? '',
                 'location': store['location'] ?? store['city'] ?? '',
@@ -478,14 +480,14 @@ class _SuppliesStoreState extends State<SuppliesStore> {
                   decoration: BoxDecoration(
                     color: Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(10),
-                    image: (store['image'] ?? '').toString().isEmpty
+                    image: bannerUrl.isEmpty
                         ? null
                         : DecorationImage(
-                            image: NetworkImage((store['image']).toString()),
+                            image: NetworkImage(bannerUrl),
                             fit: BoxFit.cover,
                           ),
                   ),
-                  child: (store['image'] ?? '').toString().isEmpty
+                  child: bannerUrl.isEmpty
                       ? const Icon(Icons.store, color: Colors.grey)
                       : null,
                 ),
@@ -644,7 +646,9 @@ class _SuppliesStoreState extends State<SuppliesStore> {
     if (docs.isEmpty) return 0;
     var sum = 0.0;
     for (final d in docs) {
-      sum += ((d.data()['stars'] as num?)?.toDouble() ?? 0).clamp(0, 5);
+      final m = d.data();
+      final raw = m['stars'] ?? m['rating'] ?? m['star'];
+      sum += ((raw as num?)?.toDouble() ?? 0).clamp(0, 5);
     }
     return sum / docs.length;
   }
@@ -654,19 +658,21 @@ class _SuppliesStoreState extends State<SuppliesStore> {
       return _storeRatingBadge(fallbackRating);
     }
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      key: ValueKey<String>('store_rating_$storeId'),
       stream: _databaseService.streamStoreReviews(storeId),
       builder: (context, snap) {
-        var label = fallbackRating;
-        if (snap.connectionState == ConnectionState.waiting) {
-          label = '…';
-        } else if (!snap.hasError && snap.hasData) {
-          final raw = snap.data?.docs ?? [];
-          final docs =
-              raw.where((d) => _storeReviewDocIsStore(d.data())).toList();
-          final avg = _averageRatingFromStoreReviewDocs(docs);
-          final n = docs.length;
-          label = '${avg.toStringAsFixed(1)} ($n)';
+        if (snap.hasError) {
+          return _storeRatingBadge(fallbackRating);
         }
+        if (!snap.hasData) {
+          return _storeRatingBadge('…');
+        }
+        final raw = snap.data!.docs;
+        final docs =
+            raw.where((d) => _storeReviewDocIsStore(d.data())).toList();
+        final avg = _averageRatingFromStoreReviewDocs(docs);
+        final n = docs.length;
+        final label = '${avg.toStringAsFixed(1)} ($n)';
         return _storeRatingBadge(label);
       },
     );

@@ -254,6 +254,15 @@ class _StoreDetailsState extends State<StoreDetails> {
   }
 }
 
+/// Firestore user docs may use [image], [storeImageUrl], or legacy keys.
+String petStoreBannerImageUrl(Map<String, dynamic> m) {
+  for (final key in ['image', 'storeImageUrl', 'storeImage', 'photoUrl']) {
+    final s = (m[key] ?? '').toString().trim();
+    if (s.isNotEmpty) return s;
+  }
+  return '';
+}
+
 class _StoreHero extends StatelessWidget {
   const _StoreHero({required this.storeData});
 
@@ -272,7 +281,7 @@ class _StoreHero extends StatelessWidget {
   Widget build(BuildContext context) {
     final service = DatabaseService();
     final name = _value('name', 'Pet Supplies Store');
-    final image = _value('image');
+    final image = petStoreBannerImageUrl(storeData);
     final fallbackRating = _value('rating', '0.0');
     final fallbackReviews = _value('reviews', '(0)');
     final categories =
@@ -372,6 +381,16 @@ class _StoreHero extends StatelessWidget {
                       height: 120,
                       width: double.infinity,
                       fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => Container(
+                        height: 120,
+                        width: double.infinity,
+                        color: Colors.blueGrey.shade50,
+                        child: const Icon(
+                          Icons.broken_image_outlined,
+                          size: 40,
+                          color: _teal,
+                        ),
+                      ),
                     ),
             ),
             Padding(
@@ -421,6 +440,7 @@ class _StoreHero extends StatelessWidget {
                               )
                             : StreamBuilder<
                                 QuerySnapshot<Map<String, dynamic>>>(
+                                key: ValueKey<String>('store_hero_rating_$_storeId'),
                                 stream:
                                     service.streamStoreReviews(_storeId),
                                 builder: (context, snap) {
@@ -1171,7 +1191,9 @@ double _averageRatingFromStoreReviewDocs(
   if (docs.isEmpty) return 0;
   var sum = 0.0;
   for (final d in docs) {
-    sum += ((d.data()['stars'] as num?)?.toDouble() ?? 0).clamp(0, 5);
+    final m = d.data();
+    final raw = m['stars'] ?? m['rating'] ?? m['star'];
+    sum += ((raw as num?)?.toDouble() ?? 0).clamp(0, 5);
   }
   return sum / docs.length;
 }
