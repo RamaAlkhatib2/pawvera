@@ -550,6 +550,43 @@ class DatabaseService {
     }
   }
 
+  /// Clears the cart then adds each line from a previous pet-store [order]
+  /// (same shape as saved in `orders`). Same flow as shopping then checkout.
+  Future<void> refillCartFromPetStoreOrder(Map<String, dynamic> order) async {
+    final storeId = (order['storeId'] ?? '').toString().trim();
+    if (storeId.isEmpty) {
+      throw Exception('This order has no store.');
+    }
+    final raw = order['items'];
+    if (raw is! List || raw.isEmpty) {
+      throw Exception('This order has no items to repeat.');
+    }
+    final items = <Map<String, dynamic>>[];
+    for (final e in raw) {
+      if (e is Map<String, dynamic>) {
+        items.add(e);
+      } else if (e is Map) {
+        items.add(Map<String, dynamic>.from(e));
+      }
+    }
+    await clearMyCart();
+    for (final item in items) {
+      final productId =
+          (item['productId'] ?? item['id'] ?? '').toString().trim();
+      if (productId.isEmpty) continue;
+      final qty = ((item['quantity'] as num?)?.toInt() ?? 1);
+      if (qty < 1) continue;
+      final snap = Map<String, dynamic>.from(item);
+      snap['storeId'] = storeId;
+      await addOrUpdateCartItem(
+        storeId: storeId,
+        productId: productId,
+        quantity: qty,
+        productSnapshot: snap,
+      );
+    }
+  }
+
   Stream<QuerySnapshot<Map<String, dynamic>>> streamMyWishlist() {
     return _usersCart
         .doc(_uid)
@@ -789,9 +826,21 @@ class DatabaseService {
       final total = subtotal - discount + deliveryFee;
       final orderRef = _orders.doc();
 
+      var storeName = 'Store';
+      try {
+        final storeDoc = await _db.collection('users').doc(storeId).get();
+        if (storeDoc.exists) {
+          final sd = storeDoc.data() ?? {};
+          storeName =
+              (sd['businessName'] ?? sd['name'] ?? 'Store').toString().trim();
+          if (storeName.isEmpty) storeName = 'Store';
+        }
+      } catch (_) {}
+
       final orderData = {
         'id': orderRef.id,
         'storeId': storeId,
+        'storeName': storeName,
         'userId': _uid,
         'items': items,
         'deliveryAddress': deliveryAddress,
@@ -824,11 +873,9 @@ class DatabaseService {
     }
   }
 
+  /// Single-field [where] avoids a composite index. Sort by [createdAt] in the UI.
   Stream<QuerySnapshot<Map<String, dynamic>>> streamMyOrders() {
-    return _orders
-        .where('userId', isEqualTo: _uid)
-        .orderBy('createdAt', descending: true)
-        .snapshots();
+    return _orders.where('userId', isEqualTo: _uid).snapshots();
   }
 
   // --- Online Store: Ratings ---

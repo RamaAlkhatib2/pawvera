@@ -2,6 +2,12 @@
 import 'package:flutter/material.dart';
 
 import '../services/database_service.dart';
+import 'buyer_cart_page.dart';
+
+bool _isPastBuyerOrderStatus(String raw) {
+  final s = raw.toLowerCase().trim();
+  return s == 'completed' || s == 'delivered' || s == 'cancelled';
+}
 
 class MyOrdersPage extends StatefulWidget {
   const MyOrdersPage({super.key});
@@ -13,11 +19,35 @@ class MyOrdersPage extends StatefulWidget {
 class _MyOrdersPageState extends State<MyOrdersPage> {
   final _searchController = TextEditingController();
   String _query = '';
+  int _streamRetryKey = 0;
+  String? _reorderingOrderId;
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _repeatOrder(
+    QueryDocumentSnapshot<Map<String, dynamic>> doc,
+    DatabaseService service,
+  ) async {
+    final id = doc.id;
+    setState(() => _reorderingOrderId = id);
+    try {
+      await service.refillCartFromPetStoreOrder(doc.data());
+      if (!mounted) return;
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(builder: (_) => const MyCartPage()),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$e')),
+      );
+    } finally {
+      if (mounted) setState(() => _reorderingOrderId = null);
+    }
   }
 
   bool _matchesOrder(String orderId, Map<String, dynamic> order) {
@@ -37,6 +67,7 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFEFFBFC),
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        key: ValueKey<int>(_streamRetryKey),
         stream: service.streamMyOrders(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -45,11 +76,62 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
             );
           }
           if (snapshot.hasError) {
-            return const Center(child: Text('Could not load orders.'));
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text('Could not load orders.'),
+                    const SizedBox(height: 12),
+                    Text(
+                      '${snapshot.error}',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    FilledButton(
+                      onPressed: () =>
+                          setState(() => _streamRetryKey++),
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              ),
+            );
           }
-          final allDocs = snapshot.data?.docs ?? [];
-          final docs = allDocs
+          final rawDocs = snapshot.data?.docs ?? [];
+          final allDocs = List<QueryDocumentSnapshot<Map<String, dynamic>>>.from(
+            rawDocs,
+          )..sort((a, b) {
+              final ta = a.data()['createdAt'];
+              final tb = b.data()['createdAt'];
+              if (ta is Timestamp && tb is Timestamp) {
+                return tb.compareTo(ta);
+              }
+              if (ta is Timestamp) return -1;
+              if (tb is Timestamp) return 1;
+              return b.id.compareTo(a.id);
+            });
+          final filtered = allDocs
               .where((doc) => _matchesOrder(doc.id, doc.data()))
+              .toList();
+          final currentOrders = filtered
+              .where(
+                (doc) => !_isPastBuyerOrderStatus(
+                  (doc.data()['status'] ?? '').toString(),
+                ),
+              )
+              .toList();
+          final pastOrders = filtered
+              .where(
+                (doc) => _isPastBuyerOrderStatus(
+                  (doc.data()['status'] ?? '').toString(),
+                ),
+              )
               .toList();
           return SafeArea(
             child: Column(
@@ -108,41 +190,53 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
                   ),
                 ),
                 Expanded(
-                  child: docs.isEmpty
-                      ? const Center(child: Text('No orders found.'))
-                      : ListView.builder(
-                          padding: const EdgeInsets.fromLTRB(22, 0, 22, 22),
-                          itemCount: docs.length,
-                          itemBuilder: (context, index) {
-                            final orderId = docs[index].id;
-                            final order = docs[index].data();
-                            final status = (order['status'] ?? 'pending')
-                                .toString();
-                            final normalizedStatus = status.toLowerCase();
-                            final canRate =
-                                normalizedStatus == 'completed' ||
-                                normalizedStatus == 'delivered';
-                            return _OrderCard(
-                              orderId: orderId,
-                              order: order,
-                              onRate: canRate
-                                  ? () {
-                                      showModalBottomSheet<void>(
-                                        context: context,
-                                        isScrollControlled: true,
-                                        backgroundColor: Colors.transparent,
-                                        builder: (ctx) =>
-                                            _RatePetStoreOrderSheet(
-                                              databaseService: service,
-                                              orderDocId: orderId,
-                                              order: order,
-                                            ),
-                                      );
-                                    }
-                                  : null,
-                            );
-                          },
-                        ),
+                  child: allDocs.isEmpty
+                      ? const Center(child: Text('You have no orders yet.'))
+                      : filtered.isEmpty
+                          ? const Center(
+                              child: Text('No orders match your search.'),
+                            )
+                          : SingleChildScrollView(
+                              padding: const EdgeInsets.fromLTRB(
+                                22,
+                                0,
+                                22,
+                                22,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  if (currentOrders.isNotEmpty) ...[
+                                    _sectionHeader(
+                                      'Current orders',
+                                      currentOrders.length,
+                                    ),
+                                    ...currentOrders.map(
+                                      (doc) => _orderCardFor(
+                                        context,
+                                        doc,
+                                        service,
+                                      ),
+                                    ),
+                                  ],
+                                  if (pastOrders.isNotEmpty) ...[
+                                    if (currentOrders.isNotEmpty)
+                                      const SizedBox(height: 12),
+                                    _sectionHeader(
+                                      'Past orders',
+                                      pastOrders.length,
+                                    ),
+                                    ...pastOrders.map(
+                                      (doc) => _orderCardFor(
+                                        context,
+                                        doc,
+                                        service,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
                 ),
               ],
             ),
@@ -172,17 +266,80 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
       ),
     );
   }
+
+  Widget _sectionHeader(String title, int count) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10, top: 6),
+      child: Row(
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              color: Color(0xFF5A3E2B),
+              fontWeight: FontWeight.w900,
+              fontSize: 17,
+            ),
+          ),
+          const Spacer(),
+          Text(
+            '$count',
+            style: TextStyle(
+              color: Colors.blueGrey.shade600,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _orderCardFor(
+    BuildContext context,
+    QueryDocumentSnapshot<Map<String, dynamic>> doc,
+    DatabaseService service,
+  ) {
+    final orderId = doc.id;
+    final order = doc.data();
+    final status = (order['status'] ?? 'pending').toString();
+    final normalizedStatus = status.toLowerCase();
+    final canRate =
+        normalizedStatus == 'completed' || normalizedStatus == 'delivered';
+    return _OrderCard(
+      orderId: orderId,
+      order: order,
+      isReordering: _reorderingOrderId == orderId,
+      onOrderAgain: () => _repeatOrder(doc, service),
+      onRate: canRate
+          ? () {
+              showModalBottomSheet<void>(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (ctx) => _RatePetStoreOrderSheet(
+                  databaseService: service,
+                  orderDocId: orderId,
+                  order: order,
+                ),
+              );
+            }
+          : null,
+    );
+  }
 }
 
 class _OrderCard extends StatelessWidget {
   const _OrderCard({
     required this.orderId,
     required this.order,
+    required this.isReordering,
+    required this.onOrderAgain,
     required this.onRate,
   });
 
   final String orderId;
   final Map<String, dynamic> order;
+  final bool isReordering;
+  final VoidCallback onOrderAgain;
   final VoidCallback? onRate;
 
   String _dateText() {
@@ -305,7 +462,7 @@ class _OrderCard extends StatelessWidget {
                   .map((item) {
                     final title = (item['title'] ?? 'Product').toString();
                     final qty = ((item['quantity'] as num?)?.toInt() ?? 1);
-                    return 'â€¢ $title x$qty';
+                    return '• $title x$qty';
                   })
                   .join('\n'),
               style: TextStyle(color: Colors.blueGrey.shade700),
@@ -316,9 +473,15 @@ class _OrderCard extends StatelessWidget {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Order Again'),
+                  onPressed: isReordering ? null : onOrderAgain,
+                  icon: isReordering
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.refresh),
+                  label: Text(isReordering ? 'Adding…' : 'Order Again'),
                 ),
               ),
               const SizedBox(width: 12),
