@@ -405,22 +405,27 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
                       if (FirebaseAuth.instance.currentUser == null) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Please log in to contact the owner.'),
+                            content: Text(
+                              'Please log in to contact the owner.',
+                            ),
                           ),
                         );
                         return;
                       }
                       final petName = pet["name"] as String;
                       final ownerId =
-                          pet["ownerId"] as String? ?? 'owner_${petName.toLowerCase()}';
+                          pet["ownerId"] as String? ??
+                          'owner_${petName.toLowerCase()}';
                       final petId =
-                          pet["id"] as String? ?? petName.toLowerCase().replaceAll(' ', '_');
+                          pet["id"] as String? ??
+                          petName.toLowerCase().replaceAll(' ', '_');
                       try {
-                        final convId = await DatabaseService().getOrCreateConversation(
-                          ownerId: ownerId,
-                          petId: petId,
-                          petName: petName,
-                        );
+                        final convId = await DatabaseService()
+                            .getOrCreateConversation(
+                              ownerId: ownerId,
+                              petId: petId,
+                              petName: petName,
+                            );
                         if (!mounted) return;
                         Navigator.push(
                           context,
@@ -435,7 +440,10 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
                       } catch (e) {
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+                            SnackBar(
+                              content: Text('Error: $e'),
+                              backgroundColor: Colors.red,
+                            ),
                           );
                         }
                       }
@@ -495,6 +503,7 @@ class _PostPetPageState extends State<PostPetPage> {
   final _locController = TextEditingController();
   final _priceController = TextEditingController();
   final _ageController = TextEditingController();
+  String _ageUnit = "years";
   String _selectedGender = "Male";
   String _selectedCategory = "Dog";
 
@@ -567,11 +576,43 @@ class _PostPetPageState extends State<PostPetPage> {
               _priceController,
               Icons.monetization_on_outlined,
             ),
-            _buildField(
-              "Age in years",
-              _ageController,
-              Icons.calendar_today,
-              inputType: TextInputType.number,
+            Row(
+              children: [
+                Expanded(
+                  child: _buildField(
+                    "Age",
+                    _ageController,
+                    Icons.calendar_today,
+                    inputType: TextInputType.number,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Container(
+                  height: 56,
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _ageUnit,
+                      items: ["years", "months", "weeks"].map((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(value),
+                        );
+                      }).toList(),
+                      onChanged: (newValue) {
+                        setState(() {
+                          _ageUnit = newValue!;
+                        });
+                      },
+                    ),
+                  ),
+                ),
+              ],
             ),
 
             Container(
@@ -585,7 +626,7 @@ class _PostPetPageState extends State<PostPetPage> {
                 children: [
                   const Icon(Icons.category_outlined, color: Color(0xFF5BA092)),
                   const SizedBox(width: 12),
-                  const Text("Category: "),
+                  const Text("Type: "),
                   Expanded(
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
@@ -673,7 +714,7 @@ class _PostPetPageState extends State<PostPetPage> {
                     "price": _priceController.text.isEmpty
                         ? "Free"
                         : "${_priceController.text} JD",
-                    "age": _ageController.text,
+                    "age": "${_ageController.text} ${_ageUnit}",
                     "gender": _selectedGender,
                     "category": _selectedCategory,
                     "isVaccinated": _isVaccinated,
