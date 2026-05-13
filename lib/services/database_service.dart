@@ -674,17 +674,95 @@ class DatabaseService {
 
   // --- Online Store: Ordering & Checkout ---
 
-  Future<String> setOrder({
+  void _validatePetStoreDeliveryAddress(Map<String, dynamic> d) {
+    String s(String k) => (d[k] ?? '').toString().trim();
+    if (s('fullName').isEmpty) {
+      throw Exception('Full name is required.');
+    }
+    if (s('city').isEmpty) {
+      throw Exception('City is required.');
+    }
+    if (s('street').isEmpty) {
+      throw Exception('Street is required.');
+    }
+    if (s('building').isEmpty) {
+      throw Exception('Building is required.');
+    }
+    final digits = s('phoneNumber').replaceAll(RegExp(r'\D'), '');
+    if (digits.length < 7) {
+      throw Exception('Enter a valid phone number.');
+    }
+  }
+
+  /// Public store profile for checkout (name, location line).
+  Future<Map<String, dynamic>> fetchPetStorePublicForCheckout(
+    String storeId,
+  ) async {
+    if (storeId.trim().isEmpty) {
+      return {'name': '', 'location': ''};
+    }
+    try {
+      final d = await _db.collection('users').doc(storeId).get();
+      if (!d.exists) {
+        return {'name': 'Store', 'location': ''};
+      }
+      final data = d.data() ?? {};
+      final name =
+          (data['businessName'] ?? data['name'] ?? 'Store').toString();
+      final location =
+          (data['location'] ?? data['address'] ?? '').toString().trim();
+      return {'name': name, 'location': location};
+    } catch (_) {
+      return {'name': 'Store', 'location': ''};
+    }
+  }
+
+  void _validateCardPaymentMeta(Map<String, dynamic> m) {
+    const allowedBrands = {
+      'visa',
+      'mastercard',
+      'amex',
+      'discover',
+    };
+    for (final k in m.keys) {
+      if (!const {'brand', 'lastFourDigits', 'cardholderName'}.contains(k)) {
+        throw Exception('Invalid payment payload.');
+      }
+    }
+    final brand = (m['brand'] ?? '').toString().toLowerCase();
+    if (!allowedBrands.contains(brand)) {
+      throw Exception('Invalid card brand.');
+    }
+    final last = (m['lastFourDigits'] ?? '').toString();
+    if (!RegExp(r'^\d{4}$').hasMatch(last)) {
+      throw Exception('Invalid card reference.');
+    }
+    if ((m['cardholderName'] ?? '').toString().trim().length < 2) {
+      throw Exception('Invalid cardholder name.');
+    }
+  }
+
+  Future<({String orderId, double totalJod})> setOrder({
     required String storeId,
     required List<Map<String, dynamic>> items,
     required Map<String, dynamic> deliveryAddress,
     required String paymentMethod, // cash | credit
+    Map<String, dynamic>? cardPaymentMeta,
   }) async {
     if (items.isEmpty) {
       throw Exception('Your cart is empty.');
     }
     if (paymentMethod != 'cash' && paymentMethod != 'credit') {
       throw Exception('Unsupported payment method.');
+    }
+    _validatePetStoreDeliveryAddress(deliveryAddress);
+    if (paymentMethod == 'credit') {
+      if (cardPaymentMeta == null) {
+        throw Exception('Card payment confirmation is required.');
+      }
+      _validateCardPaymentMeta(cardPaymentMeta);
+    } else if (cardPaymentMeta != null) {
+      throw Exception('Invalid payment data for cash order.');
     }
     try {
       final subtotal = items.fold<double>(
@@ -730,10 +808,17 @@ class DatabaseService {
       if (appliedOffer != null) {
         orderData['appliedOffer'] = appliedOffer;
       }
+      if (paymentMethod == 'credit' && cardPaymentMeta != null) {
+        orderData['cardPayment'] = {
+          'brand': cardPaymentMeta['brand'],
+          'lastFourDigits': cardPaymentMeta['lastFourDigits'],
+          'cardholderName': cardPaymentMeta['cardholderName'],
+        };
+      }
       await orderRef.set(orderData);
 
       await clearMyCart();
-      return orderRef.id;
+      return (orderId: orderRef.id, totalJod: total);
     } catch (_) {
       throw Exception('Could not place order. Please try again.');
     }

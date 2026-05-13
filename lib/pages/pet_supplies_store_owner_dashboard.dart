@@ -1108,7 +1108,7 @@ String _petStorePaymentLabel(dynamic raw) {
     case 'cash':
       return 'Cash on Delivery';
     case 'credit':
-      return 'Credit Card';
+      return 'Credit / Debit Card';
     default:
       final s = '$raw'.trim();
       return s.isEmpty ? '—' : s;
@@ -1284,6 +1284,39 @@ class _PetStoreOrderDetailDialog extends StatelessWidget {
                           _kv('Order ID', _petStoreOrderCode(docId)),
                           _kv('Date', _petStoreFormatOrderDate(order['createdAt'])),
                           _kv('Payment', _petStorePaymentLabel(order['paymentMethod'])),
+                          if (order['paymentMethod']
+                                      ?.toString()
+                                      .toLowerCase() ==
+                                  'credit' &&
+                              order['cardPayment'] is Map) ...[
+                            Builder(
+                              builder: (context) {
+                                final cp = Map<String, dynamic>.from(
+                                  order['cardPayment'] as Map,
+                                );
+                                final b =
+                                    (cp['brand'] ?? '').toString().trim();
+                                final l4 = (cp['lastFourDigits'] ?? '')
+                                    .toString()
+                                    .trim();
+                                final ch = (cp['cardholderName'] ?? '')
+                                    .toString()
+                                    .trim();
+                                if (b.isEmpty && l4.isEmpty) {
+                                  return const SizedBox.shrink();
+                                }
+                                final parts = <String>[];
+                                if (b.isNotEmpty) parts.add(b.toUpperCase());
+                                if (l4.isNotEmpty) parts.add('···· $l4');
+                                var line = parts.join(' ');
+                                if (ch.isNotEmpty) line = '$line · $ch';
+                                return Padding(
+                                  padding: const EdgeInsets.only(top: 6),
+                                  child: _kv('Card', line),
+                                );
+                              },
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -1361,23 +1394,58 @@ class _PetStoreOrderDetailDialog extends StatelessWidget {
                             .toString()
                             .trim();
                         final city = (m['city'] ?? '').toString().trim();
+                        final building =
+                            (m['building'] ?? '').toString().trim();
                         final floor = (m['floor'] ?? '').toString().trim();
                         final apt = (m['apartment'] ?? m['apt'] ?? '')
                             .toString()
                             .trim();
+                        final notes =
+                            (m['additionalDirections'] ?? m['notes'] ?? '')
+                                .toString()
+                                .trim();
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             if (recipient.isNotEmpty) _kv('Name', recipient),
                             if (street.isNotEmpty) _kv('Street', street),
                             if (city.isNotEmpty) _kv('City', city),
+                            if (building.isNotEmpty) _kv('Building', building),
                             if (floor.isNotEmpty) _kv('Floor', floor),
                             if (apt.isNotEmpty) _kv('Apartment', apt),
+                            if (notes.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 6),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Delivery notes',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.grey.shade700,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      notes,
+                                      style: TextStyle(
+                                        color: Colors.grey.shade800,
+                                        fontSize: 13,
+                                        height: 1.35,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             if (recipient.isEmpty &&
                                 street.isEmpty &&
                                 city.isEmpty &&
                                 floor.isEmpty &&
-                                apt.isEmpty)
+                                apt.isEmpty &&
+                                building.isEmpty &&
+                                notes.isEmpty)
                               Text(
                                 '—',
                                 style: TextStyle(color: Colors.grey.shade700),

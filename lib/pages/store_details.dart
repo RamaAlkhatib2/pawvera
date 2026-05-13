@@ -1,7 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../services/database_service.dart';
+import 'buyer_my_orders_page.dart';
+import '../widgets/secure_payment_dialog.dart';
 
 class StoreDetails extends StatefulWidget {
   final Map<String, dynamic> storeData;
@@ -1877,7 +1880,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                         'storeName': widget.storeName,
                       },
                     );
-                    if (!mounted) return;
+                    if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Added to cart')),
                     );
@@ -2564,94 +2567,571 @@ class CheckoutPage extends StatefulWidget {
 }
 
 class _CheckoutPageState extends State<CheckoutPage> {
+  static const _bg = Color(0xFFF0F9F9);
+  static const _brown = Color(0xFF5D4037);
+  static const _teal = Color(0xFF4FA294);
+
   final DatabaseService _databaseService = DatabaseService();
-  final _addressCtrl = TextEditingController();
+  final _fullNameCtrl = TextEditingController();
+  final _countryCodeCtrl = TextEditingController(text: '+962');
+  final _phoneCtrl = TextEditingController();
   final _cityCtrl = TextEditingController();
-  String _paymentMethod = 'cash';
+  final _streetCtrl = TextEditingController();
+  final _buildingCtrl = TextEditingController();
+  final _floorCtrl = TextEditingController();
+  final _aptCtrl = TextEditingController();
+  final _directionsCtrl = TextEditingController();
+
+  String _paymentMethod = 'credit';
   bool _loading = false;
 
   @override
   void dispose() {
-    _addressCtrl.dispose();
+    _fullNameCtrl.dispose();
+    _countryCodeCtrl.dispose();
+    _phoneCtrl.dispose();
     _cityCtrl.dispose();
+    _streetCtrl.dispose();
+    _buildingCtrl.dispose();
+    _floorCtrl.dispose();
+    _aptCtrl.dispose();
+    _directionsCtrl.dispose();
     super.dispose();
+  }
+
+  int get _itemCount => widget.cartDocs.fold<int>(
+        0,
+        (a, d) => a + ((d.data()['quantity'] as num?)?.toInt() ?? 1),
+      );
+
+  InputDecoration _fieldDec({
+    required String label,
+    String? hint,
+    bool requiredField = false,
+  }) {
+    return InputDecoration(
+      label: Text.rich(
+        TextSpan(
+          style: TextStyle(
+            color: Colors.grey.shade700,
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+          ),
+          children: [
+            TextSpan(text: label),
+            if (requiredField)
+              const TextSpan(
+                text: ' *',
+                style: TextStyle(color: Colors.red),
+              ),
+          ],
+        ),
+      ),
+      hintText: hint,
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(11),
+        borderSide: BorderSide(color: Colors.grey.shade300),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(11),
+        borderSide: BorderSide(color: Colors.grey.shade300),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(11),
+        borderSide: const BorderSide(color: _teal, width: 1.4),
+      ),
+    );
+  }
+
+  InputDecoration _directionsDec() {
+    return InputDecoration(
+      hintText: 'Any helpful directions for delivery...',
+      hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.all(14),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(11),
+        borderSide: BorderSide(color: Colors.grey.shade300),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(11),
+        borderSide: BorderSide(color: Colors.grey.shade300),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(11),
+        borderSide: const BorderSide(color: _teal, width: 1.4),
+      ),
+    );
+  }
+
+  Widget _whiteCard({required Widget child}) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(color: Colors.grey.shade100),
+      ),
+      child: child,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final deliveryFee = widget.cartDocs.isEmpty ? 0.0 : 5.0;
     final total = widget.subtotal + deliveryFee;
+    final storeIds = widget.cartDocs
+        .map((doc) => (doc.data()['storeId'] ?? '').toString())
+        .where((id) => id.isNotEmpty)
+        .toSet();
+    final storeId = storeIds.length == 1 ? storeIds.first : '';
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Checkout')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            TextField(
-              controller: _addressCtrl,
-              decoration: const InputDecoration(labelText: 'Address'),
+      backgroundColor: _bg,
+      appBar: AppBar(
+        backgroundColor: _bg,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _brown),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'Checkout',
+          style: TextStyle(
+            color: _brown,
+            fontWeight: FontWeight.w800,
+            fontSize: 20,
+          ),
+        ),
+        centerTitle: true,
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        children: [
+          if (storeId.isNotEmpty)
+            FutureBuilder<Map<String, dynamic>>(
+              future:
+                  _databaseService.fetchPetStorePublicForCheckout(storeId),
+              builder: (context, snap) {
+                final name = (snap.data?['name'] ?? 'Store').toString();
+                final loc = (snap.data?['location'] ?? '').toString().trim();
+                return _whiteCard(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.lightBlue.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.storefront_outlined,
+                          color: Colors.blue.shade700,
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              name,
+                              style: const TextStyle(
+                                color: _brown,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 16,
+                              ),
+                            ),
+                            if (loc.isNotEmpty) ...[
+                              const SizedBox(height: 6),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Icon(
+                                    Icons.place_outlined,
+                                    size: 18,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      loc,
+                                      style: TextStyle(
+                                        color: Colors.grey.shade700,
+                                        fontSize: 13,
+                                        height: 1.3,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
-            TextField(
-              controller: _cityCtrl,
-              decoration: const InputDecoration(labelText: 'City'),
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              initialValue: _paymentMethod,
-              items: const [
-                DropdownMenuItem(value: 'cash', child: Text('Cash')),
-                DropdownMenuItem(value: 'credit', child: Text('Credit Card')),
+          _whiteCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.home_outlined, color: _teal, size: 22),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Delivery Address',
+                      style: TextStyle(
+                        color: _brown,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _fullNameCtrl,
+                  textInputAction: TextInputAction.next,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: _fieldDec(
+                    label: 'Full Name',
+                    hint: 'John Doe',
+                    requiredField: true,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 92,
+                      child: TextField(
+                        controller: _countryCodeCtrl,
+                        keyboardType: TextInputType.text,
+                        decoration: _fieldDec(
+                          label: 'Code',
+                          hint: '+962',
+                          requiredField: true,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: _phoneCtrl,
+                        keyboardType: TextInputType.phone,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        decoration: _fieldDec(
+                          label: 'Phone Number',
+                          hint: '7X XXX XXXX',
+                          requiredField: true,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _cityCtrl,
+                        textInputAction: TextInputAction.next,
+                        textCapitalization: TextCapitalization.words,
+                        decoration: _fieldDec(
+                          label: 'City',
+                          hint: 'Irbid',
+                          requiredField: true,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: _streetCtrl,
+                        textInputAction: TextInputAction.next,
+                        decoration: _fieldDec(
+                          label: 'Street',
+                          hint: 'Abo rashed street',
+                          requiredField: true,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: _buildingCtrl,
+                  textInputAction: TextInputAction.next,
+                  decoration: _fieldDec(
+                    label: 'Building',
+                    hint: 'Building 15',
+                    requiredField: true,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _floorCtrl,
+                        keyboardType: TextInputType.text,
+                        decoration: _fieldDec(
+                          label: 'Floor',
+                          hint: '3',
+                          requiredField: false,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: _aptCtrl,
+                        decoration: _fieldDec(
+                          label: 'Apartment',
+                          hint: '302',
+                          requiredField: false,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ],
-              onChanged: (value) =>
-                  setState(() => _paymentMethod = value ?? 'cash'),
-              decoration: const InputDecoration(labelText: 'Payment Method'),
             ),
-            const SizedBox(height: 16),
-            _row('Subtotal', widget.subtotal),
-            _row('Delivery', deliveryFee),
-            _row('Total', total, bold: true),
-            const Spacer(),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _loading ? null : _placeOrder,
-                child: _loading
-                    ? const CircularProgressIndicator()
-                    : Text('Place Order (${total.toStringAsFixed(2)} JOD)'),
+          ),
+          _whiteCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.notes_outlined, color: _teal, size: 22),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Delivery Instructions',
+                      style: TextStyle(
+                        color: _brown,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Optional',
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _directionsCtrl,
+                  maxLines: 4,
+                  maxLength: 500,
+                  decoration: _directionsDec().copyWith(counterText: ''),
+                ),
+              ],
+            ),
+          ),
+          _whiteCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.credit_card, color: _teal, size: 22),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Payment Method',
+                      style: TextStyle(
+                        color: _brown,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                _CheckoutPaymentOption(
+                  selected: _paymentMethod == 'credit',
+                  title: 'Credit / Debit Card',
+                  icon: Icons.credit_card_outlined,
+                  onTap: () => setState(() => _paymentMethod = 'credit'),
+                ),
+                const SizedBox(height: 10),
+                _CheckoutPaymentOption(
+                  selected: _paymentMethod == 'cash',
+                  title: 'Cash on Delivery',
+                  icon: Icons.payments_outlined,
+                  onTap: () => setState(() => _paymentMethod = 'cash'),
+                ),
+              ],
+            ),
+          ),
+          _whiteCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.receipt_long_outlined, color: _teal, size: 22),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Order Summary',
+                      style: TextStyle(
+                        color: _brown,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                _summaryLine('Items ($_itemCount)', widget.subtotal),
+                const SizedBox(height: 8),
+                _summaryLine('Delivery Fee', deliveryFee),
+                Divider(height: 22, color: Colors.teal.shade100),
+                Row(
+                  children: [
+                    const Text(
+                      'Total Amount',
+                      style: TextStyle(
+                        color: _brown,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '${total.toStringAsFixed(2)} JOD',
+                      style: const TextStyle(
+                        color: Color(0xFF2E7D32),
+                        fontWeight: FontWeight.w900,
+                        fontSize: 17,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: FilledButton.icon(
+              onPressed: _loading ? null : _placeOrder,
+              style: FilledButton.styleFrom(
+                backgroundColor: _teal,
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: Colors.grey.shade300,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              icon: _loading
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.check_circle_outline_rounded),
+              label: Text(
+                _loading ? 'Placing order…' : 'Place Order',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                ),
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _row(String title, double amount, {bool bold = false}) {
-    final style = TextStyle(
-      fontWeight: bold ? FontWeight.bold : FontWeight.normal,
-      fontSize: bold ? 17 : 15,
-    );
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        children: [
-          Text(title, style: style),
-          const Spacer(),
-          Text('${amount.toStringAsFixed(2)} JOD', style: style),
+          ),
         ],
       ),
     );
   }
 
+  Widget _summaryLine(String label, double amount) {
+    return Row(
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.brown.shade700,
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const Spacer(),
+        Text(
+          '${amount.toStringAsFixed(2)} JOD',
+          style: const TextStyle(
+            color: _brown,
+            fontWeight: FontWeight.w600,
+            fontSize: 15,
+          ),
+        ),
+      ],
+    );
+  }
+
   Future<void> _placeOrder() async {
-    final address = _addressCtrl.text.trim();
+    final fullName = _fullNameCtrl.text.trim();
     final city = _cityCtrl.text.trim();
-    if (address.isEmpty || city.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Please complete address.')));
+    final street = _streetCtrl.text.trim();
+    final building = _buildingCtrl.text.trim();
+    final cc = _countryCodeCtrl.text.trim();
+    final pn = _phoneCtrl.text.trim();
+    final floor = _floorCtrl.text.trim();
+    final apt = _aptCtrl.text.trim();
+    final directions = _directionsCtrl.text.trim();
+
+    if (fullName.isEmpty ||
+        city.isEmpty ||
+        street.isEmpty ||
+        building.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all required address fields.')),
+      );
       return;
     }
+    final phoneDigits = pn.replaceAll(RegExp(r'\D'), '');
+    if (phoneDigits.length < 7) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid phone number.')),
+      );
+      return;
+    }
+
     final storeIds = widget.cartDocs
         .map((doc) => (doc.data()['storeId'] ?? '').toString())
         .where((id) => id.isNotEmpty)
@@ -2662,29 +3142,100 @@ class _CheckoutPageState extends State<CheckoutPage> {
       );
       return;
     }
+
+    final composedAddress = '$street, Building $building';
+    final phoneDisplay = '$cc $pn'.trim();
+
+    final deliveryAddress = <String, dynamic>{
+      'fullName': fullName,
+      'recipientName': fullName,
+      'name': fullName,
+      'countryCode': cc,
+      'phoneNumber': pn,
+      'phone': phoneDisplay,
+      'city': city,
+      'street': street,
+      'address': composedAddress,
+      'building': building,
+      'floor': floor,
+      'apartment': apt,
+      if (directions.isNotEmpty) 'additionalDirections': directions,
+    };
+
+    final items = widget.cartDocs.map((doc) {
+      final data = doc.data();
+      return {
+        'productId': (data['productId'] ?? doc.id).toString(),
+        'title': (data['title'] ?? '').toString(),
+        'price': ((data['price'] as num?)?.toDouble() ?? 0),
+        'quantity': ((data['quantity'] as num?)?.toInt() ?? 1),
+        'image': (data['image'] ?? '').toString(),
+      };
+    }).toList();
+
+    final storeId = storeIds.first;
+    final deliveryFee = widget.cartDocs.isEmpty ? 0.0 : 5.0;
+    final orderTotalJod = widget.subtotal + deliveryFee;
+
+    if (_paymentMethod == 'credit') {
+      if (!mounted) return;
+      final meta = await showSecurePaymentDialog(
+        context,
+        totalJod: orderTotalJod,
+        deliveryPhoneDigits: pn,
+      );
+      if (!mounted || meta == null) return;
+
+      setState(() => _loading = true);
+      try {
+        final receipt = await _databaseService.setOrder(
+          storeId: storeId,
+          items: items,
+          deliveryAddress: deliveryAddress,
+          paymentMethod: _paymentMethod,
+          cardPaymentMeta: meta.toFirestoreMap(),
+        );
+        if (!mounted) return;
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (_) => OrderPlacedSuccessPage(
+              orderId: receipt.orderId,
+              totalJod: receipt.totalJod,
+              deliveryAddress: deliveryAddress,
+            ),
+          ),
+          (route) => route.isFirst,
+        );
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to place order: $e')));
+      } finally {
+        if (mounted) setState(() => _loading = false);
+      }
+      return;
+    }
+
     setState(() => _loading = true);
     try {
-      final items = widget.cartDocs.map((doc) {
-        final data = doc.data();
-        return {
-          'productId': (data['productId'] ?? doc.id).toString(),
-          'title': (data['title'] ?? '').toString(),
-          'price': ((data['price'] as num?)?.toDouble() ?? 0),
-          'quantity': ((data['quantity'] as num?)?.toInt() ?? 1),
-          'image': (data['image'] ?? '').toString(),
-        };
-      }).toList();
-
-      await _databaseService.setOrder(
-        storeId: storeIds.first,
+      final receipt = await _databaseService.setOrder(
+        storeId: storeId,
         items: items,
-        deliveryAddress: {'address': address, 'city': city},
+        deliveryAddress: deliveryAddress,
         paymentMethod: _paymentMethod,
       );
       if (!mounted) return;
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => const SuccessPage()),
+        MaterialPageRoute(
+          builder: (_) => OrderPlacedSuccessPage(
+            orderId: receipt.orderId,
+            totalJod: receipt.totalJod,
+            deliveryAddress: deliveryAddress,
+          ),
+        ),
         (route) => route.isFirst,
       );
     } catch (e) {
@@ -2698,33 +3249,375 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 }
 
-class SuccessPage extends StatelessWidget {
-  const SuccessPage({super.key});
+class _CheckoutPaymentOption extends StatelessWidget {
+  const _CheckoutPaymentOption({
+    required this.selected,
+    required this.title,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final bool selected;
+  final String title;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  static const _teal = Color(0xFF4FA294);
+  static const _brown = Color(0xFF5D4037);
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          decoration: BoxDecoration(
+            color: selected ? const Color(0xFFE8F5F5) : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: selected ? _teal : Colors.grey.shade300,
+              width: selected ? 1.5 : 1,
+            ),
+          ),
+          child: Row(
             children: [
-              const Icon(Icons.check_circle, size: 84, color: Colors.green),
+              Icon(icon, color: _brown, size: 22),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    color: _brown,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
+              if (selected)
+                Icon(Icons.check_circle, color: _teal, size: 22),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class OrderPlacedSuccessPage extends StatelessWidget {
+  const OrderPlacedSuccessPage({
+    super.key,
+    required this.orderId,
+    required this.totalJod,
+    required this.deliveryAddress,
+  });
+
+  final String orderId;
+  final double totalJod;
+  final Map<String, dynamic> deliveryAddress;
+
+  static const _bg = Color(0xFFEFFBFC);
+  static const _teal = Color(0xFF4FA294);
+  static const _brown = Color(0xFF5A2F0E);
+
+  String _orderLabel() {
+    if (orderId.isEmpty) return '#ORD';
+    final tail =
+        orderId.length <= 6 ? orderId : orderId.substring(orderId.length - 6);
+    return '#ORD${tail.toUpperCase()}';
+  }
+
+  List<String> _addressLines() {
+    final d = deliveryAddress;
+    final name = (d['fullName'] ?? d['recipientName'] ?? '').toString().trim();
+    final city = (d['city'] ?? '').toString().trim();
+    final street = (d['street'] ?? '').toString().trim();
+    final addr = (d['address'] ?? '').toString().trim();
+    final bld = (d['building'] ?? '').toString().trim();
+    final floor = (d['floor'] ?? '').toString().trim();
+    final apt = (d['apartment'] ?? '').toString().trim();
+    final phone = (d['phone'] ?? '').toString().trim();
+
+    final line2 = [street, city].where((e) => e.isNotEmpty).join(', ');
+    final parts = <String>[];
+    if (bld.isNotEmpty) parts.add('Bldg $bld');
+    if (floor.isNotEmpty) parts.add('Fl $floor');
+    if (apt.isNotEmpty) parts.add('Apt $apt');
+    final line3 = parts.isNotEmpty ? parts.join(', ') : phone;
+
+    final out = <String>[];
+    if (name.isNotEmpty) out.add(name);
+    if (line2.isNotEmpty) {
+      out.add(line2);
+    } else if (addr.isNotEmpty) {
+      out.add(addr);
+    }
+    if (line3.isNotEmpty) {
+      out.add(line3);
+    } else if (phone.isNotEmpty && (out.isEmpty || out.last != phone)) {
+      out.add(phone);
+    }
+    return out.isEmpty ? const ['—'] : out;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final addrLines = _addressLines();
+
+    return Scaffold(
+      backgroundColor: _bg,
+      floatingActionButton: FloatingActionButton.small(
+        backgroundColor: Colors.white,
+        foregroundColor: _teal,
+        elevation: 2,
+        onPressed: () {
+          showDialog<void>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Need help?'),
+              content: const Text(
+                'This is a demo checkout. For real orders, contact support from your profile.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+        },
+        child: const Text('?', style: TextStyle(fontWeight: FontWeight.w900)),
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 12),
+                      Container(
+                        width: 92,
+                        height: 92,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE8F5E9),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.green.withValues(alpha: 0.12),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.check_rounded,
+                          size: 52,
+                          color: Color(0xFF2E7D32),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        'Order Placed Successfully!',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.brown.shade900,
+                          height: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        "Thank you for your order. We'll start preparing it right away.",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.blueGrey.shade700,
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.teal.shade100),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.04),
+                              blurRadius: 10,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Order Number',
+                                  style: TextStyle(
+                                    color: Colors.brown.shade800,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                Text(
+                                  _orderLabel(),
+                                  style: TextStyle(
+                                    color: _brown,
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Divider(height: 22, color: Colors.teal.shade50),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Total Amount',
+                                  style: TextStyle(
+                                    color: Colors.brown.shade800,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                Text(
+                                  '${totalJod.toStringAsFixed(2)} JOD',
+                                  style: const TextStyle(
+                                    color: Color(0xFF2E7D32),
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 20,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Divider(height: 22, color: Colors.teal.shade50),
+                            Text(
+                              'Estimated Delivery',
+                              style: TextStyle(
+                                color: Colors.brown.shade800,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(
+                                  Icons.local_shipping_outlined,
+                                  size: 22,
+                                  color: Colors.blue.shade700,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Tomorrow, 2:00 PM',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.brown.shade900,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Divider(height: 22, color: Colors.teal.shade50),
+                            Text(
+                              'Delivery Address',
+                              style: TextStyle(
+                                color: Colors.brown.shade800,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            ...addrLines.map(
+                              (line) => Padding(
+                                padding: const EdgeInsets.only(bottom: 4),
+                                child: Text(
+                                  line,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    height: 1.35,
+                                    color: Colors.brown.shade800,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
               const SizedBox(height: 12),
-              const Text(
-                'Order placed successfully',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: FilledButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const MyOrdersPage(),
+                      ),
+                    );
+                  },
+                  style: FilledButton.styleFrom(
+                    backgroundColor: _teal,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  icon: const Icon(Icons.history_rounded, size: 22),
+                  label: const Text(
+                    'View My Orders',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
               ),
-              const SizedBox(height: 8),
-              const Text(
-                'Your order has been saved and your cart was cleared.',
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 22),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Back'),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: OutlinedButton(
+                  onPressed: () {
+                    Navigator.of(context).popUntil((route) => route.isFirst);
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: _teal,
+                    side: const BorderSide(color: _teal, width: 1.4),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Continue Shopping',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
