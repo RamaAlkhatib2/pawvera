@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:pawvera/models/service_provider_models.dart';
 
@@ -244,6 +246,7 @@ class ServiceProviderController extends ChangeNotifier {
     String? phone,
     String? email,
     String? workingHours,
+    String? imageUrl,
   }) async {
     final id = shopId;
     if (id == null) return;
@@ -253,9 +256,31 @@ class ServiceProviderController extends ChangeNotifier {
     if (phone != null) data['phone'] = phone;
     if (email != null) data['email'] = email;
     if (workingHours != null) data['workingHours'] = workingHours;
+    if (imageUrl != null) data['imageUrl'] = imageUrl;
 
     await _db.collection('service_shops').doc(id).update(data);
     await _addAuditLog(id, 'Shop Info Updated', 'Shop information was updated');
+  }
+
+  /// Upload shop image bytes to Firebase Storage and return the download URL.
+  Future<String> uploadShopImageBytes(List<int> imageBytes) async {
+    final id = shopId;
+    if (id == null) throw Exception('Shop ID not available');
+    final ref = FirebaseStorage.instance
+        .ref()
+        .child('service_shops')
+        .child(id)
+        .child('shop_image.jpg');
+    await ref.putData(Uint8List.fromList(imageBytes));
+    final downloadUrl = await ref.getDownloadURL();
+    return downloadUrl;
+  }
+
+  /// Encode image bytes as a base64 data URL (fallback when Firebase Storage
+  /// is not configured).
+  String encodeImageAsDataUrl(List<int> imageBytes) {
+    final base64Str = base64Encode(imageBytes);
+    return 'data:image/jpeg;base64,$base64Str';
   }
 
   Future<void> setShopStatus(String status) async {

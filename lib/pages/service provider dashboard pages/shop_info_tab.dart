@@ -1,4 +1,6 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:pawvera/controllers/service_provider_controller.dart';
 import 'package:pawvera/models/service_provider_models.dart';
@@ -36,11 +38,142 @@ class _ShopInfoTabState extends State<ShopInfoTab> {
     _emailController.text = shop.email;
     _hoursController.text = shop.workingHours;
 
+    // Local state for the bottom sheet only
+    Uint8List? selectedImageBytes;
+    bool isUploading = false;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => _buildEditForm(),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            Future<void> pickImage() async {
+              final picker = ImagePicker();
+              final XFile? image = await picker.pickImage(
+                source: ImageSource.gallery,
+                maxWidth: 1024,
+                maxHeight: 1024,
+                imageQuality: 85,
+              );
+              if (image != null) {
+                final bytes = await image.readAsBytes();
+                setSheetState(() {
+                  selectedImageBytes = bytes;
+                });
+              }
+            }
+
+            Future<void> saveShopInfo() async {
+              final ctrl = context.read<ServiceProviderController>();
+              final navigator = Navigator.of(ctx);
+              final messenger = ScaffoldMessenger.of(this.context);
+              setSheetState(() => isUploading = true);
+              try {
+                String? imageUrl;
+
+                // Upload image if a new one was selected
+                if (selectedImageBytes != null) {
+                  try {
+                    imageUrl = await ctrl
+                        .uploadShopImageBytes(selectedImageBytes!)
+                        .timeout(const Duration(seconds: 10));
+                  } catch (_) {
+                    // Fall back to base64 data URL if Firebase Storage isn't configured
+                    imageUrl = ctrl.encodeImageAsDataUrl(selectedImageBytes!);
+                  }
+                }
+
+                await ctrl.updateShopInfo(
+                  shopName: _nameController.text,
+                  address: _locationController.text,
+                  phone: _phoneController.text,
+                  email: _emailController.text,
+                  workingHours: _hoursController.text,
+                  imageUrl: imageUrl,
+                );
+
+                setSheetState(() => isUploading = false);
+                navigator.pop();
+                messenger.showSnackBar(
+                  const SnackBar(
+                    content: Text("Shop information updated successfully"),
+                  ),
+                );
+              } catch (e) {
+                setSheetState(() => isUploading = false);
+                messenger.showSnackBar(
+                  SnackBar(content: Text("Failed to update: $e")),
+                );
+              }
+            }
+
+            return _buildEditForm(
+              shop: shop,
+              selectedImageBytes: selectedImageBytes,
+              isUploading: isUploading,
+              onPickImage: pickImage,
+              onSave: saveShopInfo,
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget buildShopImagePreview(
+    String? imageUrl,
+    Uint8List? selectedImageBytes,
+    double height,
+  ) {
+    if (selectedImageBytes != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.memory(
+          selectedImageBytes,
+          height: height,
+          width: double.infinity,
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) => buildPlaceholderImage(height),
+        ),
+      );
+    }
+    if (imageUrl != null && imageUrl.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.network(
+          imageUrl,
+          height: height,
+          width: double.infinity,
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) => buildPlaceholderImage(height),
+        ),
+      );
+    }
+    return buildPlaceholderImage(height);
+  }
+
+  Widget buildPlaceholderImage(double height) {
+    return Container(
+      height: height,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.store, size: 40, color: Colors.grey[400]),
+          const SizedBox(height: 4),
+          Text(
+            "Shop Image",
+            style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+          ),
+        ],
+      ),
     );
   }
 
@@ -190,6 +323,9 @@ class _ShopInfoTabState extends State<ShopInfoTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Shop image at the top of the info card
+          Center(child: buildShopImagePreview(shop.imageUrl, null, 150)),
+          const SizedBox(height: 16),
           const Text(
             "Shop Information",
             style: TextStyle(fontWeight: FontWeight.bold),
@@ -238,7 +374,13 @@ class _ShopInfoTabState extends State<ShopInfoTab> {
     );
   }
 
-  Widget _buildEditForm() {
+  Widget _buildEditForm({
+    required ShopProfile shop,
+    required Uint8List? selectedImageBytes,
+    required bool isUploading,
+    required VoidCallback onPickImage,
+    required VoidCallback onSave,
+  }) {
     return Container(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom + 20,
@@ -269,6 +411,48 @@ class _ShopInfoTabState extends State<ShopInfoTab> {
               ],
             ),
             const SizedBox(height: 15),
+
+            // Shop Image Section
+            _buildLabel("Shop Image"),
+            const SizedBox(height: 8),
+            Stack(
+              children: [
+                buildShopImagePreview(shop.imageUrl, selectedImageBytes, 160),
+                Positioned(
+                  bottom: 8,
+                  right: 8,
+                  child: InkWell(
+                    onTap: onPickImage,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                        color: primaryTeal,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.camera_alt,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (selectedImageBytes != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  "New image selected",
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.green[600],
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+            const SizedBox(height: 15),
+
             _buildLabel("Shop Name *"),
             _buildTextField(_nameController, "Shop Name"),
             const SizedBox(height: 15),
@@ -288,29 +472,29 @@ class _ShopInfoTabState extends State<ShopInfoTab> {
               width: double.infinity,
               height: 48,
               child: ElevatedButton(
-                onPressed: () {
-                  context.read<ServiceProviderController>().updateShopInfo(
-                    shopName: _nameController.text,
-                    address: _locationController.text,
-                    phone: _phoneController.text,
-                    email: _emailController.text,
-                    workingHours: _hoursController.text,
-                  );
-                  Navigator.pop(context);
-                },
+                onPressed: isUploading ? null : onSave,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryTeal,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                child: const Text(
-                  "Update Information",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                child: isUploading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text(
+                        "Update Information",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
               ),
             ),
           ],
