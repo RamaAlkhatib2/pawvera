@@ -7,7 +7,8 @@ import 'my_bookings_page.dart';
 import 'profile_view.dart';
 
 class MessagesPage extends StatefulWidget {
-  const MessagesPage({super.key});
+  final bool showBackButton;
+  const MessagesPage({super.key, this.showBackButton = true});
 
   @override
   State<MessagesPage> createState() => _MessagesPageState();
@@ -51,10 +52,13 @@ class _MessagesPageState extends State<MessagesPage> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
+        automaticallyImplyLeading: false,
+        leading: widget.showBackButton
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.black),
+                onPressed: () => Navigator.pop(context),
+              )
+            : null,
         title: const Text(
           'Messages',
           style: TextStyle(
@@ -98,7 +102,15 @@ class _MessagesPageState extends State<MessagesPage> {
                             child: Text('Error: ${snapshot.error}',
                                 style: const TextStyle(color: Colors.red)));
                       }
-                      final docs = snapshot.data?.docs ?? [];
+                      final rawDocs = snapshot.data?.docs ?? [];
+                      rawDocs.sort((a, b) {
+                        final at = a.data()['lastMessageTime'] as Timestamp?;
+                        final bt = b.data()['lastMessageTime'] as Timestamp?;
+                        if (at == null) return 1;
+                        if (bt == null) return -1;
+                        return bt.compareTo(at);
+                      });
+                      final docs = rawDocs;
                       final filtered = _searchQuery.isEmpty
                           ? docs
                           : docs.where((doc) {
@@ -164,6 +176,35 @@ class _MessagesPageState extends State<MessagesPage> {
                                 ),
                               );
                             },
+                            onDelete: () async {
+                              final confirmed = await showDialog<bool>(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: const Text('Delete Conversation'),
+                                  content: const Text(
+                                    'This will permanently delete the conversation and all its messages.',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(ctx, false),
+                                      child: const Text('Cancel'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(ctx, true),
+                                      child: const Text(
+                                        'Delete',
+                                        style: TextStyle(color: Colors.red),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              if (confirmed == true) {
+                                await _db.deleteConversation(convId);
+                              }
+                            },
                           );
                         },
                       );
@@ -172,42 +213,39 @@ class _MessagesPageState extends State<MessagesPage> {
           ),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: primaryTeal,
-        unselectedItemColor: const Color(0xFF9E9E9E),
-        currentIndex: 2,
-        onTap: (index) {
-          if (index == 0) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const Home()),
-            );
-          } else if (index == 1) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const Home()),
-            );
-          } else if (index == 3) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const MyBookingsPage()),
-            );
-          } else if (index == 4) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => ProfileView()),
-            );
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.pets_outlined), label: 'My Pets'),
-          BottomNavigationBarItem(icon: Icon(Icons.message_outlined), label: 'Messages'),
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_today_outlined), label: 'My Bookings'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
-        ],
-      ),
+      bottomNavigationBar: widget.showBackButton
+          ? BottomNavigationBar(
+              type: BottomNavigationBarType.fixed,
+              selectedItemColor: primaryTeal,
+              unselectedItemColor: const Color(0xFF9E9E9E),
+              currentIndex: 2,
+              onTap: (index) {
+                if (index == 0 || index == 1) {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const Home()),
+                  );
+                } else if (index == 3) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const MyBookingsPage()),
+                  );
+                } else if (index == 4) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => ProfileView()),
+                  );
+                }
+              },
+              items: const [
+                BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
+                BottomNavigationBarItem(icon: Icon(Icons.pets_outlined), label: 'My Pets'),
+                BottomNavigationBarItem(icon: Icon(Icons.message_outlined), label: 'Messages'),
+                BottomNavigationBarItem(icon: Icon(Icons.calendar_today_outlined), label: 'My Bookings'),
+                BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
+              ],
+            )
+          : null,
     );
   }
 }
@@ -219,6 +257,7 @@ class _ConversationTile extends StatelessWidget {
   final String date;
   final Color primaryTeal;
   final VoidCallback onTap;
+  final VoidCallback onDelete;
 
   const _ConversationTile({
     required this.contactName,
@@ -227,6 +266,7 @@ class _ConversationTile extends StatelessWidget {
     required this.date,
     required this.primaryTeal,
     required this.onTap,
+    required this.onDelete,
   });
 
   @override
@@ -288,7 +328,10 @@ class _ConversationTile extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            const Icon(Icons.more_vert, color: Colors.grey, size: 20),
+            GestureDetector(
+              onTap: onDelete,
+              child: const Icon(Icons.delete_outline, color: Colors.grey, size: 20),
+            ),
           ],
         ),
       ),

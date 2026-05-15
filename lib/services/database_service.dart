@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:typed_data';
+import 'dart:convert';
 
 /// Firestore may store `tags` as mixed types; never throw from stream transforms.
 List<String> _storeTagsNormalized(Object? raw) {
@@ -1446,7 +1447,6 @@ class DatabaseService {
   Stream<QuerySnapshot<Map<String, dynamic>>> get myConversations {
     return _conversations
         .where('participants', arrayContains: _uid)
-        .orderBy('lastMessageTime', descending: true)
         .snapshots();
   }
 
@@ -1473,5 +1473,103 @@ class DatabaseService {
     } catch (_) {
       throw Exception('Unable to update store activation.');
     }
+  }
+
+  // --- Adoption Posts ---
+
+  CollectionReference<Map<String, dynamic>> get _adoptionPosts =>
+      _db.collection('adoption_posts');
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> get streamAdoptionPosts =>
+      _adoptionPosts.orderBy('createdAt', descending: true).snapshots();
+
+  Future<String> postAdoptionPet({
+    required String name,
+    required String desc,
+    required String location,
+    required String price,
+    required String age,
+    required String gender,
+    required String category,
+    required bool isVaccinated,
+    required bool isNeutered,
+    required Uint8List imageBytes,
+  }) async {
+    String ownerName = 'Pet Owner';
+    try {
+      final userDoc = await _db.collection('users').doc(_uid).get();
+      ownerName =
+          (userDoc.data() ?? {})['fullName'] as String? ?? 'Pet Owner';
+    } catch (_) {}
+
+    final ref = _adoptionPosts.doc();
+    final imageBase64 = base64Encode(imageBytes);
+
+    await ref.set({
+      'id': ref.id,
+      'ownerId': _uid,
+      'ownerName': ownerName,
+      'name': name,
+      'desc': desc,
+      'location': location,
+      'price': price,
+      'age': age,
+      'gender': gender,
+      'category': category,
+      'isVaccinated': isVaccinated,
+      'isNeutered': isNeutered,
+      'imageBase64': imageBase64,
+      'isActive': true,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+    return ref.id;
+  }
+
+  Future<void> updateAdoptionPost({
+    required String postId,
+    required String name,
+    required String desc,
+    required String location,
+    required String price,
+    required String age,
+    required String gender,
+    required String category,
+    required bool isVaccinated,
+    required bool isNeutered,
+    Uint8List? newImageBytes,
+  }) async {
+    final data = <String, dynamic>{
+      'name': name,
+      'desc': desc,
+      'location': location,
+      'price': price,
+      'age': age,
+      'gender': gender,
+      'category': category,
+      'isVaccinated': isVaccinated,
+      'isNeutered': isNeutered,
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+    if (newImageBytes != null) {
+      data['imageBase64'] = base64Encode(newImageBytes);
+    }
+    await _adoptionPosts.doc(postId).update(data);
+  }
+
+  Future<void> deleteAdoptionPost(String postId) async {
+    await _adoptionPosts.doc(postId).update({'isActive': false});
+  }
+
+  Future<void> deleteConversation(String conversationId) async {
+    final messages = await _conversations
+        .doc(conversationId)
+        .collection('messages')
+        .get();
+    final batch = _db.batch();
+    for (final doc in messages.docs) {
+      batch.delete(doc.reference);
+    }
+    batch.delete(_conversations.doc(conversationId));
+    await batch.commit();
   }
 }

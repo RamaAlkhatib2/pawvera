@@ -11,6 +11,7 @@ import 'pet care pages/pet_care_page.dart';
 import 'reminder.dart';
 import 'adoption.dart';
 import 'my_bookings_page.dart';
+import 'messages_page.dart';
 import 'package:pawvera/services/database_service.dart';
 
 class Home extends StatefulWidget {
@@ -56,6 +57,8 @@ class _HomePageState extends State<Home> {
     switch (_selectedIndex) {
       case 1:
         return const MyPetPage();
+      case 2:
+        return const MessagesPage(showBackButton: false);
       case 3:
         return const MyBookingsPage(standalone: false);
       case 4:
