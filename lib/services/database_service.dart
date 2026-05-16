@@ -218,20 +218,16 @@ class DatabaseService {
   // --- Notifications ---
 
   CollectionReference<Map<String, dynamic>> get _notificationsCol =>
-      _db.collection('notifications');
+      _db.collection('users').doc(_uid).collection('notifications');
 
   Stream<QuerySnapshot<Map<String, dynamic>>> streamMyNotifications() =>
-      _notificationsCol
-          .where('userId', isEqualTo: _uid)
-          .orderBy('createdAt', descending: true)
-          .snapshots();
+      _notificationsCol.orderBy('createdAt', descending: true).snapshots();
 
   Future<void> markNotificationRead(String notifId) async =>
       _notificationsCol.doc(notifId).update({'isRead': true});
 
   Future<void> markAllNotificationsRead() async {
     final snap = await _notificationsCol
-        .where('userId', isEqualTo: _uid)
         .where('isRead', isEqualTo: false)
         .get();
     if (snap.docs.isEmpty) return;

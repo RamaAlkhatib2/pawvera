@@ -495,21 +495,34 @@ class ServiceProviderController extends ChangeNotifier {
       });
     }
 
-    // Also update the top-level bookings collection so "My Bookings" page reflects the change
+    // Also update the user's booking subcollection so "My Bookings" page reflects the change
     try {
-      final topLevelBooking = await _db
+      final bookingDoc = await _db
+          .collection('service_shops')
+          .doc(id)
           .collection('bookings')
-          .where('shopBookingId', isEqualTo: bookingId)
-          .limit(1)
+          .doc(bookingId)
           .get();
-      if (topLevelBooking.docs.isNotEmpty) {
-        await topLevelBooking.docs.first.reference.update({
-          'status': status,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
+      if (bookingDoc.exists) {
+        final userId = bookingDoc.data()?['userId']?.toString() ?? '';
+        if (userId.isNotEmpty) {
+          final userBookings = await _db
+              .collection('users')
+              .doc(userId)
+              .collection('bookings')
+              .where('shopBookingId', isEqualTo: bookingId)
+              .limit(1)
+              .get();
+          if (userBookings.docs.isNotEmpty) {
+            await userBookings.docs.first.reference.update({
+              'status': status,
+              'updatedAt': FieldValue.serverTimestamp(),
+            });
+          }
+        }
       }
     } catch (_) {
-      // Fallback: the top-level booking may not exist yet (e.g. old bookings)
+      // Fallback: the user booking may not exist yet
     }
 
     await _addAuditLog(
@@ -557,8 +570,12 @@ class ServiceProviderController extends ChangeNotifier {
       }
       if (displayShopName.isEmpty) displayShopName = 'Pet Care Shop';
 
-      // Create a notification document for the pet owner
-      final notifRef = _db.collection('notifications').doc();
+      // Create a notification document for the pet owner under their user subcollection
+      final notifRef = _db
+          .collection('users')
+          .doc(userId)
+          .collection('notifications')
+          .doc();
       await notifRef.set({
         'id': notifRef.id,
         'userId': userId,
@@ -675,8 +692,8 @@ class ServiceProviderController extends ChangeNotifier {
       'updatedAt': FieldValue.serverTimestamp(),
     });
 
-    // Also save to the top-level bookings collection so it appears on "My Bookings" page
-    await _db.collection('bookings').add({
+    // Also save to users/{uid}/bookings/ so it appears on "My Bookings" page
+    await _db.collection('users').doc(uid).collection('bookings').add({
       'shopId': shopId,
       'provider': shopName,
       'name': userName,
