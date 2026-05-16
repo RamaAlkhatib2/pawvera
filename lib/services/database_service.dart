@@ -37,8 +37,8 @@ class DatabaseService {
 
   /// One shared stream per [storeId] so list rebuilds (search/favorites) do not
   /// cancel/recreate Firestore listeners (which broke live store ratings on the list page).
-  final Map<String, Stream<QuerySnapshot<Map<String, dynamic>>>> _storeReviewsByStoreId =
-      {};
+  final Map<String, Stream<QuerySnapshot<Map<String, dynamic>>>>
+  _storeReviewsByStoreId = {};
 
   // --- User Profile ---
 
@@ -81,8 +81,18 @@ class DatabaseService {
   // Create a booking (saves to the shop's subcollection for provider dashboard)
   Future<void> createBooking(Map<String, dynamic> bookingData) async {
     final shopId = bookingData['shopId'] as String?;
+    final userId = _auth.currentUser!.uid;
+
+    // Always save to the top-level bookings collection (for "My Bookings" page)
+    await _db.collection('bookings').add({
+      ...bookingData,
+      'userId': userId,
+      'status': 'confirmed',
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
     if (shopId != null && shopId.isNotEmpty) {
-      // Save to the shop's subcollection so the provider dashboard picks it up
+      // Also save to the shop's subcollection so the provider dashboard picks it up
       final ref = _db
           .collection('service_shops')
           .doc(shopId)
@@ -92,7 +102,7 @@ class DatabaseService {
         'id': ref.id,
         'shopId': shopId,
         'shopName': bookingData['clinicName'] ?? bookingData['provider'] ?? '',
-        'userId': _auth.currentUser!.uid,
+        'userId': userId,
         'userName': bookingData['name'] ?? '',
         'userPhone': bookingData['phone'] ?? '',
         'petName': bookingData['pet'] ?? '',
@@ -106,18 +116,10 @@ class DatabaseService {
             0.0,
         'date': bookingData['date'] ?? '',
         'time': bookingData['time'] ?? '',
-        'status': 'pending',
+        'status': 'confirmed',
         'notes': '',
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
-      });
-    } else {
-      // Fallback to top-level bookings collection for backward compatibility
-      await _db.collection('bookings').add({
-        ...bookingData,
-        'userId': _auth.currentUser!.uid,
-        'status': 'pending',
-        'createdAt': FieldValue.serverTimestamp(),
       });
     }
   }
@@ -579,8 +581,9 @@ class DatabaseService {
     }
     await clearMyCart();
     for (final item in items) {
-      final productId =
-          (item['productId'] ?? item['id'] ?? '').toString().trim();
+      final productId = (item['productId'] ?? item['id'] ?? '')
+          .toString()
+          .trim();
       if (productId.isEmpty) continue;
       final qty = ((item['quantity'] as num?)?.toInt() ?? 1);
       if (qty < 1) continue;
@@ -752,10 +755,10 @@ class DatabaseService {
         return {'name': 'Store', 'location': ''};
       }
       final data = d.data() ?? {};
-      final name =
-          (data['businessName'] ?? data['name'] ?? 'Store').toString();
-      final location =
-          (data['location'] ?? data['address'] ?? '').toString().trim();
+      final name = (data['businessName'] ?? data['name'] ?? 'Store').toString();
+      final location = (data['location'] ?? data['address'] ?? '')
+          .toString()
+          .trim();
       return {'name': name, 'location': location};
     } catch (_) {
       return {'name': 'Store', 'location': ''};
@@ -763,12 +766,7 @@ class DatabaseService {
   }
 
   void _validateCardPaymentMeta(Map<String, dynamic> m) {
-    const allowedBrands = {
-      'visa',
-      'mastercard',
-      'amex',
-      'discover',
-    };
+    const allowedBrands = {'visa', 'mastercard', 'amex', 'discover'};
     for (final k in m.keys) {
       if (!const {'brand', 'lastFourDigits', 'cardholderName'}.contains(k)) {
         throw Exception('Invalid payment payload.');
@@ -839,8 +837,9 @@ class DatabaseService {
         final storeDoc = await _db.collection('users').doc(storeId).get();
         if (storeDoc.exists) {
           final sd = storeDoc.data() ?? {};
-          storeName =
-              (sd['businessName'] ?? sd['name'] ?? 'Store').toString().trim();
+          storeName = (sd['businessName'] ?? sd['name'] ?? 'Store')
+              .toString()
+              .trim();
           if (storeName.isEmpty) storeName = 'Store';
         }
       } catch (_) {}
@@ -1498,8 +1497,7 @@ class DatabaseService {
     String ownerName = 'Pet Owner';
     try {
       final userDoc = await _db.collection('users').doc(_uid).get();
-      ownerName =
-          (userDoc.data() ?? {})['fullName'] as String? ?? 'Pet Owner';
+      ownerName = (userDoc.data() ?? {})['fullName'] as String? ?? 'Pet Owner';
     } catch (_) {}
 
     final ref = _adoptionPosts.doc();
