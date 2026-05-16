@@ -1475,6 +1475,25 @@ class DatabaseService {
     }
   }
 
+  // Fetch pet profile without requiring auth — used by the public QR profile page.
+  Future<Map<String, dynamic>?> fetchPetPublicProfile(
+    String ownerUid,
+    String petId,
+  ) async {
+    try {
+      final doc = await _db
+          .collection('users')
+          .doc(ownerUid)
+          .collection('pets')
+          .doc(petId)
+          .get();
+      if (!doc.exists) return null;
+      return doc.data();
+    } catch (_) {
+      return null;
+    }
+  }
+
   // --- Adoption Posts ---
 
   CollectionReference<Map<String, dynamic>> get _adoptionPosts =>

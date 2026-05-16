@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -252,11 +253,13 @@ class _MyPetPageState extends State<MyPetPage> {
 
   // --- 2. نافذة QR حسب تصميم Figma الجديد ---
   void _showQRCodeDialog(Map pet, String petId) {
-    bool isCodeActive = true;
+    bool isCodeActive = pet['qrActive'] != false;
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
+          final ownerUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+          final qrUrl = _buildPetQrUrl(ownerUid, petId);
           final ownerName = pet['ownerName'] as String? ?? '';
           final ownerPhone = pet['ownerPhone'] as String? ?? '';
           final ownerEmail = pet['ownerEmail'] as String? ?? '';
@@ -266,7 +269,7 @@ class _MyPetPageState extends State<MyPetPage> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
-            child: Padding(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.all(20),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -319,10 +322,12 @@ class _MyPetPageState extends State<MyPetPage> {
                               Text(
                                 isCodeActive
                                     ? "Active - Code can be scanned"
-                                    : "Inactive",
-                                style: const TextStyle(
+                                    : "Inactive - Code is disabled",
+                                style: TextStyle(
                                   fontSize: 11,
-                                  color: Colors.green,
+                                  color: isCodeActive
+                                      ? Colors.green
+                                      : Colors.grey,
                                 ),
                               ),
                             ],
@@ -330,19 +335,53 @@ class _MyPetPageState extends State<MyPetPage> {
                         ),
                         Switch(
                           value: isCodeActive,
-                          onChanged: (v) =>
-                              setDialogState(() => isCodeActive = v),
+                          onChanged: (v) {
+                            setDialogState(() => isCodeActive = v);
+                            _db.updatePet(petId, {'qrActive': v});
+                          },
                           activeThumbColor: primaryGreen,
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 15),
-                  QrImageView(data: _buildPetQrData(pet), size: 180),
+                  if (isCodeActive)
+                    QrImageView(
+                      data: qrUrl,
+                      size: 240,
+                      errorCorrectionLevel: QrErrorCorrectLevel.L,
+                      padding: const EdgeInsets.all(8),
+                    )
+                  else
+                    Container(
+                      width: 180,
+                      height: 180,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey[300]!),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.qr_code_2,
+                              size: 60, color: Colors.grey[400]),
+                          const SizedBox(height: 8),
+                          Text(
+                            "QR Code Inactive",
+                            style: TextStyle(
+                                color: Colors.grey[500], fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
                   const SizedBox(height: 10),
-                  const Text(
-                    "Scan this QR code to view your pet's information",
-                    style: TextStyle(fontSize: 11, color: Colors.grey),
+                  Text(
+                    isCodeActive
+                        ? "Scan this QR code to view your pet's information"
+                        : "Enable the toggle above to activate the QR code",
+                    style: const TextStyle(fontSize: 11, color: Colors.grey),
+                    textAlign: TextAlign.center,
                   ),
                   const Divider(height: 30),
                   Align(
@@ -384,7 +423,8 @@ class _MyPetPageState extends State<MyPetPage> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: () => _printPetQrTag(pet),
+                          onPressed:
+                              isCodeActive ? () => _printPetQrTag(qrUrl, pet) : null,
                           child: const Text(
                             "Print QR",
                             style: TextStyle(fontSize: 12),
@@ -1132,23 +1172,15 @@ class _MyPetPageState extends State<MyPetPage> {
     return '$value ${_extractAgeUnit(pet)}';
   }
 
-  String _buildPetQrData(Map pet) {
-    return [
-      'Pet: ${pet['name'] ?? ''}',
-      'Type: ${pet['type'] ?? ''}',
-      'Breed: ${pet['breed'] ?? ''}',
-      'Age: ${_formatAgeLabel(pet)}',
-      'Owner: ${pet['ownerName'] ?? ''}',
-      'Phone: ${pet['ownerPhone'] ?? ''}',
-      'Medical Info: ${pet['medicalInfo'] ?? ''}',
-      'Allergies: ${pet['allergies'] ?? ''}',
-    ].join('\n');
+  // Encodes a URL so any phone camera opens the pet's public profile in the browser.
+  String _buildPetQrUrl(String ownerUid, String petId) {
+    return 'https://pawvera-3578f.web.app/#/pet/$ownerUid/$petId';
   }
 
-  Future<void> _printPetQrTag(Map pet) async {
+  Future<void> _printPetQrTag(String qrUrl, Map pet) async {
     try {
       final doc = pw.Document();
-      final qrData = _buildPetQrData(pet);
+      final qrData = qrUrl;
 
       doc.addPage(
         pw.Page(
@@ -1165,10 +1197,12 @@ class _MyPetPageState extends State<MyPetPage> {
                 ),
                 pw.SizedBox(height: 20),
                 pw.BarcodeWidget(
-                  barcode: pw.Barcode.qrCode(),
+                  barcode: pw.Barcode.qrCode(
+                    errorCorrectLevel: pw.BarcodeQRCorrectionLevel.low,
+                  ),
                   data: qrData,
-                  width: 200,
-                  height: 200,
+                  width: 250,
+                  height: 250,
                 ),
                 pw.SizedBox(height: 16),
                 pw.Text('Scan this code to view pet details.'),
