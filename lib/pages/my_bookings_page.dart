@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pawvera/services/database_service.dart';
@@ -20,6 +21,8 @@ class _MyBookingsPageState extends State<MyBookingsPage>
 
   List<DocumentSnapshot> _allDocs = [];
   bool _isLoading = true;
+  String? _errorMessage;
+  StreamSubscription<QuerySnapshot>? _bookingsSubscription;
 
   @override
   void initState() {
@@ -29,17 +32,29 @@ class _MyBookingsPageState extends State<MyBookingsPage>
   }
 
   void _loadBookings() {
-    _db.myBookings.listen((snapshot) {
-      if (!mounted) return;
-      setState(() {
-        _allDocs = snapshot.docs;
-        _isLoading = false;
-      });
-    });
+    _bookingsSubscription = _db.myBookings.listen(
+      (snapshot) {
+        if (!mounted) return;
+        setState(() {
+          _allDocs = snapshot.docs;
+          _isLoading = false;
+          _errorMessage = null;
+        });
+      },
+      onError: (error) {
+        if (!mounted) return;
+        setState(() {
+          _isLoading = false;
+          _errorMessage =
+              "Could not load bookings. Please check your connection.";
+        });
+      },
+    );
   }
 
   @override
   void dispose() {
+    _bookingsSubscription?.cancel();
     _tabController.dispose();
     super.dispose();
   }
@@ -741,6 +756,38 @@ class _MyBookingsPageState extends State<MyBookingsPage>
       body: SafeArea(
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
+            : _errorMessage != null
+            ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.cloud_off, size: 48, color: Colors.grey),
+                      const SizedBox(height: 16),
+                      Text(
+                        _errorMessage!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            _errorMessage = null;
+                            _isLoading = true;
+                          });
+                          _loadBookings();
+                        },
+                        child: const Text("Retry"),
+                      ),
+                    ],
+                  ),
+                ),
+              )
             : Column(
                 children: [
                   const SizedBox(height: 16),

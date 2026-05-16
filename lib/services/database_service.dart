@@ -78,58 +78,64 @@ class DatabaseService {
 
   // --- Bookings & Appointments ---
 
-  // Create a booking (saves to the shop's subcollection for provider dashboard)
+  // Create a booking
   Future<void> createBooking(Map<String, dynamic> bookingData) async {
     final shopId = bookingData['shopId'] as String?;
     final userId = _auth.currentUser!.uid;
+    String? shopBookingId;
 
-    // Always save to the top-level bookings collection (for "My Bookings" page)
-    await _db.collection('bookings').add({
+    // Save to shop's subcollection FIRST (so we can capture the booking ID)
+    if (shopId != null && shopId.isNotEmpty) {
+      try {
+        final ref = _db
+            .collection('service_shops')
+            .doc(shopId)
+            .collection('bookings')
+            .doc();
+        shopBookingId = ref.id;
+        // Convert price to string safely (avoids crash if price is a num)
+        final priceStr = bookingData['price']?.toString() ?? '0';
+        await ref.set({
+          'id': ref.id,
+          'shopId': shopId,
+          'shopName':
+              bookingData['clinicName'] ?? bookingData['provider'] ?? '',
+          'userId': userId,
+          'userName': bookingData['name'] ?? '',
+          'userPhone': bookingData['phone'] ?? '',
+          'petName': bookingData['pet'] ?? '',
+          'petBreed': '',
+          'serviceId': '',
+          'serviceName': bookingData['service'] ?? '',
+          'servicePrice':
+              double.tryParse(priceStr.replaceAll(RegExp(r'[^0-9.]'), '')) ??
+              0.0,
+          'date': bookingData['date'] ?? '',
+          'time': bookingData['time'] ?? '',
+          'status': 'confirmed',
+          'notes': '',
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      } catch (_) {
+        // If shop subcollection save fails, still continue with user save
+      }
+    }
+
+    // Save to users/{userId}/bookings/ (compatible with deployed Firestore rules)
+    await _db.collection('users').doc(userId).collection('bookings').add({
       ...bookingData,
       'userId': userId,
+      if (shopBookingId != null) 'shopBookingId': shopBookingId,
       'status': 'confirmed',
       'createdAt': FieldValue.serverTimestamp(),
     });
-
-    if (shopId != null && shopId.isNotEmpty) {
-      // Also save to the shop's subcollection so the provider dashboard picks it up
-      final ref = _db
-          .collection('service_shops')
-          .doc(shopId)
-          .collection('bookings')
-          .doc();
-      await ref.set({
-        'id': ref.id,
-        'shopId': shopId,
-        'shopName': bookingData['clinicName'] ?? bookingData['provider'] ?? '',
-        'userId': userId,
-        'userName': bookingData['name'] ?? '',
-        'userPhone': bookingData['phone'] ?? '',
-        'petName': bookingData['pet'] ?? '',
-        'petBreed': '',
-        'serviceId': '',
-        'serviceName': bookingData['service'] ?? '',
-        'servicePrice':
-            double.tryParse(
-              bookingData['price']?.replaceAll(RegExp(r'[^0-9.]'), '') ?? '0',
-            ) ??
-            0.0,
-        'date': bookingData['date'] ?? '',
-        'time': bookingData['time'] ?? '',
-        'status': 'confirmed',
-        'notes': '',
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-    }
   }
 
   // Get my bookings
   Stream<QuerySnapshot> get myBookings {
-    return _db
-        .collection('bookings')
-        .where('userId', isEqualTo: _auth.currentUser!.uid)
-        .snapshots();
+    final uid = _auth.currentUser!.uid;
+    return _db.collection('users').doc(uid).collection('bookings').snapshots();
   }
 
   // --- Reminders ---
@@ -314,12 +320,24 @@ class DatabaseService {
     String bookingId,
     Map<String, dynamic> data,
   ) async {
-    await _db.collection('bookings').doc(bookingId).update(data);
+    final uid = _auth.currentUser!.uid;
+    await _db
+        .collection('users')
+        .doc(uid)
+        .collection('bookings')
+        .doc(bookingId)
+        .update(data);
   }
 
   // Delete a booking
   Future<void> deleteBooking(String bookingId) async {
-    await _db.collection('bookings').doc(bookingId).delete();
+    final uid = _auth.currentUser!.uid;
+    await _db
+        .collection('users')
+        .doc(uid)
+        .collection('bookings')
+        .doc(bookingId)
+        .delete();
   }
 
   // --- Online Store: Data Initialization ---

@@ -4,22 +4,61 @@ import 'package:pawvera/pages/home.dart';
 import 'package:pawvera/pages/my_bookings_page.dart';
 import 'package:pawvera/services/database_service.dart';
 
-class ConfirmBookingPage extends StatelessWidget {
+class ConfirmBookingPage extends StatefulWidget {
   final Map<String, dynamic> bookingData;
 
   ConfirmBookingPage({super.key, required this.bookingData});
 
+  @override
+  State<ConfirmBookingPage> createState() => _ConfirmBookingPageState();
+}
+
+class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
   final Color primaryGreen = const Color(0xFF5B9D8E);
   final DatabaseService _db = DatabaseService();
+  bool _isProcessing = false;
 
   String _textValue(String key, {String fallback = "-"}) {
-    final value = bookingData[key];
+    final value = widget.bookingData[key];
     if (value == null) return fallback;
     final text = value.toString().trim();
     return text.isEmpty ? fallback : text;
   }
 
-  // 1. دالة لإظهار نافذة نجاح الحجز
+  // Save booking to both Hive and Firestore
+  Future<void> _saveBooking() async {
+    if (_isProcessing) return;
+    setState(() => _isProcessing = true);
+
+    try {
+      // Save to Hive (local)
+      var box = Hive.box('myBox');
+      List<dynamic> currentBookings = box.get('all_bookings', defaultValue: []);
+      List<Map<String, dynamic>> updatedList = List<Map<String, dynamic>>.from(
+        currentBookings,
+      );
+      updatedList.add(widget.bookingData);
+      await box.put('all_bookings', updatedList);
+
+      // Save to Firestore
+      await _db.createBooking(widget.bookingData);
+
+      if (!mounted) return;
+      setState(() => _isProcessing = false);
+      _showSuccessDialog(context);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isProcessing = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Failed to save booking: ${e.toString()}"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // Success dialog
   void _showSuccessDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -43,7 +82,7 @@ class ConfirmBookingPage extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
-            // بطاقة تفاصيل الحجز المصغرة داخل الدايلوج
+            // Mini booking details card inside dialog
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -89,7 +128,6 @@ class ConfirmBookingPage extends StatelessWidget {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () {
-                      // هاد الكود برجعك للهوم وبنظف كل الصفحات اللي قبلها (عشان ما يرجع لورا للحجز)
                       Navigator.pushAndRemoveUntil(
                         context,
                         MaterialPageRoute(builder: (context) => const Home()),
@@ -142,25 +180,7 @@ class ConfirmBookingPage extends StatelessWidget {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
-          // داخل زر Confirm Booking
-          onPressed: () async {
-            // حفظ الحجز في Hive (للتوافق المحلي)
-            var box = Hive.box('myBox');
-            List<dynamic> currentBookings = box.get(
-              'all_bookings',
-              defaultValue: [],
-            );
-            List<Map<String, dynamic>> updatedList =
-                List<Map<String, dynamic>>.from(currentBookings);
-            updatedList.add(bookingData);
-            await box.put('all_bookings', updatedList);
-
-            // حفظ الحجز في Firestore (للحساب)
-            await _db.createBooking(bookingData);
-
-            // إظهار نافذة النجاح
-            if (context.mounted) _showSuccessDialog(context);
-          },
+          onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           "Confirm Booking",
@@ -273,38 +293,31 @@ class ConfirmBookingPage extends StatelessWidget {
               width: double.infinity,
               height: 55,
               child: ElevatedButton(
-                // ابحث عن زر Confirm Booking في كودك الأصلي وعدله ليصبح هكذا:
-                onPressed: () async {
-                  // هنا نقوم بحفظ الحجز في Hive قبل إظهار النجاح
-                  final bookingsBox = Hive.box('myBox');
-                  List currentBookings = bookingsBox.get(
-                    'all_bookings',
-                    defaultValue: [],
-                  );
-                  currentBookings.add(
-                    bookingData,
-                  ); // إضافة الحجز الحالي للقائمة
-                  bookingsBox.put('all_bookings', currentBookings);
-
-                  // حفظ الحجز في Firestore (للحساب)
-                  await _db.createBooking(bookingData);
-
-                  if (context.mounted)
-                    _showSuccessDialog(context); // إظهار النافذة
-                },
+                onPressed: _isProcessing ? null : () => _saveBooking(),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryGreen,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(15),
                   ),
                 ),
-                child: Text(
-                  "Confirm Booking (${_textValue('price')} JOD)",
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                child: _isProcessing
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
+                        ),
+                      )
+                    : Text(
+                        "Confirm Booking (${_textValue('price')} JOD)",
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
               ),
             ),
           ],

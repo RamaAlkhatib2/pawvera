@@ -485,7 +485,9 @@ class ServiceProviderController extends ChangeNotifier {
         'totalBookings': FieldValue.increment(1),
         'updatedAt': FieldValue.serverTimestamp(),
       });
-      // Revenue will be updated separately when price is tracked
+
+      // Send notification to the pet owner that the service is completed
+      await _sendBookingCompletedNotification(bookingId, id);
     } else if (status == 'cancelled') {
       await _db.collection('service_shops').doc(id).update({
         'activeBookings': FieldValue.increment(-1),
@@ -493,11 +495,85 @@ class ServiceProviderController extends ChangeNotifier {
       });
     }
 
+    // Also update the top-level bookings collection so "My Bookings" page reflects the change
+    try {
+      final topLevelBooking = await _db
+          .collection('bookings')
+          .where('shopBookingId', isEqualTo: bookingId)
+          .limit(1)
+          .get();
+      if (topLevelBooking.docs.isNotEmpty) {
+        await topLevelBooking.docs.first.reference.update({
+          'status': status,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+    } catch (_) {
+      // Fallback: the top-level booking may not exist yet (e.g. old bookings)
+    }
+
     await _addAuditLog(
       id,
       'Booking $status',
       'Booking $bookingId status changed to $status',
     );
+  }
+
+  /// Send a push notification to the pet owner when the service is completed
+  Future<void> _sendBookingCompletedNotification(
+    String bookingId,
+    String shopDocId,
+  ) async {
+    try {
+      // Fetch the shop booking to get shop name, pet name, and user ID
+      final bookingDoc = await _db
+          .collection('service_shops')
+          .doc(shopDocId)
+          .collection('bookings')
+          .doc(bookingId)
+          .get();
+
+      if (!bookingDoc.exists) return;
+      final data = bookingDoc.data() ?? {};
+      final userId = data['userId']?.toString() ?? '';
+      final shopName = data['shopName']?.toString() ?? 'Pet Care Shop';
+      final petName = data['petName']?.toString() ?? 'your pet';
+      final serviceName = data['serviceName']?.toString() ?? 'service';
+
+      if (userId.isEmpty) return;
+
+      // Get the shop name from the shop document if not available in booking
+      String displayShopName = shopName;
+      if (displayShopName.isEmpty) {
+        try {
+          final shopDoc = await _db
+              .collection('service_shops')
+              .doc(shopDocId)
+              .get();
+          if (shopDoc.exists) {
+            displayShopName = (shopDoc.data()?['shopName'] ?? '').toString();
+          }
+        } catch (_) {}
+      }
+      if (displayShopName.isEmpty) displayShopName = 'Pet Care Shop';
+
+      // Create a notification document for the pet owner
+      final notifRef = _db.collection('notifications').doc();
+      await notifRef.set({
+        'id': notifRef.id,
+        'userId': userId,
+        'title': 'Service Completed 🎉',
+        'description':
+            '$displayShopName has completed the $serviceName for $petName!',
+        'type': 'booking_completed',
+        'isRead': false,
+        'bookingId': bookingId,
+        'shopId': shopDocId,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } catch (_) {
+      // Silently fail - notification is a best-effort feature
+    }
   }
 
   // ── Audit Helper ────────────────────────────────────
@@ -578,8 +654,9 @@ class ServiceProviderController extends ChangeNotifier {
         .doc(shopId)
         .collection('bookings')
         .doc();
+    final bookingId = ref.id;
     await ref.set({
-      'id': ref.id,
+      'id': bookingId,
       'shopId': shopId,
       'shopName': shopName,
       'userId': uid,
@@ -597,6 +674,25 @@ class ServiceProviderController extends ChangeNotifier {
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
-    return ref.id;
+
+    // Also save to the top-level bookings collection so it appears on "My Bookings" page
+    await _db.collection('bookings').add({
+      'shopId': shopId,
+      'provider': shopName,
+      'name': userName,
+      'phone': userPhone,
+      'pet': petName,
+      'service': serviceName,
+      'price': servicePrice.toString(),
+      'date': date,
+      'time': time,
+      'notes': notes,
+      'shopBookingId': bookingId,
+      'userId': uid,
+      'status': 'pending',
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    return bookingId;
   }
 }
