@@ -11,17 +11,10 @@ import 'package:pawvera/services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Initialize Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
-  // Initialize Hive for mobile
   await Hive.initFlutter();
   await Hive.openBox('myBox');
-
-  // Initialize Notifications
   await NotificationService().init();
-
   runApp(const MainApp());
 }
 
@@ -31,7 +24,6 @@ class MainApp extends StatelessWidget {
   Widget _resolvePage() {
     if (kIsWeb) {
       try {
-        // Fragment is everything after '#' — e.g. '/pet/uid123/petId456'
         final fragment = Uri.base.fragment;
         if (fragment.startsWith('/pet/')) {
           final parts = fragment.substring('/pet/'.length).split('/');

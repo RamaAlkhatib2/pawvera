@@ -62,9 +62,7 @@ class _HomePageState extends State<Home> {
       case 3:
         return const MyBookingsPage(standalone: false);
       case 4:
-        return ProfileView(
-          onOpenMyBookings: () => setState(() => _selectedIndex = 3),
-        );
+        return const ProfileView();
       case 0:
       default:
         return _buildHomeContent();
