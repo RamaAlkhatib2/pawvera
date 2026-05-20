@@ -251,7 +251,7 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                       Text(
-                        "${_textValue('price')} JOD",
+                        _textValue('price'),
                         style: TextStyle(
                           color: primaryGreen,
                           fontWeight: FontWeight.bold,
@@ -312,7 +312,7 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                         ),
                       )
                     : Text(
-                        "Confirm Booking (${_textValue('price')} JOD)",
+                        "Confirm Booking (${_textValue('price')})",
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
