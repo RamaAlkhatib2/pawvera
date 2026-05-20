@@ -196,9 +196,11 @@ class _ReminderScreenState extends State<ReminderScreen> {
                 }).toList();
 
                 final past = all.where((r) =>
-                    (r['_dt'] as DateTime).isBefore(now)).toList();
+                    (r['_dt'] as DateTime).isBefore(now)).toList()
+                  ..sort((a, b) => (b['_dt'] as DateTime).compareTo(a['_dt'] as DateTime));
                 final upcoming = all.where((r) =>
-                    !(r['_dt'] as DateTime).isBefore(now)).toList();
+                    !(r['_dt'] as DateTime).isBefore(now)).toList()
+                  ..sort((a, b) => (a['_dt'] as DateTime).compareTo(b['_dt'] as DateTime));
 
                 if (all.isEmpty) {
                   return const Center(
@@ -213,13 +215,13 @@ class _ReminderScreenState extends State<ReminderScreen> {
                 return ListView(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                   children: [
-                    if (past.isNotEmpty) ...[
-                      _sectionHeader('Past', past.length),
-                      ...past.map(_buildReminderCard),
-                    ],
                     if (upcoming.isNotEmpty) ...[
                       _sectionHeader('Upcoming', upcoming.length),
                       ...upcoming.map(_buildReminderCard),
+                    ],
+                    if (past.isNotEmpty) ...[
+                      _sectionHeader('Past', past.length),
+                      ...past.map(_buildReminderCard),
                     ],
                   ],
                 );
