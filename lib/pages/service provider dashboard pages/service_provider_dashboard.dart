@@ -37,16 +37,16 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
     final shop = ctrl.shop;
 
     final TextEditingController nameController = TextEditingController(
-      text: shop?.shopName ?? "Pawfect Spa",
+      text: shop?.shopName ?? "",
     );
     final TextEditingController emailController = TextEditingController(
-      text: shop?.email ?? "a@gmail.com",
+      text: shop?.email ?? "",
     );
     final TextEditingController phoneController = TextEditingController(
-      text: shop?.phone ?? "+1 (555) 000-1111",
+      text: shop?.phone ?? "",
     );
     final TextEditingController businessController = TextEditingController(
-      text: shop?.shopName ?? "Pawfect Spa",
+      text: shop?.shopName ?? "",
     );
 
     showDialog(
@@ -102,7 +102,15 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
             child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () async {
+              final ctrl = context.read<ServiceProviderController>();
+              await ctrl.updateShopInfo(
+                shopName: businessController.text.trim(),
+                email: emailController.text.trim(),
+                phone: phoneController.text.trim(),
+              );
+              if (context.mounted) Navigator.pop(context);
+            },
             style: ElevatedButton.styleFrom(backgroundColor: primaryTeal),
             child: const Text(
               "Save Changes",
@@ -181,7 +189,7 @@ class _ServiceProviderDashboardState extends State<ServiceProviderDashboard> {
                         Consumer<ServiceProviderController>(
                           builder: (context, ctrl, _) {
                             return Text(
-                              ctrl.shop?.shopName ?? 'Pawfect Spa',
+                              ctrl.shop?.shopName ?? '',
                               style: TextStyle(
                                 color: Colors.grey[600],
                                 fontSize: 14,

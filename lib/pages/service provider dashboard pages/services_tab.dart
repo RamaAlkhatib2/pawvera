@@ -189,7 +189,7 @@ class _ServicesTabState extends State<ServicesTab> {
           Row(
             children: [
               Text(
-                "\$${service.price.toStringAsFixed(2)}",
+                "${service.price.toStringAsFixed(2)} JOD",
                 style: const TextStyle(
                   color: primaryTeal,
                   fontWeight: FontWeight.bold,
@@ -286,7 +286,7 @@ class _ServicesTabState extends State<ServicesTab> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildLabel("Price (\$) *"),
+                      _buildLabel("Price (JOD) *"),
                       _buildTextField(_priceController, "0.00"),
                     ],
                   ),

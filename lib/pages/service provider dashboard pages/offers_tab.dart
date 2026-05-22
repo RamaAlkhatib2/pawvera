@@ -537,7 +537,7 @@ class _OffersTabState extends State<OffersTab> {
                                   keyboardType: TextInputType.number,
                                   decoration: InputDecoration(
                                     hintText: "Min price",
-                                    suffixText: "\$",
+                                    suffixText: "JOD",
                                     suffixStyle: TextStyle(
                                       color: Colors.grey[500],
                                     ),
@@ -569,7 +569,7 @@ class _OffersTabState extends State<OffersTab> {
                                   keyboardType: TextInputType.number,
                                   decoration: InputDecoration(
                                     hintText: "Max price",
-                                    suffixText: "\$",
+                                    suffixText: "JOD",
                                     suffixStyle: TextStyle(
                                       color: Colors.grey[500],
                                     ),
@@ -648,7 +648,7 @@ class _OffersTabState extends State<OffersTab> {
                             keyboardType: TextInputType.number,
                             decoration: InputDecoration(
                               hintText: "Minimum amount",
-                              suffixText: "\$",
+                              suffixText: "JOD",
                               suffixStyle: TextStyle(color: Colors.grey[500]),
                               filled: true,
                               fillColor: Colors.white,
@@ -875,7 +875,7 @@ class _OffersTabState extends State<OffersTab> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            "Price range: \$${offer.minPrice!.toStringAsFixed(0)} - \$${offer.maxPrice?.toStringAsFixed(0) ?? 'N/A'}",
+                            "Price range: ${offer.minPrice!.toStringAsFixed(0)} - ${offer.maxPrice?.toStringAsFixed(0) ?? 'N/A'} JOD",
                             style: TextStyle(
                               color: Colors.grey[500],
                               fontSize: 12,
@@ -895,7 +895,7 @@ class _OffersTabState extends State<OffersTab> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            "Min booking: \$${offer.minBookingAmount!.toStringAsFixed(0)}",
+                            "Min booking: ${offer.minBookingAmount!.toStringAsFixed(0)} JOD",
                             style: TextStyle(
                               color: Colors.grey[500],
                               fontSize: 12,

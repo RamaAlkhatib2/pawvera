@@ -52,7 +52,7 @@ class _OverviewTabState extends State<OverviewTab> {
                 ),
                 _buildStatCard(
                   'Total Revenue',
-                  '\$${ctrl.totalRevenue.toStringAsFixed(2)}',
+                  '${ctrl.totalRevenue.toStringAsFixed(2)} JOD',
                   Icons.attach_money,
                   Colors.green[400]!,
                 ),

@@ -87,19 +87,59 @@ class ServiceProviderController extends ChangeNotifier {
       }
       _listenToShop(retry.docs.first.id);
     } else {
-      _listenToShop(shopSnapshot.docs.first.id);
+      final shopDoc = shopSnapshot.docs.first;
+      _listenToShop(shopDoc.id);
+      // Auto-fix placeholder or bad shop names
+      final existingName = (shopDoc.data()['shopName'] as String?) ?? '';
+      final badName = existingName.isEmpty ||
+          existingName == 'Pawfect Spa' ||
+          existingName == 'My Pet Shop' ||
+          RegExp(r'\.\d+').hasMatch(existingName); // username like petpro.1542
+      if (badName) {
+        final realName = await _fetchUserFullName(uid);
+        if (realName.isNotEmpty) {
+          await _db.collection('service_shops').doc(shopDoc.id).update({
+            'shopName': realName,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+      }
     }
   }
 
+  Future<String> _fetchUserFullName(String uid) async {
+    try {
+      final doc = await _db.collection('users').doc(uid).get();
+      final data = doc.data() ?? {};
+      String clean(String? v) => (v ?? '').trim();
+      final name = clean(data['name'] as String?);
+      if (name.isNotEmpty) return name;
+      final fullName = clean(data['fullName'] as String?);
+      if (fullName.isNotEmpty) return fullName;
+      final businessName = clean(data['businessName'] as String?);
+      // skip if it looks like a username (e.g. petpro.1542)
+      if (businessName.isNotEmpty && !RegExp(r'\.\d+').hasMatch(businessName)) {
+        return businessName;
+      }
+    } catch (_) {}
+
+    final displayName = (_auth.currentUser?.displayName ?? '').trim();
+    if (displayName.isNotEmpty) return displayName;
+
+    return '';
+  }
+
   Future<void> _createDefaultShop(String ownerId) async {
+    final fullName = await _fetchUserFullName(ownerId);
+    final shopName = fullName.isNotEmpty ? fullName : 'My Pet Shop';
     final ref = _db.collection('service_shops').doc();
     await ref.set({
       'id': ref.id,
       'ownerId': ownerId,
-      'shopName': 'Pawfect Spa',
-      'address': '123 Main St, Downtown',
-      'phone': '+1 (555) 000-1111',
-      'email': 'contact@pawfectspa.com',
+      'shopName': shopName,
+      'address': '',
+      'phone': '',
+      'email': _auth.currentUser?.email ?? '',
       'workingHours': '9:00 AM - 7:00 PM',
       'status': 'Open',
       'isOpen': true,
