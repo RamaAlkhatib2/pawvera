@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import 'clinic_details_page.dart';
 import 'package:pawvera/models/service_provider_models.dart';
 
@@ -49,6 +50,26 @@ class _PetCarePageState extends State<PetCarePage> {
   String _selectedSort = "Highest Rated";
   bool _showOffersOnly = false;
   bool _showFavoritesOnly = false;
+  final Set<String> _favoriteIds = {};
+
+  @override
+  void initState() {
+    super.initState();
+    final box = Hive.box('myBox');
+    final saved = box.get('favorite_shops', defaultValue: <String>[]);
+    _favoriteIds.addAll(List<String>.from(saved));
+  }
+
+  void _toggleFavorite(String shopId) {
+    setState(() {
+      if (_favoriteIds.contains(shopId)) {
+        _favoriteIds.remove(shopId);
+      } else {
+        _favoriteIds.add(shopId);
+      }
+    });
+    Hive.box('myBox').put('favorite_shops', _favoriteIds.toList());
+  }
 
   // --- الفلاتر الجديدة المستخرجة من الصورة ---
   final List<String> _sortOptions = [
@@ -191,7 +212,7 @@ class _PetCarePageState extends State<PetCarePage> {
                   p.description.toLowerCase().contains(query) ||
                   p.tags.any((tag) => tag.toLowerCase().contains(query));
               final matchesOffer = !_showOffersOnly || p.hasOffer;
-              final matchesFav = !_showFavoritesOnly || p.isFavorite;
+              final matchesFav = !_showFavoritesOnly || _favoriteIds.contains(p.id);
               final petTypeLower = _selectedPetType.toLowerCase();
               final matchesPet =
                   _selectedPetType == "All Pet Types" ||
@@ -631,7 +652,7 @@ class _PetCarePageState extends State<PetCarePage> {
                 ),
                 const SizedBox(width: 10),
                 GestureDetector(
-                  onTap: () => setState(() => p.isFavorite = !p.isFavorite),
+                  onTap: () => _toggleFavorite(p.id),
                   child: Container(
                     height: 36,
                     width: 36,
@@ -641,8 +662,8 @@ class _PetCarePageState extends State<PetCarePage> {
                       border: Border.all(color: Colors.grey.shade200),
                     ),
                     child: Icon(
-                      p.isFavorite ? Icons.favorite : Icons.favorite_border,
-                      color: p.isFavorite ? Colors.red : Colors.grey.shade400,
+                      _favoriteIds.contains(p.id) ? Icons.favorite : Icons.favorite_border,
+                      color: _favoriteIds.contains(p.id) ? Colors.red : Colors.grey.shade400,
                       size: 20,
                     ),
                   ),
