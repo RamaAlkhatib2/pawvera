@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:pawvera/pages/pet%20care%20pages/confirm_booking_page.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -214,6 +215,10 @@ class _BookingPageState extends State<BookingPage> {
                   controller: codeController,
                   keyboardType: TextInputType.number,
                   textAlign: TextAlign.center,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(6),
+                  ],
                   decoration: InputDecoration(
                     hintText: "000000",
                     hintStyle: TextStyle(
@@ -627,7 +632,11 @@ class _BookingPageState extends State<BookingPage> {
               Expanded(
                 child: TextField(
                   controller: _phoneController,
-                  keyboardType: TextInputType.phone,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(9),
+                  ],
                   decoration: InputDecoration(
                     hintText: "7XXXXXXXX",
                     filled: true,
