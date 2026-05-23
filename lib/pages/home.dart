@@ -507,100 +507,153 @@ Widget _buildTappableServiceCard({
   );
 }
   Widget _buildUpcomingReminderCard() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Upcoming Reminders',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF5A3E2B),
-          ),
-        ),
-        const SizedBox(height: 12),
-        GestureDetector(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const ReminderScreen()),
-            );
-          },
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF4CFC6),
-              borderRadius: BorderRadius.circular(12),
+    return StreamBuilder<QuerySnapshot>(
+      stream: _db.reminders,
+      builder: (context, snapshot) {
+        final now = DateTime.now();
+        final docs = snapshot.data?.docs ?? [];
+
+        // Find the first upcoming reminder (dateTime >= now), sorted ascending
+        final upcoming = docs
+            .map((d) {
+              final data = d.data() as Map<String, dynamic>;
+              final ts = data['dateTime'] as Timestamp?;
+              return {...data, '_dt': ts?.toDate() ?? now};
+            })
+            .where((r) => !(r['_dt'] as DateTime).isBefore(now))
+            .toList()
+          ..sort((a, b) =>
+              (a['_dt'] as DateTime).compareTo(b['_dt'] as DateTime));
+
+        final next = upcoming.isNotEmpty ? upcoming.first : null;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Upcoming Reminders',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF5A3E2B),
+              ),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Heartworm Medication',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          color: Color(0xFF5B4A44),
-                        ),
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ReminderScreen()),
+              ),
+              child: next == null
+                  ? Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF4CFC6),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Pet: Buddy',
+                      child: const Text(
+                        'No upcoming reminders',
                         style: TextStyle(
                           color: Color(0xFF5B4A44),
-                          fontSize: 12,
+                          fontSize: 13,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Jan 18, 2026 at 8:00 AM',
-                        style: TextStyle(
-                          color: Colors.brown[600],
-                          fontSize: 11,
-                        ),
+                    )
+                  : Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF4CFC6),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Monthly heartworm prevention pill',
-                        style: TextStyle(
-                          color: Color(0xFF5B4A44),
-                          fontSize: 11,
-                          fontStyle: FontStyle.italic,
-                        ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  next['title']?.toString() ?? '',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                    color: Color(0xFF5B4A44),
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Pet: ${next['petName'] ?? ''}',
+                                  style: const TextStyle(
+                                    color: Color(0xFF5B4A44),
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _formatReminderDate(next['_dt'] as DateTime),
+                                  style: TextStyle(
+                                    color: Colors.brown[600],
+                                    fontSize: 11,
+                                  ),
+                                ),
+                                if ((next['notes'] ?? '').toString().isNotEmpty) ...[
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    next['notes'].toString(),
+                                    style: const TextStyle(
+                                      color: Color(0xFF5B4A44),
+                                      fontSize: 11,
+                                      fontStyle: FontStyle.italic,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          if ((next['type'] ?? '').toString().isNotEmpty) ...[
+                            const SizedBox(width: 12),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                next['type'].toString(),
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF5B4A44),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Text(
-                    'Medication',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF5B4A44),
                     ),
-                  ),
-                ),
-              ],
             ),
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
+  }
+
+  String _formatReminderDate(DateTime dt) {
+    final months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    final hour = dt.hour == 0
+        ? 12
+        : dt.hour > 12
+            ? dt.hour - 12
+            : dt.hour;
+    final ampm = dt.hour < 12 ? 'AM' : 'PM';
+    final minute = dt.minute.toString().padLeft(2, '0');
+    return '${months[dt.month - 1]} ${dt.day}, ${dt.year} at $hour:$minute $ampm';
   }
 
   Widget _buildBottomNav() {
