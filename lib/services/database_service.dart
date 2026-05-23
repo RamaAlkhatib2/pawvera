@@ -191,6 +191,32 @@ class DatabaseService {
         .snapshots();
   }
 
+  // --- Pet Care Shop Favorites ---
+
+  Stream<QuerySnapshot> get favoritePetCareShops {
+    final uid = _auth.currentUser!.uid;
+    return _db
+        .collection('users')
+        .doc(uid)
+        .collection('pet_care_favorites')
+        .snapshots();
+  }
+
+  Future<void> toggleFavoritePetCareShop(String shopId) async {
+    final uid = _auth.currentUser!.uid;
+    final ref = _db
+        .collection('users')
+        .doc(uid)
+        .collection('pet_care_favorites')
+        .doc(shopId);
+    final doc = await ref.get();
+    if (doc.exists) {
+      await ref.delete();
+    } else {
+      await ref.set({'shopId': shopId, 'createdAt': FieldValue.serverTimestamp()});
+    }
+  }
+
   // --- Reminder Types (admin-managed global list) ---
 
   CollectionReference<Map<String, dynamic>> get _reminderTypes =>

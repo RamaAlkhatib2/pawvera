@@ -1,8 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
 import 'clinic_details_page.dart';
-import 'package:pawvera/models/service_provider_models.dart';
+import 'package:pawvera/services/database_service.dart';
 
 class ServiceProvider {
   final String id,
@@ -51,16 +50,23 @@ class _PetCarePageState extends State<PetCarePage> {
   bool _showOffersOnly = false;
   bool _showFavoritesOnly = false;
   final Set<String> _favoriteIds = {};
+  final DatabaseService _db = DatabaseService();
 
   @override
   void initState() {
     super.initState();
-    final box = Hive.box('myBox');
-    final saved = box.get('favorite_shops', defaultValue: <String>[]);
-    _favoriteIds.addAll(List<String>.from(saved));
+    _db.favoritePetCareShops.listen((snapshot) {
+      if (!mounted) return;
+      setState(() {
+        _favoriteIds
+          ..clear()
+          ..addAll(snapshot.docs.map((d) => d.id));
+      });
+    });
   }
 
   void _toggleFavorite(String shopId) {
+    // Optimistically update UI immediately
     setState(() {
       if (_favoriteIds.contains(shopId)) {
         _favoriteIds.remove(shopId);
@@ -68,7 +74,7 @@ class _PetCarePageState extends State<PetCarePage> {
         _favoriteIds.add(shopId);
       }
     });
-    Hive.box('myBox').put('favorite_shops', _favoriteIds.toList());
+    _db.toggleFavoritePetCareShop(shopId);
   }
 
   // --- الفلاتر الجديدة المستخرجة من الصورة ---
