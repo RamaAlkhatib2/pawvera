@@ -354,28 +354,50 @@ class _MyBookingsPageState extends State<MyBookingsPage>
     return DateTime.now();
   }
 
-  String _formatBookingDate(DateTime date) {
-    const monthNames = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
-    ];
-    return "${monthNames[date.month - 1]} ${date.day}, ${date.year}";
-  }
-
-  // --- نافذة إعادة الجدولة (Reschedule) ---
+  // --- (Reschedule) ---
   void _showRescheduleSheet(Map<String, dynamic> data, String bookingId) {
-    DateTime selectedDate = _parseBookingDate(data['date']?.toString());
+    // Parse initial date — handle both "d/M/yyyy" and "Month D, YYYY" formats
+    DateTime selectedDate =
+        _parseBookingDateFromDMY(data['date']?.toString() ?? '') ??
+        _parseBookingDate(data['date']?.toString());
     String tempTime = (data['time'] ?? "9:30 AM").toString();
+    Set<String> bookedSlots = {};
+    final shopId = (data['shopId'] ?? '').toString();
+    final shopBookingId = (data['shopBookingId'] ?? '').toString();
+
+    // Callback reference so async slot loader can trigger dialog rebuild
+    void Function(void Function())? dialogSetState;
+
+    void loadBookedSlots(DateTime date) {
+      if (shopId.isEmpty) return;
+      final dateStr = '${date.day}/${date.month}/${date.year}';
+      FirebaseFirestore.instance
+          .collection('service_shops')
+          .doc(shopId)
+          .collection('bookings')
+          .where('date', isEqualTo: dateStr)
+          .get()
+          .then((snap) {
+            final booked = snap.docs
+                .where((doc) {
+                  final d = doc.data();
+                  final status =
+                      (d['status'] ?? '').toString().toLowerCase();
+                  // Exclude cancelled and the booking being rescheduled
+                  if (status == 'cancelled') return false;
+                  if (shopBookingId.isNotEmpty && doc.id == shopBookingId) {
+                    return false;
+                  }
+                  return true;
+                })
+                .map((doc) => (doc.data()['time'] ?? '').toString())
+                .where((t) => t.isNotEmpty)
+                .toSet();
+            dialogSetState?.call(() => bookedSlots = booked);
+          })
+          .catchError((_) {});
+    }
+
     const timeSlots = [
       "9:00 AM",
       "9:30 AM",
@@ -396,307 +418,344 @@ class _MyBookingsPageState extends State<MyBookingsPage>
       "5:00 PM",
     ];
 
+    // Kick off initial slot load
+    loadBookedSlots(selectedDate);
+
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setSheetState) => Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-          ),
-          insetPadding: const EdgeInsets.symmetric(
-            horizontal: 12,
-            vertical: 20,
-          ),
-          child: SizedBox(
-            width: double.infinity,
-            height: MediaQuery.of(context).size.height * 0.82,
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
-                  ),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFF4F6F7),
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(18),
+        builder: (context, setSheetState) {
+          dialogSetState = setSheetState;
+          return Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
+            ),
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 20,
+            ),
+            child: SizedBox(
+              width: double.infinity,
+              height: MediaQuery.of(context).size.height * 0.82,
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
                     ),
-                  ),
-                  child: Row(
-                    children: [
-                      const Expanded(
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.radio_button_checked_outlined,
-                              size: 14,
-                              color: Color(0xFF1E5BFF),
-                            ),
-                            SizedBox(width: 6),
-                            Text(
-                              "Reschedule Booking",
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFF4F6F7),
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(18),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Expanded(
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.radio_button_checked_outlined,
+                                size: 14,
                                 color: Color(0xFF1E5BFF),
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      InkWell(
-                        onTap: () => Navigator.pop(context),
-                        borderRadius: BorderRadius.circular(8),
-                        child: Container(
-                          width: 24,
-                          height: 24,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: const Text(
-                            "×",
-                            style: TextStyle(
-                              color: Color(0xFF9A9A9A),
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF4F6F8),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                "Current Booking:",
+                              SizedBox(width: 6),
+                              Text(
+                                "Reschedule Booking",
                                 style: TextStyle(
-                                  fontSize: 10,
-                                  color: Color(0xFF505050),
+                                  fontSize: 13,
                                   fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                "${data['date']} at ${data['time']}",
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  color: Color(0xFF6A6A6A),
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                data['service'] ?? "Daily Dog Walking",
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  color: Color(0xFF6A6A6A),
+                                  color: Color(0xFF1E5BFF),
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          "Select New Date *",
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF222222),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Container(
-                          decoration: BoxDecoration(
-                            border: Border.all(color: const Color(0xFFB7D8CF)),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: CalendarDatePicker(
-                            initialDate: selectedDate,
-                            firstDate: DateTime.now().subtract(
-                              const Duration(days: 1),
+                        InkWell(
+                          onTap: () => Navigator.pop(context),
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            width: 24,
+                            height: 24,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(6),
                             ),
-                            lastDate: DateTime.now().add(
-                              const Duration(days: 365),
-                            ),
-                            onDateChanged: (picked) =>
-                                setSheetState(() => selectedDate = picked),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          "Select New Time *",
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF222222),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: const Color(0xFFB7D8CF)),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Wrap(
-                            spacing: 7,
-                            runSpacing: 7,
-                            children: timeSlots.map((slot) {
-                              final isSelected = tempTime == slot;
-                              return SizedBox(
-                                width:
-                                    (MediaQuery.of(context).size.width - 78) /
-                                    3,
-                                child: OutlinedButton(
-                                  onPressed: () =>
-                                      setSheetState(() => tempTime = slot),
-                                  style: OutlinedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 9,
-                                    ),
-                                    side: BorderSide(
-                                      color: isSelected
-                                          ? const Color(0xFF2F72FF)
-                                          : const Color(0xFFD5D9DE),
-                                    ),
-                                    backgroundColor: isSelected
-                                        ? const Color(0xFFE9F0FF)
-                                        : Colors.white,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    slot,
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: isSelected
-                                          ? const Color(0xFF2F72FF)
-                                          : const Color(0xFF444444),
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEAF3FF),
-                            border: Border.all(color: const Color(0xFF9EBEF2)),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                "New Appointment:",
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: Color(0xFF356BC5),
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              const SizedBox(height: 3),
-                              Text(
-                                "${_formatBookingDate(selectedDate)} at $tempTime",
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  color: Color(0xFF2459B2),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: () => Navigator.pop(context),
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 12,
-                                  ),
-                                  side: const BorderSide(
-                                    color: Color(0xFFBFC9C5),
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                                child: const Text(
-                                  "Cancel",
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: Color(0xFF616A67),
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
+                            child: const Text(
+                              "×",
+                              style: TextStyle(
+                                color: Color(0xFF9A9A9A),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: ElevatedButton(
-                                onPressed: () async {
-                                  await _db.updateBooking(bookingId, {
-                                    'date': _formatBookingDate(selectedDate),
-                                    'time': tempTime,
-                                  });
-                                  if (context.mounted) Navigator.pop(context);
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF1E5BFF),
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 12,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                                child: const Text(
-                                  "Confirm Reschedule",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
                       ],
                     ),
                   ),
-                ),
-              ],
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF4F6F8),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  "Current Booking:",
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Color(0xFF505050),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  "${data['date']} at ${data['time']}",
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    color: Color(0xFF6A6A6A),
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  data['service'] ?? "Daily Dog Walking",
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    color: Color(0xFF6A6A6A),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            "Select New Date *",
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF222222),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: const Color(0xFFB7D8CF),
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: CalendarDatePicker(
+                              initialDate: selectedDate,
+                              firstDate: DateTime.now().subtract(
+                                const Duration(days: 1),
+                              ),
+                              lastDate: DateTime.now().add(
+                                const Duration(days: 365),
+                              ),
+                              onDateChanged: (picked) {
+                                setSheetState(() {
+                                  selectedDate = picked;
+                                  bookedSlots = {};
+                                });
+                                loadBookedSlots(picked);
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            "Select New Time *",
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF222222),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: const Color(0xFFB7D8CF),
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Wrap(
+                              spacing: 7,
+                              runSpacing: 7,
+                              children: timeSlots.map((slot) {
+                                final isSelected = tempTime == slot;
+                                final isBooked = bookedSlots.contains(slot);
+                                return SizedBox(
+                                  width:
+                                      (MediaQuery.of(context).size.width - 78) /
+                                      3,
+                                  child: OutlinedButton(
+                                    onPressed: isBooked
+                                        ? null
+                                        : () => setSheetState(
+                                            () => tempTime = slot,
+                                          ),
+                                    style: OutlinedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 9,
+                                      ),
+                                      side: BorderSide(
+                                        color: isSelected
+                                            ? const Color(0xFF2F72FF)
+                                            : isBooked
+                                                ? Colors.grey.shade200
+                                                : const Color(0xFFD5D9DE),
+                                      ),
+                                      backgroundColor: isSelected
+                                          ? const Color(0xFFE9F0FF)
+                                          : isBooked
+                                              ? Colors.grey.shade100
+                                              : Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      slot,
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: isSelected
+                                            ? const Color(0xFF2F72FF)
+                                            : isBooked
+                                                ? Colors.grey.shade400
+                                                : const Color(0xFF444444),
+                                        fontWeight: FontWeight.w500,
+                                        decoration: isBooked
+                                            ? TextDecoration.lineThrough
+                                            : TextDecoration.none,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEAF3FF),
+                              border: Border.all(
+                                color: const Color(0xFF9EBEF2),
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  "New Appointment:",
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Color(0xFF356BC5),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  "${selectedDate.day}/${selectedDate.month}/${selectedDate.year} at $tempTime",
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    color: Color(0xFF2459B2),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                    ),
+                                    side: const BorderSide(
+                                      color: Color(0xFFBFC9C5),
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    "Cancel",
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Color(0xFF616A67),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: () async {
+                                    final newDate =
+                                        '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}';
+                                    await _db.rescheduleBooking(
+                                      userBookingId: bookingId,
+                                      shopId: shopId,
+                                      shopBookingId: shopBookingId,
+                                      newDate: newDate,
+                                      newTime: tempTime,
+                                    );
+                                    if (context.mounted) {
+                                      Navigator.pop(context);
+                                    }
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF1E5BFF),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    "Confirm Reschedule",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }

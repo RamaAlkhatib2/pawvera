@@ -132,6 +132,40 @@ class DatabaseService {
     });
   }
 
+  /// Updates date+time in both the user's and the shop's booking documents.
+  /// [newDate] must be in "d/M/yyyy" format (e.g. "26/5/2026").
+  Future<void> rescheduleBooking({
+    required String userBookingId,
+    required String shopId,
+    required String shopBookingId,
+    required String newDate,
+    required String newTime,
+  }) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return;
+    final updates = {
+      'date': newDate,
+      'time': newTime,
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+    await _db
+        .collection('users')
+        .doc(uid)
+        .collection('bookings')
+        .doc(userBookingId)
+        .update(updates);
+    if (shopId.isNotEmpty && shopBookingId.isNotEmpty) {
+      try {
+        await _db
+            .collection('service_shops')
+            .doc(shopId)
+            .collection('bookings')
+            .doc(shopBookingId)
+            .update(updates);
+      } catch (_) {}
+    }
+  }
+
   // Get my bookings
   Stream<QuerySnapshot> get myBookings {
     final uid = _auth.currentUser!.uid;
@@ -214,6 +248,71 @@ class DatabaseService {
       await ref.delete();
     } else {
       await ref.set({'shopId': shopId, 'createdAt': FieldValue.serverTimestamp()});
+    }
+  }
+
+  /// Returns the set of booked time slot strings for [shopId] on [date].
+  /// Queries the shop's bookings subcollection and excludes cancelled ones.
+  Future<Set<String>> getBookedTimeSlotsForShop(
+    String shopId,
+    String date,
+  ) async {
+    if (shopId.isEmpty) return {};
+    try {
+      final snap = await _db
+          .collection('service_shops')
+          .doc(shopId)
+          .collection('bookings')
+          .where('date', isEqualTo: date)
+          .get();
+      return snap.docs
+          .where((doc) {
+            final status =
+                (doc.data()['status'] ?? '').toString().toLowerCase();
+            return status != 'cancelled';
+          })
+          .map((doc) => (doc.data()['time'] ?? '').toString())
+          .where((t) => t.isNotEmpty)
+          .toSet();
+    } catch (_) {
+      return {};
+    }
+  }
+
+  /// Returns true if [shopId] already has a non-cancelled booking for [date]+[time].
+  Future<bool> isShopTimeslotBooked(
+    String shopId,
+    String date,
+    String time,
+  ) async {
+    if (shopId.isEmpty) return false;
+    final booked = await getBookedTimeSlotsForShop(shopId, date);
+    return booked.contains(time);
+  }
+
+  /// Returns true if the current user's [petName] already has a non-cancelled
+  /// booking at [date]+[time] (prevents double-booking a pet at the same time).
+  Future<bool> hasPetBookingConflict({
+    required String petName,
+    required String date,
+    required String time,
+  }) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null || petName.isEmpty) return false;
+    try {
+      final snap = await _db
+          .collection('users')
+          .doc(uid)
+          .collection('bookings')
+          .where('date', isEqualTo: date)
+          .get();
+      return snap.docs.any((doc) {
+        final d = doc.data();
+        final status = (d['status'] ?? '').toString().toLowerCase();
+        return status != 'cancelled' && d['pet'] == petName && d['time'] == time;
+      });
+    } catch (_) {
+      return false;
     }
   }
 

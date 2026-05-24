@@ -31,6 +31,51 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
     setState(() => _isProcessing = true);
 
     try {
+      final shopId = (widget.bookingData['shopId'] ?? '').toString();
+      final date = (widget.bookingData['date'] ?? '').toString();
+      final time = (widget.bookingData['time'] ?? '').toString();
+      final pet = (widget.bookingData['pet'] ?? '').toString();
+
+      // Confirm the shop's time slot hasn't been taken since the user selected it
+      if (shopId.isNotEmpty) {
+        final slotTaken = await _db.isShopTimeslotBooked(shopId, date, time);
+        if (slotTaken) {
+          if (!mounted) return;
+          setState(() => _isProcessing = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'This time slot was just booked. Please go back and choose a different time.',
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+      }
+
+      // Prevent booking the same pet at the same date & time in any other shop
+      if (pet.isNotEmpty) {
+        final petConflict = await _db.hasPetBookingConflict(
+          petName: pet,
+          date: date,
+          time: time,
+        );
+        if (petConflict) {
+          if (!mounted) return;
+          setState(() => _isProcessing = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                '$pet already has a booking at $time on $date. Please choose a different time.',
+              ),
+              backgroundColor: Colors.orange,
+            ),
+          );
+          return;
+        }
+      }
+
       // Save to Hive (local)
       var box = Hive.box('myBox');
       List<dynamic> currentBookings = box.get('all_bookings', defaultValue: []);

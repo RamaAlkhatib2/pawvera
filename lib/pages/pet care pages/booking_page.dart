@@ -534,47 +534,100 @@ class _BookingPageState extends State<BookingPage> {
   }
 
   Widget _buildTimeGrid() {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: _timeSlots.length,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          childAspectRatio: 2.4,
-          mainAxisSpacing: 10,
-          crossAxisSpacing: 10,
-        ),
-        itemBuilder: (context, index) {
-          bool isSelected = _selectedTime == _timeSlots[index];
-          return GestureDetector(
-            onTap: () => setState(() => _selectedTime = _timeSlots[index]),
-            child: Container(
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: isSelected ? primaryGreen : Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: isSelected ? primaryGreen : Colors.grey.shade200,
-                ),
-              ),
-              child: Text(
-                _timeSlots[index],
-                style: TextStyle(
-                  color: isSelected ? Colors.white : Colors.black,
-                  fontSize: 12,
-                ),
-              ),
+    final dateStr =
+        '${_selectedDay!.day}/${_selectedDay!.month}/${_selectedDay!.year}';
+
+    final stream = widget.shopId.isEmpty
+        ? const Stream<QuerySnapshot>.empty()
+        : FirebaseFirestore.instance
+              .collection('service_shops')
+              .doc(widget.shopId)
+              .collection('bookings')
+              .where('date', isEqualTo: dateStr)
+              .snapshots();
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: stream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: CircularProgressIndicator(strokeWidth: 2),
             ),
           );
-        },
-      ),
+        }
+
+        final bookedSlots = <String>{};
+        if (snapshot.hasData) {
+          for (final doc in snapshot.data!.docs) {
+            final data = doc.data() as Map<String, dynamic>;
+            final status = (data['status'] ?? '').toString().toLowerCase();
+            if (status != 'cancelled') {
+              final t = (data['time'] ?? '').toString();
+              if (t.isNotEmpty) bookedSlots.add(t);
+            }
+          }
+        }
+
+        return Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _timeSlots.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              childAspectRatio: 2.4,
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+            ),
+            itemBuilder: (context, index) {
+              final slot = _timeSlots[index];
+              final isSelected = _selectedTime == slot;
+              final isBooked = bookedSlots.contains(slot);
+              return GestureDetector(
+                onTap: isBooked
+                    ? null
+                    : () => setState(() => _selectedTime = slot),
+                child: Container(
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? primaryGreen
+                        : isBooked
+                            ? Colors.grey.shade100
+                            : Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: isSelected ? primaryGreen : Colors.grey.shade200,
+                    ),
+                  ),
+                  child: Text(
+                    slot,
+                    style: TextStyle(
+                      color: isSelected
+                          ? Colors.white
+                          : isBooked
+                              ? Colors.grey.shade400
+                              : Colors.black,
+                      fontSize: 12,
+                      decoration: isBooked
+                          ? TextDecoration.lineThrough
+                          : TextDecoration.none,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 
