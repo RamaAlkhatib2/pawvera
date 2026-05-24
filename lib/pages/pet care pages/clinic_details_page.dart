@@ -9,7 +9,7 @@ class PetService {
   final String oldPrice;
   final String discount;
   final bool isPopular;
-  final String petType; // النوع: Dogs, Cats, Birds, etc.
+  final List<String> petTypes; // empty = all pets
   final String duration;
   final String subtitle;
   final bool hasOffer;
@@ -20,7 +20,7 @@ class PetService {
     this.oldPrice = "",
     this.discount = "",
     this.isPopular = false,
-    required this.petType,
+    this.petTypes = const [],
     required this.duration,
     this.subtitle = "",
     required this.hasOffer,
@@ -458,10 +458,11 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
           final duration = (data['duration'] ?? '1 hour').toString();
           final description = (data['description'] ?? '').toString();
 
+          final rawPetTypes = data['petTypes'] as List<dynamic>? ?? [];
           return PetService(
             title: name,
             price: '${priceVal.toStringAsFixed(2)} JOD',
-            petType: 'All Pets',
+            petTypes: rawPetTypes.map((e) => e.toString()).toList(),
             duration: duration,
             subtitle: description.isNotEmpty
                 ? description
@@ -498,7 +499,7 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
                   oldPrice: allServices[i].oldPrice,
                   discount: allServices[i].discount,
                   isPopular: allServices[i].isPopular,
-                  petType: allServices[i].petType,
+                  petTypes: allServices[i].petTypes,
                   duration: allServices[i].duration,
                   subtitle: allServices[i].subtitle,
                   hasOffer: true,
@@ -508,7 +509,9 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
 
             // Apply filters
             final filteredServices = allServices.where((service) {
-              final matchesType = _selectedPetFilter == "All Pets" || true;
+              final matchesType = _selectedPetFilter == "All Pets" ||
+                  service.petTypes.isEmpty ||
+                  service.petTypes.contains(_selectedPetFilter);
               final matchesOffer = !_filterByOffers || service.hasOffer;
               final matchesSearch =
                   _searchQuery.isEmpty ||
@@ -607,8 +610,15 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
           const SizedBox(height: 16),
           Row(
             children: [
-              _buildTag(service.petType, Colors.blue.shade50, Colors.blue),
-              const SizedBox(width: 8),
+              if (service.petTypes.isEmpty)
+                _buildTag('All Pets', Colors.blue.shade50, Colors.blue)
+              else
+                ...service.petTypes.map(
+                  (t) => Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: _buildTag(t, Colors.blue.shade50, Colors.blue),
+                  ),
+                ),
               _buildTag(service.duration, Colors.grey.shade200, Colors.black54),
               const Spacer(),
               Column(

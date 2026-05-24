@@ -224,7 +224,6 @@ class _PetCarePageState extends State<PetCarePage> {
               final petTypeLower = _selectedPetType.toLowerCase();
               final matchesPet =
                   _selectedPetType == "All Pet Types" ||
-                  p.petTypes.isEmpty || // empty = serves all types
                   p.petTypes.any((t) => t.toLowerCase() == petTypeLower);
               final categoryLower = _selectedCategory.toLowerCase();
               final matchesCategory =
@@ -683,23 +682,11 @@ class _PetCarePageState extends State<PetCarePage> {
             const SizedBox(height: 12),
             Builder(
               builder: (context) {
-                final animalTypesOrder = ['Dog', 'Cat', 'Bird', 'Fish'];
-                final animalTypes = animalTypesOrder.toSet();
-                final animalTags = p.tags
+                final animalTypes = {'Dog', 'Cat', 'Bird', 'Fish'};
+                // Show only real pet types set by the provider
+                final animalTags = p.petTypes
                     .where(animalTypes.contains)
-                    .toSet()
                     .toList();
-                if (animalTags.isEmpty) {
-                  for (final t in p.petTypes) {
-                    if (animalTypes.contains(t)) animalTags.add(t);
-                  }
-                }
-                for (final animal in animalTypesOrder) {
-                  if (animalTags.length >= 3) break;
-                  if (!animalTags.contains(animal)) {
-                    animalTags.add(animal);
-                  }
-                }
                 final serviceTags = p.tags
                     .where((tag) => !animalTypes.contains(tag))
                     .toList();

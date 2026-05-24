@@ -20,6 +20,7 @@ class _ShopInfoTabState extends State<ShopInfoTab> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _hoursController = TextEditingController();
+  final TextEditingController _customPetTypeController = TextEditingController();
 
   @override
   void dispose() {
@@ -28,6 +29,7 @@ class _ShopInfoTabState extends State<ShopInfoTab> {
     _phoneController.dispose();
     _emailController.dispose();
     _hoursController.dispose();
+    _customPetTypeController.dispose();
     super.dispose();
   }
 
@@ -41,6 +43,8 @@ class _ShopInfoTabState extends State<ShopInfoTab> {
     // Local state for the bottom sheet only
     Uint8List? selectedImageBytes;
     bool isUploading = false;
+    final List<String> allPetTypes = ['Dog', 'Cat', 'Bird', 'Fish'];
+    final Set<String> selectedPetTypes = Set.from(shop.petTypes);
 
     showModalBottomSheet(
       context: context,
@@ -92,6 +96,7 @@ class _ShopInfoTabState extends State<ShopInfoTab> {
                   email: _emailController.text,
                   workingHours: _hoursController.text,
                   imageUrl: imageUrl,
+                  petTypes: selectedPetTypes.toList(),
                 );
 
                 setSheetState(() => isUploading = false);
@@ -115,6 +120,16 @@ class _ShopInfoTabState extends State<ShopInfoTab> {
               isUploading: isUploading,
               onPickImage: pickImage,
               onSave: saveShopInfo,
+              allPetTypes: allPetTypes,
+              selectedPetTypes: selectedPetTypes,
+              onTogglePetType: (type) =>
+                  setSheetState(() {
+                    if (selectedPetTypes.contains(type)) {
+                      selectedPetTypes.remove(type);
+                    } else {
+                      selectedPetTypes.add(type);
+                    }
+                  }),
             );
           },
         );
@@ -336,6 +351,10 @@ class _ShopInfoTabState extends State<ShopInfoTab> {
           _infoRow(Icons.phone_outlined, shop.phone),
           _infoRow(Icons.email_outlined, shop.email),
           _infoRow(Icons.access_time, shop.workingHours),
+          _infoRow(
+            Icons.pets,
+            shop.petTypes.isEmpty ? 'All pet types' : shop.petTypes.join(', '),
+          ),
           const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
@@ -380,6 +399,9 @@ class _ShopInfoTabState extends State<ShopInfoTab> {
     required bool isUploading,
     required VoidCallback onPickImage,
     required VoidCallback onSave,
+    required List<String> allPetTypes,
+    required Set<String> selectedPetTypes,
+    required void Function(String) onTogglePetType,
   }) {
     return Container(
       padding: EdgeInsets.only(
@@ -467,6 +489,74 @@ class _ShopInfoTabState extends State<ShopInfoTab> {
             const SizedBox(height: 15),
             _buildLabel("Open Hours *"),
             _buildTextField(_hoursController, "e.g., 9:00 AM - 7:00 PM"),
+            const SizedBox(height: 15),
+            _buildLabel("Pet Types Served"),
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: {
+                ...allPetTypes,
+                ...selectedPetTypes,
+              }.map((type) {
+                final selected = selectedPetTypes.contains(type);
+                return FilterChip(
+                  label: Text(type),
+                  selected: selected,
+                  onSelected: (_) => onTogglePetType(type),
+                  selectedColor: primaryTeal.withValues(alpha: 0.2),
+                  checkmarkColor: primaryTeal,
+                  labelStyle: TextStyle(
+                    color: selected ? primaryTeal : Colors.black87,
+                    fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                  ),
+                  side: BorderSide(
+                    color: selected ? primaryTeal : Colors.grey[300]!,
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _customPetTypeController,
+                    decoration: InputDecoration(
+                      hintText: "Add custom type (e.g., Rabbit)",
+                      hintStyle: const TextStyle(fontSize: 12),
+                      isDense: true,
+                      filled: true,
+                      fillColor: Colors.grey[50],
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 10),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.grey[200]!),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  onPressed: () {
+                    final val = _customPetTypeController.text.trim();
+                    if (val.isNotEmpty) {
+                      onTogglePetType(val);
+                      _customPetTypeController.clear();
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryTeal,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: const Text("Add",
+                      style: TextStyle(color: Colors.white, fontSize: 12)),
+                ),
+              ],
+            ),
             const SizedBox(height: 25),
             SizedBox(
               width: double.infinity,

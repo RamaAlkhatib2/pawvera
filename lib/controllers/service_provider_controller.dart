@@ -287,6 +287,7 @@ class ServiceProviderController extends ChangeNotifier {
     String? email,
     String? workingHours,
     String? imageUrl,
+    List<String>? petTypes,
   }) async {
     final id = shopId;
     if (id == null) return;
@@ -297,6 +298,7 @@ class ServiceProviderController extends ChangeNotifier {
     if (email != null) data['email'] = email;
     if (workingHours != null) data['workingHours'] = workingHours;
     if (imageUrl != null) data['imageUrl'] = imageUrl;
+    if (petTypes != null) data['petTypes'] = petTypes;
 
     await _db.collection('service_shops').doc(id).update(data);
     await _addAuditLog(id, 'Shop Info Updated', 'Shop information was updated');
@@ -347,6 +349,7 @@ class ServiceProviderController extends ChangeNotifier {
     required double price,
     required String duration,
     bool isActive = true,
+    List<String> petTypes = const [],
   }) async {
     final id = shopId;
     if (id == null) return;
@@ -363,6 +366,7 @@ class ServiceProviderController extends ChangeNotifier {
       'price': price,
       'duration': duration,
       'isActive': isActive,
+      'petTypes': petTypes,
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
@@ -378,6 +382,7 @@ class ServiceProviderController extends ChangeNotifier {
     double? price,
     String? duration,
     bool? isActive,
+    List<String>? petTypes,
   }) async {
     final id = shopId;
     if (id == null) return;
@@ -387,6 +392,7 @@ class ServiceProviderController extends ChangeNotifier {
     if (price != null) data['price'] = price;
     if (duration != null) data['duration'] = duration;
     if (isActive != null) data['isActive'] = isActive;
+    if (petTypes != null) data['petTypes'] = petTypes;
 
     await _db
         .collection('service_shops')

@@ -20,7 +20,9 @@ class _ServicesTabState extends State<ServicesTab> {
   final TextEditingController _descController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _durationController = TextEditingController();
+  final TextEditingController _customPetTypeController = TextEditingController();
   bool _activateImmediately = true;
+  Set<String> _formPetTypes = {}; // pet types for the current form
 
   @override
   void dispose() {
@@ -29,6 +31,7 @@ class _ServicesTabState extends State<ServicesTab> {
     _descController.dispose();
     _priceController.dispose();
     _durationController.dispose();
+    _customPetTypeController.dispose();
     super.dispose();
   }
 
@@ -39,6 +42,7 @@ class _ServicesTabState extends State<ServicesTab> {
     double? price,
     String? duration,
     bool? isActive,
+    List<String>? petTypes,
   }) {
     if (serviceId != null) {
       _nameController.text = name ?? '';
@@ -46,12 +50,14 @@ class _ServicesTabState extends State<ServicesTab> {
       _priceController.text = price?.toStringAsFixed(2) ?? '';
       _durationController.text = duration ?? '';
       _activateImmediately = isActive ?? true;
+      _formPetTypes = Set.from(petTypes ?? []);
     } else {
       _nameController.clear();
       _descController.clear();
       _priceController.clear();
       _durationController.clear();
       _activateImmediately = true;
+      _formPetTypes = {};
     }
 
     showModalBottomSheet(
@@ -216,6 +222,7 @@ class _ServicesTabState extends State<ServicesTab> {
                     price: service.price,
                     duration: service.duration,
                     isActive: service.isActive,
+                    petTypes: service.petTypes,
                   ),
                   icon: const Icon(Icons.edit, size: 16),
                   label: const Text("Edit"),
@@ -304,6 +311,144 @@ class _ServicesTabState extends State<ServicesTab> {
               ],
             ),
             const SizedBox(height: 18),
+            // Pet type selector
+            _buildLabel("Available For"),
+            Consumer<ServiceProviderController>(
+              builder: (context, ctrl, _) {
+                final shopPetTypes = ctrl.shop?.petTypes ?? [];
+                // Merge shop types with any already selected (custom ones)
+                final allOptions = {
+                  ...shopPetTypes,
+                  ..._formPetTypes,
+                }.toList();
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (allOptions.isEmpty)
+                      Text(
+                        "Set pet types in Shop Info first",
+                        style: TextStyle(
+                          color: Colors.grey[500],
+                          fontSize: 12,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      )
+                    else ...[
+                      // "All Pets" chip
+                      Row(
+                        children: [
+                          FilterChip(
+                            label: const Text("All Pets"),
+                            selected: _formPetTypes.isEmpty,
+                            onSelected: (_) =>
+                                setModalState(() => _formPetTypes.clear()),
+                            selectedColor:
+                                primaryTeal.withValues(alpha: 0.15),
+                            checkmarkColor: primaryTeal,
+                            labelStyle: TextStyle(
+                              color: _formPetTypes.isEmpty
+                                  ? primaryTeal
+                                  : Colors.black87,
+                              fontWeight: _formPetTypes.isEmpty
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                            ),
+                            side: BorderSide(
+                              color: _formPetTypes.isEmpty
+                                  ? primaryTeal
+                                  : Colors.grey[300]!,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: allOptions.map((type) {
+                          final selected = _formPetTypes.contains(type);
+                          return FilterChip(
+                            label: Text(type),
+                            selected: selected,
+                            onSelected: (_) => setModalState(() {
+                              if (selected) {
+                                _formPetTypes.remove(type);
+                              } else {
+                                _formPetTypes.add(type);
+                              }
+                            }),
+                            selectedColor:
+                                primaryTeal.withValues(alpha: 0.15),
+                            checkmarkColor: primaryTeal,
+                            labelStyle: TextStyle(
+                              color:
+                                  selected ? primaryTeal : Colors.black87,
+                              fontWeight: selected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                            ),
+                            side: BorderSide(
+                              color: selected
+                                  ? primaryTeal
+                                  : Colors.grey[300]!,
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                    // Custom pet type input
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _customPetTypeController,
+                            decoration: InputDecoration(
+                              hintText: "Add custom type (e.g., Rabbit)",
+                              hintStyle: const TextStyle(fontSize: 12),
+                              isDense: true,
+                              filled: true,
+                              fillColor: Colors.grey[50],
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 10),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide:
+                                    BorderSide(color: Colors.grey[200]!),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton(
+                          onPressed: () {
+                            final val =
+                                _customPetTypeController.text.trim();
+                            if (val.isNotEmpty) {
+                              setModalState(() {
+                                _formPetTypes.add(val);
+                                _customPetTypeController.clear();
+                              });
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryTeal,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 10),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: const Text("Add",
+                              style: TextStyle(
+                                  color: Colors.white, fontSize: 12)),
+                        ),
+                      ],
+                    ),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 18),
             // Activation toggle
             Container(
               width: double.infinity,
@@ -381,7 +526,8 @@ class _ServicesTabState extends State<ServicesTab> {
                               price:
                                   double.tryParse(_priceController.text) ?? 0,
                               duration: _durationController.text,
-                              isActive: null, // Keep existing
+                              isActive: null,
+                              petTypes: _formPetTypes.toList(),
                             );
                           } else {
                             ctrl.addService(
@@ -391,6 +537,7 @@ class _ServicesTabState extends State<ServicesTab> {
                                   double.tryParse(_priceController.text) ?? 0,
                               duration: _durationController.text,
                               isActive: _activateImmediately,
+                              petTypes: _formPetTypes.toList(),
                             );
                           }
                           Navigator.pop(context);

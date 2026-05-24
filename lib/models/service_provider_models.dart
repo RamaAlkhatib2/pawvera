@@ -33,6 +33,7 @@ class ShopProfile {
   final String status; // 'Open' | 'Busy' | 'Closed'
   final bool isOpen; // derived bool for easy query
   final String? imageUrl;
+  final List<String> petTypes;
   final int totalBookings;
   final int activeBookings;
   final double totalRevenue;
@@ -51,6 +52,7 @@ class ShopProfile {
     required this.status,
     required this.isOpen,
     this.imageUrl,
+    this.petTypes = const [],
     this.totalBookings = 0,
     this.activeBookings = 0,
     this.totalRevenue = 0.0,
@@ -70,6 +72,7 @@ class ShopProfile {
     'status': status,
     'isOpen': isOpen,
     'imageUrl': imageUrl,
+    'petTypes': petTypes,
     'totalBookings': totalBookings,
     'activeBookings': activeBookings,
     'totalRevenue': totalRevenue,
@@ -90,6 +93,9 @@ class ShopProfile {
       status: (map['status'] ?? 'Closed').toString(),
       isOpen: map['isOpen'] ?? false,
       imageUrl: map['imageUrl']?.toString(),
+      petTypes: (map['petTypes'] as List<dynamic>? ?? [])
+          .map((e) => e.toString())
+          .toList(),
       totalBookings: (map['totalBookings'] as num?)?.toInt() ?? 0,
       activeBookings: (map['activeBookings'] as num?)?.toInt() ?? 0,
       totalRevenue: (map['totalRevenue'] as num?)?.toDouble() ?? 0.0,
@@ -144,6 +150,7 @@ class ServiceItem {
   final double price;
   final String duration;
   final bool isActive;
+  final List<String> petTypes; // empty = available for all pets
   final Timestamp? createdAt;
   final Timestamp? updatedAt;
 
@@ -155,6 +162,7 @@ class ServiceItem {
     required this.price,
     required this.duration,
     this.isActive = true,
+    this.petTypes = const [],
     this.createdAt,
     this.updatedAt,
   });
@@ -167,6 +175,7 @@ class ServiceItem {
     'price': price,
     'duration': duration,
     'isActive': isActive,
+    'petTypes': petTypes,
     Fs.createdAt: createdAt,
     Fs.updatedAt: updatedAt,
   };
@@ -180,6 +189,9 @@ class ServiceItem {
       price: (map['price'] as num?)?.toDouble() ?? 0.0,
       duration: (map['duration'] ?? '').toString(),
       isActive: map['isActive'] ?? true,
+      petTypes: (map['petTypes'] as List<dynamic>? ?? [])
+          .map((e) => e.toString())
+          .toList(),
       createdAt: map[Fs.createdAt] as Timestamp?,
       updatedAt: map[Fs.updatedAt] as Timestamp?,
     );
