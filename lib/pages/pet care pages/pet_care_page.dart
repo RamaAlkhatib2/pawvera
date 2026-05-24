@@ -10,8 +10,8 @@ class ServiceProvider {
       distance,
       location,
       hours,
-      petType,
       imageUrl;
+  final List<String> petTypes; // empty = serves all pet types
   final double rating;
   final List<String> tags;
   final bool hasOffer;
@@ -24,7 +24,7 @@ class ServiceProvider {
     required this.distance,
     required this.location,
     required this.hours,
-    required this.petType,
+    required this.petTypes,
     required this.imageUrl,
     required this.rating,
     required this.tags,
@@ -134,7 +134,9 @@ class _PetCarePageState extends State<PetCarePage> {
       distance: '1.5 km', // default; could be derived from geolocation later
       location: (data['address'] ?? 'Unknown location').toString(),
       hours: (data['workingHours'] ?? '9:00 AM - 7:00 PM').toString(),
-      petType: 'Dog',
+      petTypes: (data['petTypes'] as List<dynamic>? ?? [])
+          .map((e) => e.toString())
+          .toList(),
       imageUrl: (data['imageUrl'] ?? '').toString(),
       rating: 4.5, // default rating; could be derived from reviews later
       tags: serviceNames.isNotEmpty
@@ -222,10 +224,12 @@ class _PetCarePageState extends State<PetCarePage> {
               final petTypeLower = _selectedPetType.toLowerCase();
               final matchesPet =
                   _selectedPetType == "All Pet Types" ||
-                  p.tags.any((tag) => tag.toLowerCase() == petTypeLower);
+                  p.petTypes.isEmpty || // empty = serves all types
+                  p.petTypes.any((t) => t.toLowerCase() == petTypeLower);
+              final categoryLower = _selectedCategory.toLowerCase();
               final matchesCategory =
                   _selectedCategory == "All" ||
-                  p.tags.contains(_selectedCategory);
+                  p.tags.any((tag) => tag.toLowerCase().contains(categoryLower));
 
               return matchesSearch &&
                   matchesOffer &&
@@ -685,8 +689,10 @@ class _PetCarePageState extends State<PetCarePage> {
                     .where(animalTypes.contains)
                     .toSet()
                     .toList();
-                if (animalTags.isEmpty && animalTypes.contains(p.petType)) {
-                  animalTags.add(p.petType);
+                if (animalTags.isEmpty) {
+                  for (final t in p.petTypes) {
+                    if (animalTypes.contains(t)) animalTags.add(t);
+                  }
                 }
                 for (final animal in animalTypesOrder) {
                   if (animalTags.length >= 3) break;
