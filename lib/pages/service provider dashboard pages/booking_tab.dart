@@ -322,7 +322,9 @@ class _BookingsTabState extends State<BookingsTab> {
                         elevation: 0,
                       ),
                       child: Text(
-                        booking.status == 'pending' ? 'Confirm' : 'Complete',
+                        booking.status == 'pending'
+                            ? 'Confirm'
+                            : 'Complete & Notify',
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
