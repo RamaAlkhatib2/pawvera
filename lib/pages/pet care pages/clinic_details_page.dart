@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:pawvera/services/database_service.dart';
 import 'booking_page.dart';
 
 // نموذج بيانات الخدمة لتمكين الفلترة الديناميكية
@@ -13,6 +14,8 @@ class PetService {
   final String duration;
   final String subtitle;
   final bool hasOffer;
+  final double ratingAvg;
+  final int ratingCount;
 
   PetService({
     required this.title,
@@ -24,6 +27,8 @@ class PetService {
     required this.duration,
     this.subtitle = "",
     required this.hasOffer,
+    this.ratingAvg = 0,
+    this.ratingCount = 0,
   });
 }
 
@@ -37,6 +42,7 @@ class ClinicDetailsPage extends StatefulWidget {
 
 class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
   final Color primaryGreen = const Color(0xFF5B9D8E);
+  final DatabaseService _db = DatabaseService();
 
   String _selectedPetFilter = "All Pets";
   bool _filterByOffers = false;
@@ -161,14 +167,27 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  widget.provider.name,
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF274C4B),
-                  ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        widget.provider.name,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF274C4B),
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: _showShopReviewsDialog,
+                      child: _buildLiveShopRatingBadge(),
+                    ),
+                  ],
                 ),
+                const SizedBox(height: 8),
+                _buildLiveShopRatingSummaryLine(),
                 const SizedBox(height: 6),
                 Text(
                   shopDescription,
@@ -457,6 +476,9 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
           final priceVal = (data['price'] as num?)?.toDouble() ?? 0.0;
           final duration = (data['duration'] ?? '1 hour').toString();
           final description = (data['description'] ?? '').toString();
+          final ratingAvg =
+              ((data['ratingAvg'] as num?)?.toDouble() ?? 0.0).clamp(0.0, 5.0);
+          final ratingCount = (data['ratingCount'] as num?)?.toInt() ?? 0;
 
           final rawPetTypes = data['petTypes'] as List<dynamic>? ?? [];
           return PetService(
@@ -468,6 +490,8 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
                 ? description
                 : 'Professional $name service',
             hasOffer: false,
+            ratingAvg: ratingAvg,
+            ratingCount: ratingCount,
           );
         }).toList();
 
@@ -581,6 +605,33 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
                     Text(
                       service.subtitle,
                       style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.star,
+                          color: Colors.amber,
+                          size: 14,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          service.ratingAvg.toStringAsFixed(1),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF274C4B),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '(${service.ratingCount})',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -738,6 +789,379 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
       if (hours is String && hours.isNotEmpty) return hours;
     } catch (_) {}
     return 'Hours unavailable';
+  }
+
+  String _getProviderShopId() {
+    try {
+      final id = widget.provider.id;
+      if (id is String && id.isNotEmpty) return id;
+    } catch (_) {}
+    try {
+      final id = widget.provider['id'];
+      if (id is String && id.isNotEmpty) return id;
+    } catch (_) {}
+    return '';
+  }
+
+  double _fallbackRatingAvg() {
+    try {
+      final r = widget.provider.rating;
+      if (r is num) return r.toDouble();
+    } catch (_) {}
+    return 0;
+  }
+
+  int _fallbackRatingCount() {
+    try {
+      final c = widget.provider.ratingCount;
+      if (c is int) return c;
+      if (c is num) return c.toInt();
+    } catch (_) {}
+    return 0;
+  }
+
+  String _shopRatingLabel(double fallbackAvg, int fallbackCount) {
+    if (fallbackCount > 0) return fallbackAvg.toStringAsFixed(1);
+    return '0.0';
+  }
+
+  Widget _buildLiveShopRatingBadge() {
+    final shopId = _getProviderShopId();
+    final fallbackAvg = _fallbackRatingAvg();
+    final fallbackCount = _fallbackRatingCount();
+
+    if (shopId.isEmpty) {
+      return _shopRatingBadgeChip(
+        _shopRatingLabel(fallbackAvg, fallbackCount),
+      );
+    }
+
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      key: ValueKey<String>('clinic_shop_rating_$shopId'),
+      stream: _db.streamServiceShopReviews(shopId),
+      builder: (context, snap) {
+        if (snap.hasError) {
+          return _shopRatingBadgeChip(
+            _shopRatingLabel(fallbackAvg, fallbackCount),
+          );
+        }
+        if (!snap.hasData) {
+          return _shopRatingBadgeChip('…');
+        }
+        final docs = snap.data!.docs
+            .where((d) => DatabaseService.reviewDocIsServiceShop(d.data()))
+            .toList();
+        if (docs.isEmpty) {
+          return _shopRatingBadgeChip(
+            _shopRatingLabel(fallbackAvg, fallbackCount),
+          );
+        }
+        final avg = DatabaseService.averageStarsFromReviewDocs(docs);
+        return _shopRatingBadgeChip(avg.toStringAsFixed(1));
+      },
+    );
+  }
+
+  Widget _buildLiveShopRatingSummaryLine() {
+    final shopId = _getProviderShopId();
+    final fallbackCount = _fallbackRatingCount();
+
+    if (shopId.isEmpty) {
+      final n = fallbackCount > 0 ? fallbackCount : 0;
+      final avg = fallbackCount > 0 ? _fallbackRatingAvg() : 0.0;
+      return Text(
+        '${avg.toStringAsFixed(1)} · $n review${n == 1 ? '' : 's'}',
+        style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+      );
+    }
+
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: _db.streamServiceShopReviews(shopId),
+      builder: (context, snap) {
+        if (!snap.hasData) {
+          return Text(
+            'Loading reviews…',
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+          );
+        }
+        final docs = snap.data!.docs
+            .where((d) => DatabaseService.reviewDocIsServiceShop(d.data()))
+            .toList();
+        if (docs.isEmpty) {
+          final n = fallbackCount > 0 ? fallbackCount : 0;
+          final avg = fallbackCount > 0 ? _fallbackRatingAvg() : 0.0;
+          return Text(
+            '${avg.toStringAsFixed(1)} · $n review${n == 1 ? '' : 's'}',
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+          );
+        }
+        final avg = DatabaseService.averageStarsFromReviewDocs(docs);
+        final n = docs.length;
+        return Text(
+          '${avg.toStringAsFixed(1)} · $n review${n == 1 ? '' : 's'}',
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey.shade700,
+            fontWeight: FontWeight.w500,
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _shopRatingBadgeChip(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF8E1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFFE082)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.star, color: Colors.amber, size: 16),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF274C4B),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showShopReviewsDialog() async {
+    final shopId = _getProviderShopId();
+    if (shopId.isEmpty) return;
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: const Color(0xFFF0F9F9),
+          insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 22),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: SizedBox(
+            width: 520,
+            height: 560,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 4, 0),
+                  child: Row(
+                    children: [
+                      const Spacer(),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: Icon(Icons.close, color: Colors.grey.shade700),
+                      ),
+                    ],
+                  ),
+                ),
+                Text(
+                  'Shop Reviews',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.brown.shade900,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                    fontFamily: 'serif',
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Text(
+                    'See what customers are saying about ${widget.provider.name}',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.blueGrey.shade700,
+                      fontSize: 14,
+                      height: 1.35,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: FutureBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                    future: FirebaseFirestore.instance
+                        .collection('reviews')
+                        .where('shopId', isEqualTo: shopId)
+                        .get(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(
+                          child: CircularProgressIndicator(
+                            color: Color(0xFF4FA294),
+                          ),
+                        );
+                      }
+                      if (snapshot.hasError) {
+                        return Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: Text(
+                              'Could not load reviews.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Colors.red.shade700),
+                            ),
+                          ),
+                        );
+                      }
+
+                      final docs = (snapshot.data?.docs ?? [])
+                          .where(
+                            (d) =>
+                                DatabaseService.reviewDocIsServiceShop(d.data()),
+                          )
+                          .toList()
+                        ..sort((a, b) {
+                          final ta = a.data()['createdAt'];
+                          final tb = b.data()['createdAt'];
+                          if (ta is Timestamp && tb is Timestamp) {
+                            return tb.compareTo(ta);
+                          }
+                          if (ta is Timestamp) return -1;
+                          if (tb is Timestamp) return 1;
+                          return 0;
+                        });
+
+                      final avg = docs.isEmpty
+                          ? 0.0
+                          : DatabaseService.averageStarsFromReviewDocs(docs);
+                      final count = docs.length;
+
+                      return Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                        child: Column(
+                          children: [
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: Colors.grey.shade200),
+                              ),
+                              child: Row(
+                                children: [
+                                  Text(
+                                    avg.toStringAsFixed(1),
+                                    style: TextStyle(
+                                      color: Colors.brown.shade900,
+                                      fontSize: 36,
+                                      fontWeight: FontWeight.w900,
+                                      height: 1,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      'Based on $count customer ${count == 1 ? 'review' : 'reviews'}',
+                                      style: TextStyle(
+                                        color: Colors.blueGrey.shade700,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            if (docs.isEmpty)
+                              Expanded(
+                                child: Center(
+                                  child: Text(
+                                    'No reviews yet.',
+                                    style: TextStyle(
+                                      color: Colors.blueGrey.shade600,
+                                    ),
+                                  ),
+                                ),
+                              )
+                            else
+                              Expanded(
+                                child: ListView.separated(
+                                  itemCount: docs.length,
+                                  separatorBuilder: (_, _) =>
+                                      const SizedBox(height: 10),
+                                  itemBuilder: (context, index) {
+                                    final data = docs[index].data();
+                                    final name =
+                                        (data['customerName'] ?? 'Customer')
+                                            .toString()
+                                            .trim();
+                                    final comment =
+                                        (data['comment'] ?? '').toString().trim();
+                                    final stars =
+                                        ((data['stars'] as num?)?.toInt() ?? 0)
+                                            .clamp(0, 5);
+                                    return Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: Colors.grey.shade200,
+                                        ),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            name.isEmpty ? 'Customer' : name,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w700,
+                                              color: Color(0xFF274C4B),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Row(
+                                            children: List.generate(5, (i) {
+                                              return Icon(
+                                                i < stars
+                                                    ? Icons.star
+                                                    : Icons.star_border,
+                                                size: 16,
+                                                color: Colors.amber,
+                                              );
+                                            }),
+                                          ),
+                                          if (comment.isNotEmpty) ...[
+                                            const SizedBox(height: 6),
+                                            Text(
+                                              comment,
+                                              style: TextStyle(
+                                                color: Colors.grey.shade700,
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildInfoBubble(IconData icon, String text) {

@@ -40,6 +40,39 @@ class DatabaseService {
   final Map<String, Stream<QuerySnapshot<Map<String, dynamic>>>>
   _storeReviewsByStoreId = {};
 
+  final Map<String, Stream<QuerySnapshot<Map<String, dynamic>>>>
+  _serviceShopReviewsByShopId = {};
+
+  /// Pet care shop review (not pet-supplies `store` / `product` types).
+  static bool reviewDocIsServiceShop(Map<String, dynamic> m) {
+    final t = (m['type'] ?? '').toString();
+    if (t == 'product' || t == 'store') return false;
+    if (t == 'service_shop' || t == 'shop') return true;
+    final shopId = (m['shopId'] ?? '').toString().trim();
+    if (shopId.isEmpty) return false;
+    return (m['productId'] ?? '').toString().trim().isEmpty &&
+        (m['storeId'] ?? '').toString().trim().isEmpty;
+  }
+
+  static double averageStarsFromReviewDocs(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+  ) {
+    if (docs.isEmpty) return 0;
+    var sum = 0.0;
+    for (final d in docs) {
+      final m = d.data();
+      final raw = m['stars'] ?? m['rating'] ?? m['star'];
+      sum += ((raw as num?)?.toDouble() ?? 0).clamp(0, 5);
+    }
+    return sum / docs.length;
+  }
+
+  List<QueryDocumentSnapshot<Map<String, dynamic>>> _filterServiceShopReviewDocs(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> raw,
+  ) {
+    return raw.where((d) => reviewDocIsServiceShop(d.data())).toList();
+  }
+
   // --- User Profile ---
 
   // Get current user data
@@ -126,7 +159,7 @@ class DatabaseService {
     await _db.collection('users').doc(userId).collection('bookings').add({
       ...bookingData,
       'userId': userId,
-      if (shopBookingId != null) 'shopBookingId': shopBookingId,
+      'shopBookingId': ?shopBookingId,
       'status': 'confirmed',
       'createdAt': FieldValue.serverTimestamp(),
     });
@@ -1024,6 +1057,134 @@ class DatabaseService {
     return _orders.where('userId', isEqualTo: _uid).snapshots();
   }
 
+  // --- Pet Care: Ratings ---
+
+  Future<bool> canRatePetCareBooking({
+    required String bookingId,
+    String? shopId,
+  }) async {
+    final id = bookingId.trim();
+    if (id.isEmpty) return false;
+    final doc = await _db
+        .collection('users')
+        .doc(_uid)
+        .collection('bookings')
+        .doc(id)
+        .get();
+    if (!doc.exists) return false;
+    final data = doc.data() ?? <String, dynamic>{};
+    final status = (data['status'] ?? '').toString().toLowerCase();
+    if (status.isNotEmpty && status != 'completed' && status != 'confirmed') {
+      return false;
+    }
+    final sid = (shopId ?? data['shopId'] ?? '').toString().trim();
+    if (sid.isEmpty) return false;
+    return true;
+  }
+
+  Future<void> _syncPetCareServiceRatingAggregate({
+    required String shopId,
+    String? serviceId,
+    String? serviceName,
+  }) async {
+    final sid = shopId.trim();
+    if (sid.isEmpty) return;
+    try {
+      final all = await _reviews.where('shopId', isEqualTo: sid).get();
+      final filtered = all.docs.where((d) {
+        final m = d.data();
+        final t = (m['type'] ?? '').toString();
+        if (t != 'service') return false;
+        if ((serviceId ?? '').trim().isNotEmpty) {
+          return (m['serviceId'] ?? '').toString().trim() ==
+              serviceId!.trim();
+        }
+        final n = (serviceName ?? '').trim().toLowerCase();
+        if (n.isEmpty) return false;
+        return (m['serviceName'] ?? '').toString().trim().toLowerCase() == n;
+      }).toList();
+
+      if (filtered.isEmpty) return;
+      final avg = averageStarsFromReviewDocs(filtered);
+      final count = filtered.length;
+
+      String targetServiceId = (serviceId ?? '').trim();
+      if (targetServiceId.isEmpty && (serviceName ?? '').trim().isNotEmpty) {
+        final byName = await _db
+            .collection('service_shops')
+            .doc(sid)
+            .collection('services')
+            .where('name', isEqualTo: serviceName!.trim())
+            .limit(1)
+            .get();
+        if (byName.docs.isNotEmpty) {
+          targetServiceId = byName.docs.first.id;
+        }
+      }
+      if (targetServiceId.isEmpty) return;
+      await _db
+          .collection('service_shops')
+          .doc(sid)
+          .collection('services')
+          .doc(targetServiceId)
+          .set({
+            'ratingAvg': avg,
+            'ratingCount': count,
+            'updatedAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+    } catch (_) {}
+  }
+
+  Future<void> ratePetCareService({
+    required String bookingId,
+    required String shopId,
+    required String serviceName,
+    String? serviceId,
+    required int stars,
+    String? comment,
+    String? customerName,
+  }) async {
+    if (stars < 1 || stars > 5) {
+      throw Exception('Rating must be between 1 and 5 stars.');
+    }
+    final ok = await canRatePetCareBooking(bookingId: bookingId, shopId: shopId);
+    if (!ok) {
+      throw Exception('You can only rate your own completed/confirmed booking.');
+    }
+    final sid = shopId.trim();
+    final svcId = (serviceId ?? '').trim();
+    final svcName = serviceName.trim();
+    if (sid.isEmpty || svcName.isEmpty) {
+      throw Exception('Invalid service rating payload.');
+    }
+    final suffix = svcId.isNotEmpty ? svcId : svcName.toLowerCase();
+    final ratingId = '${_uid}_${bookingId.trim()}_service_$suffix';
+    final cn = _reviewCustomerName(customerName);
+    try {
+      await _reviews.doc(ratingId).set({
+        'id': ratingId,
+        'type': 'service',
+        'shopId': sid,
+        if (svcId.isNotEmpty) 'serviceId': svcId,
+        'serviceName': svcName,
+        'bookingId': bookingId.trim(),
+        'userId': _uid,
+        'stars': stars,
+        'comment': comment ?? '',
+        if (cn.isNotEmpty) 'customerName': cn,
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      await _syncPetCareServiceRatingAggregate(
+        shopId: sid,
+        serviceId: svcId.isEmpty ? null : svcId,
+        serviceName: svcName,
+      );
+    } catch (_) {
+      throw Exception('Unable to submit service rating.');
+    }
+  }
+
   // --- Online Store: Ratings ---
 
   Future<bool> canRateStore(String storeId) async {
@@ -1175,6 +1336,107 @@ class DatabaseService {
     String productId,
   ) {
     return _reviews.where('productId', isEqualTo: productId).snapshots();
+  }
+
+  /// Live reviews for a pet care [service_shops] document (query by [shopId]).
+  Stream<QuerySnapshot<Map<String, dynamic>>> streamServiceShopReviews(
+    String shopId,
+  ) {
+    final id = shopId.trim();
+    if (id.isEmpty) {
+      return const Stream<QuerySnapshot<Map<String, dynamic>>>.empty();
+    }
+    return _serviceShopReviewsByShopId.putIfAbsent(
+      id,
+      () => _reviews.where('shopId', isEqualTo: id).snapshots(),
+    );
+  }
+
+  /// One-shot rating summary for list sorting and fallbacks.
+  Future<({double avg, int count})> getServiceShopRatingSummary(
+    String shopId,
+  ) async {
+    final id = shopId.trim();
+    if (id.isEmpty) return (avg: 0.0, count: 0);
+
+    double fallbackAvg = 0;
+    var fallbackCount = 0;
+    try {
+      final shopDoc = await _db.collection('service_shops').doc(id).get();
+      if (shopDoc.exists) {
+        final data = shopDoc.data() ?? {};
+        fallbackAvg = ((data['ratingAvg'] as num?)?.toDouble() ?? 0);
+        fallbackCount = (data['ratingCount'] as num?)?.toInt() ?? 0;
+      }
+    } catch (_) {}
+
+    try {
+      final snap = await _reviews.where('shopId', isEqualTo: id).get();
+      final docs = _filterServiceShopReviewDocs(snap.docs);
+      if (docs.isNotEmpty) {
+        return (
+          avg: averageStarsFromReviewDocs(docs),
+          count: docs.length,
+        );
+      }
+    } catch (_) {}
+
+    return (avg: fallbackAvg, count: fallbackCount);
+  }
+
+  Future<void> _syncServiceShopRatingAggregate(String shopId) async {
+    final id = shopId.trim();
+    if (id.isEmpty) return;
+    try {
+      final snap = await _reviews.where('shopId', isEqualTo: id).get();
+      final docs = _filterServiceShopReviewDocs(snap.docs);
+      final avg = averageStarsFromReviewDocs(docs);
+      final count = docs.length;
+      await _db.collection('service_shops').doc(id).set({
+        'ratingAvg': avg,
+        'ratingCount': count,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (_) {}
+  }
+
+  /// Submit a rating for a pet care service shop ([service_shops] document id).
+  Future<void> rateServiceShop({
+    required String shopId,
+    required int stars,
+    String? comment,
+    String? bookingId,
+    String? customerName,
+  }) async {
+    if (stars < 1 || stars > 5) {
+      throw Exception('Rating must be between 1 and 5 stars.');
+    }
+    final id = shopId.trim();
+    if (id.isEmpty) {
+      throw Exception('Invalid shop.');
+    }
+    final oid = (bookingId ?? '').trim();
+    final ratingId = oid.isNotEmpty
+        ? '${_uid}_${oid}_shop_$id'
+        : '${_uid}_shop_$id';
+    final cn = _reviewCustomerName(customerName);
+    try {
+      await _reviews.doc(ratingId).set({
+        'id': ratingId,
+        'type': 'service_shop',
+        'shopId': id,
+        'userId': _uid,
+        'stars': stars,
+        'comment': comment ?? '',
+        if (oid.isNotEmpty) 'bookingId': oid,
+        if (cn.isNotEmpty) 'customerName': cn,
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      await _syncServiceShopRatingAggregate(id);
+    } catch (_) {
+      throw Exception('Unable to submit shop rating.');
+    }
   }
 
   // --- Online Store: Store Owner Management ---

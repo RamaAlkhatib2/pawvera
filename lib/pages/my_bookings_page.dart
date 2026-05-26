@@ -760,6 +760,166 @@ class _MyBookingsPageState extends State<MyBookingsPage>
     );
   }
 
+  Widget _buildStarSelector({
+    required int value,
+    required ValueChanged<int> onChanged,
+  }) {
+    return Row(
+      children: List.generate(5, (i) {
+        final star = i + 1;
+        return IconButton(
+          visualDensity: VisualDensity.compact,
+          icon: Icon(
+            star <= value ? Icons.star : Icons.star_border,
+            color: Colors.amber,
+          ),
+          onPressed: () => onChanged(star),
+        );
+      }),
+    );
+  }
+
+  void _showRateDialog(Map<String, dynamic> data, String bookingId) {
+    final serviceComment = TextEditingController();
+    final shopComment = TextEditingController();
+    var serviceStars = 0;
+    var shopStars = 0;
+    var submitting = false;
+
+    final shopId = (data['shopId'] ?? '').toString().trim();
+    final serviceName =
+        (data['serviceName'] ?? data['service'] ?? '').toString().trim();
+    final serviceId = (data['serviceId'] ?? '').toString().trim();
+    final customerName = (data['name'] ?? data['userName'] ?? '')
+        .toString()
+        .trim();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => AlertDialog(
+          title: const Text('Rate your experience'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Service Rating',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+                _buildStarSelector(
+                  value: serviceStars,
+                  onChanged: (v) => setSheetState(() => serviceStars = v),
+                ),
+                TextField(
+                  controller: serviceComment,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    hintText: 'Comment about the service (optional)',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Shop Rating',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+                _buildStarSelector(
+                  value: shopStars,
+                  onChanged: (v) => setSheetState(() => shopStars = v),
+                ),
+                TextField(
+                  controller: shopComment,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    hintText: 'Comment about the shop (optional)',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: submitting ? null : () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: submitting
+                  ? null
+                  : () async {
+                      if (serviceStars < 1 || shopStars < 1) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Please rate both service and shop.',
+                            ),
+                          ),
+                        );
+                        return;
+                      }
+                      if (shopId.isEmpty || serviceName.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Missing booking data for rating.'),
+                          ),
+                        );
+                        return;
+                      }
+
+                      setSheetState(() => submitting = true);
+                      try {
+                        await _db.ratePetCareService(
+                          bookingId: bookingId,
+                          shopId: shopId,
+                          serviceName: serviceName,
+                          serviceId: serviceId.isEmpty ? null : serviceId,
+                          stars: serviceStars,
+                          comment: serviceComment.text.trim(),
+                          customerName: customerName.isEmpty
+                              ? null
+                              : customerName,
+                        );
+                        await _db.rateServiceShop(
+                          shopId: shopId,
+                          stars: shopStars,
+                          comment: shopComment.text.trim(),
+                          bookingId: bookingId,
+                          customerName: customerName.isEmpty
+                              ? null
+                              : customerName,
+                        );
+                        if (!ctx.mounted) return;
+                        Navigator.of(ctx).pop();
+                        ScaffoldMessenger.of(ctx).showSnackBar(
+                          const SnackBar(
+                            content: Text('Thanks! Your ratings were submitted.'),
+                          ),
+                        );
+                      } catch (e) {
+                        if (!ctx.mounted) return;
+                        ScaffoldMessenger.of(ctx).showSnackBar(
+                          SnackBar(content: Text('$e')),
+                        );
+                        setSheetState(() => submitting = false);
+                      }
+                    },
+              child: submitting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Submit'),
+            ),
+          ],
+        ),
+      ),
+    ).then((_) {
+      serviceComment.dispose();
+      shopComment.dispose();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -938,8 +1098,9 @@ class _MyBookingsPageState extends State<MyBookingsPage>
       final data = doc.data() as Map<String, dynamic>? ?? {};
       final dateStr = data['date']?.toString() ?? '';
       final bookingDate = _parseBookingDateFromDMY(dateStr);
-      if (bookingDate == null)
+      if (bookingDate == null) {
         return isCurrent; // show in current if unparsable
+      }
       return isCurrent
           ? bookingDate.isAfter(now.subtract(const Duration(days: 1)))
           : bookingDate.isBefore(now);
@@ -958,7 +1119,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
         final doc = filtered[i];
         final data = doc.data() as Map<String, dynamic>? ?? {};
         final bookingId = doc.id;
-        return _buildBookingCard(data, bookingId);
+        return _buildBookingCard(data, bookingId, isCurrent: isCurrent);
       },
     );
   }
@@ -977,7 +1138,11 @@ class _MyBookingsPageState extends State<MyBookingsPage>
     return null;
   }
 
-  Widget _buildBookingCard(Map<String, dynamic> data, String bookingId) {
+  Widget _buildBookingCard(
+    Map<String, dynamic> data,
+    String bookingId, {
+    required bool isCurrent,
+  }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(18),
@@ -1066,44 +1231,61 @@ class _MyBookingsPageState extends State<MyBookingsPage>
             ],
           ),
           const SizedBox(height: 15),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => _showRescheduleSheet(data, bookingId),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: primaryGreen,
-                    side: BorderSide(
-                      color: primaryGreen.withValues(alpha: 0.4),
+          if (isCurrent)
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => _showRescheduleSheet(data, bookingId),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: primaryGreen,
+                      side: BorderSide(
+                        color: primaryGreen.withValues(alpha: 0.4),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                    child: const Text(
+                      "Reschedule",
+                      style: TextStyle(fontSize: 12),
                     ),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  child: const Text(
-                    "Reschedule",
-                    style: TextStyle(fontSize: 12),
                   ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => _showCancelDialog(context, data, bookingId),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.red,
-                    side: const BorderSide(color: Colors.red),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => _showCancelDialog(context, data, bookingId),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      side: const BorderSide(color: Colors.red),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    child: const Text("Cancel", style: TextStyle(fontSize: 12)),
                   ),
-                  child: const Text("Cancel", style: TextStyle(fontSize: 12)),
                 ),
+              ],
+            )
+          else
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () => _showRateDialog(data, bookingId),
+                style: FilledButton.styleFrom(
+                  backgroundColor: primaryGreen,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                icon: const Icon(Icons.star_outline),
+                label: const Text('Rate Service & Shop'),
               ),
-            ],
-          ),
+            ),
         ],
       ),
     );

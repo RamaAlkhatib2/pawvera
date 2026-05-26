@@ -13,6 +13,7 @@ class ServiceProvider {
       imageUrl;
   final List<String> petTypes; // empty = serves all pet types
   final double rating;
+  final int ratingCount;
   final List<String> tags;
   final bool hasOffer;
   bool isFavorite;
@@ -27,6 +28,7 @@ class ServiceProvider {
     required this.petTypes,
     required this.imageUrl,
     required this.rating,
+    this.ratingCount = 0,
     required this.tags,
     this.hasOffer = false,
     this.isFavorite = false,
@@ -95,14 +97,14 @@ class _PetCarePageState extends State<PetCarePage> {
   String _selectedCategory = 'All';
 
   /// Build a ServiceProvider from a Firestore shop document.
-  /// We only show shop name, address, working hours, and a default rating.
-  /// Tags are extracted from the shop's active services subcollection names.
-  /// If no imageUrl is set, a placeholder is returned.
+  /// Rating is computed from Firestore `reviews` where `shopId` matches.
   Future<ServiceProvider> _buildProviderFromShop(
     QueryDocumentSnapshot<Map<String, dynamic>> doc,
   ) async {
     final data = doc.data();
     final shopId = doc.id;
+
+    final ratingSummary = await _db.getServiceShopRatingSummary(shopId);
 
     // Fetch active services for tags
     final servicesSnap = await FirebaseFirestore.instance
@@ -138,7 +140,8 @@ class _PetCarePageState extends State<PetCarePage> {
           .map((e) => e.toString())
           .toList(),
       imageUrl: (data['imageUrl'] ?? '').toString(),
-      rating: 4.5, // default rating; could be derived from reviews later
+      rating: ratingSummary.avg,
+      ratingCount: ratingSummary.count,
       tags: serviceNames.isNotEmpty
           ? serviceNames
           : ['Grooming', 'Spa', 'Wellness'],
@@ -433,6 +436,68 @@ class _PetCarePageState extends State<PetCarePage> {
     return double.tryParse(distance.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0.0;
   }
 
+  String _serviceShopRatingLabel(double fallbackAvg, int fallbackCount) {
+    if (fallbackCount > 0) return fallbackAvg.toStringAsFixed(1);
+    return '0.0';
+  }
+
+  Widget _liveServiceShopRatingBadge(
+    String shopId,
+    double fallbackAvg,
+    int fallbackCount,
+  ) {
+    if (shopId.trim().isEmpty) {
+      return _serviceShopRatingChip(
+        _serviceShopRatingLabel(fallbackAvg, fallbackCount),
+      );
+    }
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      key: ValueKey<String>('pet_care_shop_rating_$shopId'),
+      stream: _db.streamServiceShopReviews(shopId),
+      builder: (context, snap) {
+        if (snap.hasError) {
+          return _serviceShopRatingChip(
+            _serviceShopRatingLabel(fallbackAvg, fallbackCount),
+          );
+        }
+        if (!snap.hasData) {
+          return _serviceShopRatingChip('…');
+        }
+        final docs = snap.data!.docs
+            .where((d) => DatabaseService.reviewDocIsServiceShop(d.data()))
+            .toList();
+        if (docs.isEmpty) {
+          return _serviceShopRatingChip(
+            _serviceShopRatingLabel(fallbackAvg, fallbackCount),
+          );
+        }
+        final avg = DatabaseService.averageStarsFromReviewDocs(docs);
+        return _serviceShopRatingChip(avg.toStringAsFixed(1));
+      },
+    );
+  }
+
+  Widget _serviceShopRatingChip(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF2F7F5),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.star, color: Colors.amber, size: 12),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildFilterRow() => Padding(
     padding: const EdgeInsets.symmetric(horizontal: 15),
     child: Row(
@@ -616,32 +681,10 @@ class _PetCarePageState extends State<PetCarePage> {
                               ),
                             ),
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF2F7F5),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.star,
-                                  color: Colors.amber,
-                                  size: 12,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  p.rating.toStringAsFixed(1),
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ],
-                            ),
+                          _liveServiceShopRatingBadge(
+                            p.id,
+                            p.rating,
+                            p.ratingCount,
                           ),
                         ],
                       ),
