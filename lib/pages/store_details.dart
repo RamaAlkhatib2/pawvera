@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -263,6 +265,28 @@ String petStoreBannerImageUrl(Map<String, dynamic> m) {
   return '';
 }
 
+/// Displays a Firebase Storage URL or a base64 data-URI image.
+Widget _flexImage(
+  String url, {
+  double? width,
+  double? height,
+  BoxFit fit = BoxFit.cover,
+  Widget? placeholder,
+}) {
+  final fallback = placeholder ?? const SizedBox.shrink();
+  if (url.startsWith('data:')) {
+    try {
+      final bytes = base64Decode(url.substring(url.indexOf(',') + 1));
+      return Image.memory(bytes, width: width, height: height, fit: fit,
+          errorBuilder: (_, e, s) => fallback);
+    } catch (_) {
+      return fallback;
+    }
+  }
+  return Image.network(url, width: width, height: height, fit: fit,
+      errorBuilder: (_, e, s) => fallback);
+}
+
 class _StoreHero extends StatelessWidget {
   const _StoreHero({required this.storeData});
 
@@ -376,12 +400,11 @@ class _StoreHero extends StatelessWidget {
                         color: _teal,
                       ),
                     )
-                  : Image.network(
+                  : _flexImage(
                       image,
                       height: 120,
                       width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => Container(
+                      placeholder: Container(
                         height: 120,
                         width: double.infinity,
                         color: Colors.blueGrey.shade50,
@@ -681,11 +704,15 @@ class _ProductCardState extends State<_ProductCard> {
                               color: Color(0xFF4FA294),
                             ),
                           )
-                        : Image.network(
+                        : _flexImage(
                             imageUrl,
                             width: double.infinity,
                             height: double.infinity,
-                            fit: BoxFit.cover,
+                            placeholder: Container(
+                              color: Colors.blueGrey.shade50,
+                              child: const Icon(Icons.pets,
+                                  size: 42, color: Color(0xFF4FA294)),
+                            ),
                           ),
                   ),
                   if (hasSale)
@@ -1843,7 +1870,12 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                                 color: _teal,
                               ),
                             )
-                          : Image.network(imageUrl, fit: BoxFit.cover),
+                          : _flexImage(imageUrl,
+                              placeholder: Container(
+                                color: Colors.blueGrey.shade50,
+                                child: const Icon(Icons.pets,
+                                    size: 70, color: _teal),
+                              )),
                     ),
                     if (hasSale)
                       Positioned(

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -5,7 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
 import '../services/database_service.dart';
-import 'login_view.dart';
+import 'sign_in_page.dart';
 
 // ─── Design tokens (match legacy store dashboard) ───────────────────────────
 
@@ -17,6 +19,41 @@ const Color _kBlueOffer = Color(0xFF5B8FD9);
 
 String _productImageUrl(Map<String, dynamic> p) =>
     (p['image'] ?? p['imageUrl'] ?? '').toString().trim();
+
+/// Displays a Firebase Storage URL or a base64 data-URI image.
+Widget _flexImage(
+  String url, {
+  double? width,
+  double? height,
+  BoxFit fit = BoxFit.cover,
+  Widget? placeholder,
+}) {
+  final fallback = placeholder ?? const SizedBox.shrink();
+  if (url.startsWith('data:')) {
+    try {
+      final comma = url.indexOf(',');
+      final bytes = base64Decode(url.substring(comma + 1));
+      return Image.memory(
+        bytes,
+        width: width,
+        height: height,
+        fit: fit,
+        errorBuilder: (_, e, s) => fallback,
+      );
+    } catch (_) {
+      return fallback;
+    }
+  }
+  return Image.network(
+    url,
+    width: width,
+    height: height,
+    fit: fit,
+    errorBuilder: (_, e, s) => fallback,
+    loadingBuilder: (_, child, progress) =>
+        progress == null ? child : fallback,
+  );
+}
 
 String _formatPetStoreOfferValidUntil(Map<String, dynamic> m) {
   final vu = m['validUntil'];
@@ -186,6 +223,12 @@ class _DashboardHeader extends StatelessWidget {
   }
 
   static Future<void> _logout(BuildContext navigatorContext, FirebaseAuth auth) async {
+    // Close any open sheets or dialogs before navigating so their TextFields
+    // are not left rendering without a Material ancestor.
+    if (navigatorContext.mounted) {
+      Navigator.of(navigatorContext, rootNavigator: true)
+          .popUntil((route) => route.isFirst);
+    }
     try {
       await auth.signOut();
     } catch (e) {
@@ -197,9 +240,9 @@ class _DashboardHeader extends StatelessWidget {
     }
     if (!navigatorContext.mounted) return;
     Navigator.of(navigatorContext, rootNavigator: true).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (_) => const LoginView()),
-                    (route) => false,
-                  );
+      MaterialPageRoute(builder: (_) => const SignInPage()),
+      (route) => false,
+    );
   }
 
   static Future<void> _openProfileSheet(
@@ -230,7 +273,8 @@ class _DashboardHeader extends StatelessWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (ctx) => Padding(
+      builder: (ctx) => Material(
+        child: Padding(
         padding: EdgeInsets.only(
           left: 20,
           right: 20,
@@ -300,6 +344,7 @@ class _DashboardHeader extends StatelessWidget {
           ),
         ),
       ),
+    ),
     );
   }
 }
@@ -429,40 +474,44 @@ class _TabBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return switch (tab) {
-      0 => _OverviewTab(
-          storeId: storeId,
-          databaseService: databaseService,
-          firestore: firestore,
-          onViewAllOrders: onGoToOrders,
-        ),
-      1 => _OrdersManagerTab(
-          storeId: storeId,
-          databaseService: databaseService,
-        ),
-      2 => _ProductsManagerTab(
-          storeId: storeId,
-          databaseService: databaseService,
-        ),
-      3 => _OffersTab(
-          storeId: storeId,
-          databaseService: databaseService,
-        ),
-      4 => _ReviewsTab(
-          storeId: storeId,
-          databaseService: databaseService,
-        ),
-      5 => _StoreSettingsTab(
-          storeId: storeId,
-          firestore: firestore,
-          databaseService: databaseService,
-        ),
-      6 => _AuditTab(
-          storeId: storeId,
-          databaseService: databaseService,
-        ),
-      _ => const SizedBox.shrink(),
-    };
+    // Material wrapper ensures TextFields always find an ancestor within the
+    // LookupBoundary during route transitions (e.g. logout navigation).
+    return Material(
+      child: switch (tab) {
+        0 => _OverviewTab(
+            storeId: storeId,
+            databaseService: databaseService,
+            firestore: firestore,
+            onViewAllOrders: onGoToOrders,
+          ),
+        1 => _OrdersManagerTab(
+            storeId: storeId,
+            databaseService: databaseService,
+          ),
+        2 => _ProductsManagerTab(
+            storeId: storeId,
+            databaseService: databaseService,
+          ),
+        3 => _OffersTab(
+            storeId: storeId,
+            databaseService: databaseService,
+          ),
+        4 => _ReviewsTab(
+            storeId: storeId,
+            databaseService: databaseService,
+          ),
+        5 => _StoreSettingsTab(
+            storeId: storeId,
+            firestore: firestore,
+            databaseService: databaseService,
+          ),
+        6 => _AuditTab(
+            storeId: storeId,
+            databaseService: databaseService,
+          ),
+        _ => const SizedBox.shrink(),
+      },
+    );
   }
 }
 
@@ -2404,32 +2453,16 @@ class _ProductsManagerTabState extends State<_ProductsManagerTab> {
     }
     return ClipRRect(
       borderRadius: BorderRadius.circular(10),
-      child: Image.network(
+      child: _flexImage(
         url,
         width: 72,
         height: 72,
-        fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => Container(
+        placeholder: Container(
           width: 72,
           height: 72,
           color: Colors.grey.shade200,
           child: const Icon(Icons.broken_image_outlined),
         ),
-        loadingBuilder: (ctx, child, prog) {
-          if (prog == null) return child;
-          return SizedBox(
-            width: 72,
-            height: 72,
-            child: Center(
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                value: prog.expectedTotalBytes != null
-                    ? prog.cumulativeBytesLoaded / prog.expectedTotalBytes!
-                    : null,
-              ),
-            ),
-          );
-        },
       ),
     );
   }
@@ -5161,7 +5194,36 @@ class _StoreSettingsTabState extends State<_StoreSettingsTab> {
   final _email = TextEditingController();
   final _hours = TextEditingController();
   String _storeImageUrl = '';
-  bool _hydrated = false;
+  bool _uploadingStoreImage = false;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      final doc = await widget.firestore
+          .collection('users')
+          .doc(widget.storeId)
+          .get();
+      if (!mounted) return;
+      final data = doc.data() ?? const <String, dynamic>{};
+      _storeName.text = (data['businessName'] ?? data['name'] ?? '').toString();
+      _location.text = (data['location'] ?? data['city'] ?? '').toString();
+      _street.text = (data['street'] ?? data['address'] ?? '').toString();
+      _description.text = (data['description'] ?? '').toString();
+      _phone.text = (data['phone'] ?? '').toString();
+      _email.text = (data['email'] ?? '').toString();
+      _hours.text = (data['businessHours'] ?? data['hours'] ?? '').toString();
+      _storeImageUrl =
+          (data['storeImageUrl'] ?? data['image'] ?? '').toString().trim();
+    } catch (_) {}
+    if (!mounted) return;
+    setState(() => _loading = false);
+  }
 
   @override
   void dispose() {
@@ -5175,38 +5237,13 @@ class _StoreSettingsTabState extends State<_StoreSettingsTab> {
     super.dispose();
   }
 
-  void _applyData(Map<String, dynamic> data) {
-    _storeName.text = (data['businessName'] ?? data['name'] ?? '').toString();
-    _location.text = (data['location'] ?? data['city'] ?? '').toString();
-    _street.text = (data['street'] ?? data['address'] ?? '').toString();
-    _description.text = (data['description'] ?? '').toString();
-    _phone.text = (data['phone'] ?? '').toString();
-    _email.text = (data['email'] ?? '').toString();
-    _hours.text =
-        (data['businessHours'] ?? data['hours'] ?? '').toString();
-    _storeImageUrl =
-        (data['storeImageUrl'] ?? data['image'] ?? '').toString().trim();
-  }
-
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-      stream: widget.firestore.collection('users').doc(widget.storeId).snapshots(),
-      builder: (context, snap) {
-        if (!snap.hasData) {
-          return const Center(child: CircularProgressIndicator(color: _kTeal));
-        }
-        final data = snap.data!.data() ?? const <String, dynamic>{};
-        if (!_hydrated) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!mounted || _hydrated) return;
-            _hydrated = true;
-            _applyData(data);
-            setState(() {});
-          });
-        }
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator(color: _kTeal));
+    }
 
-        return ListView(
+    return ListView(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
           children: [
             const Text(
@@ -5263,12 +5300,11 @@ class _StoreSettingsTabState extends State<_StoreSettingsTab> {
                   if (_storeImageUrl.isNotEmpty)
                     ClipRRect(
                       borderRadius: BorderRadius.circular(10),
-                      child: Image.network(
+                      child: _flexImage(
                         _storeImageUrl,
                         height: 120,
                         width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => Container(
+                        placeholder: Container(
                           height: 120,
                           width: double.infinity,
                           color: Colors.grey.shade200,
@@ -5282,43 +5318,60 @@ class _StoreSettingsTabState extends State<_StoreSettingsTab> {
                     ),
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
-                    onPressed: () async {
-                      final messenger = ScaffoldMessenger.of(context);
-                      final picker = ImagePicker();
-                      final file =
-                          await picker.pickImage(source: ImageSource.gallery);
-                      if (file == null) return;
-                      final bytes = await file.readAsBytes();
-                      try {
-                        final url = await widget.databaseService
-                            .uploadStoreProfileImageBytes(
-                          storeId: widget.storeId,
-                          bytes: bytes,
-                          fileName: file.name,
-                        );
-                        await widget.databaseService.updateStoreProfile(
-                          widget.storeId,
-                          {
-                            'storeImageUrl': url,
-                            'image': url,
+                    onPressed: _uploadingStoreImage
+                        ? null
+                        : () async {
+                            final messenger = ScaffoldMessenger.of(context);
+                            final picker = ImagePicker();
+                            final file = await picker.pickImage(
+                              source: ImageSource.gallery,
+                            );
+                            if (file == null) return;
+                            if (!mounted) return;
+                            setState(() => _uploadingStoreImage = true);
+                            final bytes = await file.readAsBytes();
+                            try {
+                              final url = await widget.databaseService
+                                  .uploadStoreProfileImageBytes(
+                                storeId: widget.storeId,
+                                bytes: bytes,
+                                fileName: file.name,
+                              );
+                              await widget.databaseService.updateStoreProfile(
+                                widget.storeId,
+                                {'storeImageUrl': url, 'image': url},
+                              );
+                              if (!mounted) return;
+                              setState(() {
+                                _storeImageUrl = url;
+                                _uploadingStoreImage = false;
+                              });
+                              messenger.showSnackBar(
+                                const SnackBar(
+                                  content: Text('Store photo saved'),
+                                ),
+                              );
+                            } catch (e) {
+                              if (!mounted) return;
+                              setState(() => _uploadingStoreImage = false);
+                              messenger.showSnackBar(
+                                SnackBar(
+                                  content: Text('Upload failed: $e'),
+                                  backgroundColor: Colors.red.shade700,
+                                ),
+                              );
+                            }
                           },
-                        );
-                        if (!mounted) return;
-                        setState(() => _storeImageUrl = url);
-                        messenger.showSnackBar(
-                          const SnackBar(
-                            content: Text('Store photo saved'),
-                          ),
-                        );
-                      } catch (e) {
-                        if (!mounted) return;
-                        messenger.showSnackBar(
-                          SnackBar(content: Text('$e')),
-                        );
-                      }
-                    },
-                    icon: const Icon(Icons.photo_camera_outlined),
-                    label: const Text('Store photo'),
+                    icon: _uploadingStoreImage
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.photo_camera_outlined),
+                    label: Text(
+                      _uploadingStoreImage ? 'Uploading…' : 'Store photo',
+                    ),
                   ),
                   const SizedBox(height: 16),
                   FilledButton(
@@ -5365,8 +5418,6 @@ class _StoreSettingsTabState extends State<_StoreSettingsTab> {
             ),
           ],
         );
-      },
-    );
   }
 }
 
@@ -5604,6 +5655,7 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
   final _stock = TextEditingController();
   String _category = 'Food';
   String _imageUrl = '';
+  bool _uploadingImage = false;
 
   @override
   void initState() {
@@ -5694,53 +5746,76 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
               const SizedBox(height: 6),
               ClipRRect(
                 borderRadius: BorderRadius.circular(10),
-                child: Image.network(
+                child: _flexImage(
                   _imageUrl,
                   height: 140,
                   width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => const Text('Could not load image'),
+                  placeholder: const Text('Could not load image'),
                 ),
-          ),
+              ),
           const SizedBox(height: 8),
             ],
             OutlinedButton.icon(
-            onPressed: () async {
-              final messenger = ScaffoldMessenger.of(context);
-              final picker = ImagePicker();
-                final file =
-                    await picker.pickImage(source: ImageSource.gallery);
-              if (file == null) return;
-              final bytes = await file.readAsBytes();
-              try {
-                final url = await widget.databaseService.uploadProductImageBytes(
-                  storeId: widget.storeId,
-                  bytes: bytes,
-                  fileName: file.name,
-                );
-                final pid =
-                    (widget.existingProduct?['id'] ?? '').toString().trim();
-                if (pid.isNotEmpty) {
-                  await widget.databaseService.updateProduct(pid, {
-                    'image': url,
-                    'imageUrl': url,
-                  });
-                }
-                if (!context.mounted) return;
-                setState(() => _imageUrl = url);
-                if (pid.isNotEmpty) {
-                  messenger.showSnackBar(
-                    const SnackBar(content: Text('Product image saved')),
-                  );
-                }
-              } catch (e) {
-                if (!context.mounted) return;
-                messenger.showSnackBar(SnackBar(content: Text('$e')));
-              }
-            },
-              icon: const Icon(Icons.upload_file),
-              label: Text(_imageUrl.isEmpty ? 'Upload image' : 'Change image'),
-          ),
+              onPressed: _uploadingImage
+                  ? null
+                  : () async {
+                      final messenger = ScaffoldMessenger.of(context);
+                      final picker = ImagePicker();
+                      final file = await picker.pickImage(
+                        source: ImageSource.gallery,
+                      );
+                      if (file == null) return;
+                      if (!context.mounted) return;
+                      setState(() => _uploadingImage = true);
+                      final bytes = await file.readAsBytes();
+                      try {
+                        final url = await widget.databaseService
+                            .uploadProductImageBytes(
+                          storeId: widget.storeId,
+                          bytes: bytes,
+                          fileName: file.name,
+                        );
+                        final pid =
+                            (widget.existingProduct?['id'] ?? '')
+                                .toString()
+                                .trim();
+                        if (pid.isNotEmpty) {
+                          await widget.databaseService.updateProduct(pid, {
+                            'image': url,
+                            'imageUrl': url,
+                          });
+                        }
+                        if (!context.mounted) return;
+                        setState(() {
+                          _imageUrl = url;
+                          _uploadingImage = false;
+                        });
+                        messenger.showSnackBar(
+                          const SnackBar(
+                            content: Text('Product image uploaded'),
+                          ),
+                        );
+                      } catch (e) {
+                        if (!context.mounted) return;
+                        setState(() => _uploadingImage = false);
+                        messenger.showSnackBar(
+                          SnackBar(content: Text('Upload failed: $e')),
+                        );
+                      }
+                    },
+              icon: _uploadingImage
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.upload_file),
+              label: Text(
+                _uploadingImage
+                    ? 'Uploading…'
+                    : (_imageUrl.isEmpty ? 'Upload image' : 'Change image'),
+              ),
+            ),
         ],
         ),
       ),
