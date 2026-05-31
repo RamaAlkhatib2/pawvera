@@ -44,15 +44,9 @@ class _HomePageState extends State<Home> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      // تعديل منطق عرض الصفحات ليشمل صفحة الحجوزات الجديدة
-      body: _buildBody(),
-
-      bottomNavigationBar: _buildBottomNav(),
-    );
+    return Scaffold(body: _buildBody(), bottomNavigationBar: _buildBottomNav());
   }
 
-  // دالة لتحديد أي صفحة تظهر بناءً على الاختيار
   Widget _buildBody() {
     switch (_selectedIndex) {
       case 1:
@@ -96,7 +90,9 @@ class _HomePageState extends State<Home> {
       builder: (context, snapshot) {
         String userName = "...";
         if (snapshot.hasData && snapshot.data!.exists) {
-          userName = (snapshot.data!.data() as Map<String, dynamic>)['fullName'] ?? "User";
+          userName =
+              (snapshot.data!.data() as Map<String, dynamic>)['fullName'] ??
+              "User";
         }
 
         return Row(
@@ -107,7 +103,11 @@ class _HomePageState extends State<Home> {
                 CircleAvatar(
                   radius: 32,
                   backgroundColor: Colors.white,
-                  child: const Icon(Icons.pets, color: Color(0xFF5B9D8E), size: 32),
+                  child: const Icon(
+                    Icons.pets,
+                    color: Color(0xFF5B9D8E),
+                    size: 32,
+                  ),
                 ),
                 Positioned(
                   bottom: 0,
@@ -119,7 +119,11 @@ class _HomePageState extends State<Home> {
                       color: Color(0xFFE53935),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.favorite, color: Colors.white, size: 10),
+                    child: const Icon(
+                      Icons.favorite,
+                      color: Colors.white,
+                      size: 10,
+                    ),
                   ),
                 ),
               ],
@@ -168,7 +172,7 @@ class _HomePageState extends State<Home> {
             ),
           ],
         );
-      }
+      },
     );
   }
 
@@ -206,14 +210,18 @@ class _HomePageState extends State<Home> {
                 _addPetButton(),
               ],
             );
-          }
+          },
         ),
       ],
     );
   }
 
-  Widget _petAvatar(String initial, String name, Color color,
-      {String? imagePath}) {
+  Widget _petAvatar(
+    String initial,
+    String name,
+    Color color, {
+    String? imagePath,
+  }) {
     final hasImage = imagePath != null && imagePath.isNotEmpty;
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -223,8 +231,8 @@ class _HomePageState extends State<Home> {
           backgroundColor: color,
           backgroundImage: hasImage
               ? (kIsWeb
-                  ? NetworkImage(imagePath) as ImageProvider
-                  : FileImage(File(imagePath)))
+                    ? NetworkImage(imagePath) as ImageProvider
+                    : FileImage(File(imagePath)))
               : null,
           child: hasImage
               ? null
@@ -283,229 +291,234 @@ class _HomePageState extends State<Home> {
     );
   }
 
- Widget _buildServicesGrid(BuildContext context) {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      const Text(
-        'Services',
-        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-      ),
-      const SizedBox(height: 12),
-      GridView(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        clipBehavior: Clip.none,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          mainAxisExtent: 130,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
+  Widget _buildServicesGrid(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Services',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
+        const SizedBox(height: 12),
+        GridView(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          clipBehavior: Clip.none,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            mainAxisExtent: 130,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+          ),
+          children: [
+            // 1. Reminders
+            _buildTappableServiceCard(
+              context: context,
+              screen: const ReminderScreen(),
+              title: 'Reminders',
+              subtitle: 'Schedule pet tasks',
+              icon: Icons.calendar_today,
+              color: const Color(0xFFF4CFC6),
+              iconColor: const Color(0xFFCF755A),
+              imagePath: 'assets/icons/reminders.icon.png',
+              imageWidth: 170,
+              imageHeight: 170,
+              imageRight: -18,
+              imageBottom: -18,
+              imageOffsetX: 40,
+            ),
+            // 2. Adoption
+            _buildTappableServiceCard(
+              context: context,
+              screen: AdoptionScreen(),
+              title: 'Adoption',
+              subtitle: 'Find new friends',
+              icon: Icons.favorite_border,
+              color: const Color(0xFFDFF6EF),
+              iconColor: const Color(0xFF4C9B8C),
+              imagePath: 'assets/icons/adoption.icon.png',
+              imageWidth: 112,
+              imageHeight: 112,
+              imageRight: 0,
+              imageBottom: -18,
+            ),
+            // 3. Pet Supplies
+            _buildTappableServiceCard(
+              context: context,
+              screen: const SuppliesStore(),
+              title: 'Pet Supplies',
+              subtitle: 'Shop Now',
+              icon: Icons.shopping_bag_outlined,
+              color: const Color(0xFFF7EACD),
+              iconColor: const Color(0xFFD09A3A),
+              imagePath: 'assets/icons/pet_supplies.icon.png',
+              imageWidth: 138,
+              imageHeight: 138,
+              imageRight: -16,
+              imageBottom: -44,
+              imageOffsetX: 20,
+            ),
+            // 4. Pet Care
+            _buildTappableServiceCard(
+              context: context,
+              screen: const PetCarePage(),
+              title: 'Pet Care',
+              subtitle: 'Book Services',
+              icon: Icons.pets_outlined,
+              color: const Color(0xFFFDE0C8),
+              iconColor: const Color(0xFFE08C52),
+              imagePath: 'assets/icons/pet_care.icon.png',
+              imageWidth: 172,
+              imageHeight: 172,
+              imageRight: -16,
+              imageBottom: -34,
+              imageOffsetX: 20,
+            ),
+            // 5. Doctor Appointments
+            _serviceCard(
+              title: 'Doctor Appointments',
+              subtitle: 'Book vet consults',
+              icon: Icons.medical_services_outlined,
+              color: const Color(0xFFD9F1F9),
+              iconColor: const Color(0xFF4A9BA4),
+            ),
+            // 6. Health Records
+            _serviceCard(
+              title: 'Health Records',
+              subtitle: 'Medical history',
+              icon: Icons.receipt_long,
+              color: const Color(0xFFD9F1F9),
+              iconColor: const Color(0xFF4A9BA4),
+              imagePath: 'assets/icons/health_records.icon.png',
+              imageWidth: 148,
+              imageHeight: 148,
+              imageRight: -16,
+              imageBottom: -48,
+              imageOffsetX: 20,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _serviceCard({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+    Color iconColor = const Color(0xFF6B6B6B),
+    String? imagePath,
+    double imageWidth = 92,
+    double imageHeight = 92,
+    double imageRight = -10,
+    double imageBottom = -8,
+    double imageOffsetX = 0,
+    double imageOffsetY = 0,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          // 1. Reminders
-          _buildTappableServiceCard(
-            context: context,
-            screen: const ReminderScreen(), 
-            title: 'Reminders',
-            subtitle: 'Schedule pet tasks',
-            icon: Icons.calendar_today,
-            color: const Color(0xFFF4CFC6),
-            iconColor: const Color(0xFFCF755A),
-            imagePath: 'assets/icons/reminders.icon.png',
-            imageWidth: 170,
-            imageHeight: 170,
-            imageRight: -18,
-            imageBottom: -18,
-            imageOffsetX: 40,
+          Align(
+            alignment: Alignment.topLeft,
+            child: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: Colors.white70,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 18, color: iconColor),
+            ),
           ),
-          // 2. Adoption
-          _buildTappableServiceCard(
-            context: context,
-            screen: AdoptionScreen(),
-            title: 'Adoption',
-            subtitle: 'Find new friends',
-            icon: Icons.favorite_border,
-            color: const Color(0xFFDFF6EF),
-            iconColor: const Color(0xFF4C9B8C),
-            imagePath: 'assets/icons/adoption.icon.png',
-            imageWidth: 112,
-            imageHeight: 112,
-            imageRight: 0,
-            imageBottom: -18,
-          ),
-          // 3. Pet Supplies
-          _buildTappableServiceCard(
-            context: context,
-            screen: const SuppliesStore(),
-            title: 'Pet Supplies',
-            subtitle: 'Shop Now',
-            icon: Icons.shopping_bag_outlined,
-            color: const Color(0xFFF7EACD),
-            iconColor: const Color(0xFFD09A3A),
-            imagePath: 'assets/icons/pet_supplies.icon.png',
-            imageWidth: 138,
-            imageHeight: 138,
-            imageRight: -16,
-            imageBottom: -44,
-            imageOffsetX: 20,
-          ),
-          // 4. Pet Care
-          _buildTappableServiceCard(
-            context: context,
-            screen: const PetCarePage(),
-            title: 'Pet Care',
-            subtitle: 'Book Services',
-            icon: Icons.pets_outlined,
-            color: const Color(0xFFFDE0C8),
-            iconColor: const Color(0xFFE08C52),
-            imagePath: 'assets/icons/pet_care.icon.png',
-            imageWidth: 172,
-            imageHeight: 172,
-            imageRight: -16,
-            imageBottom: -34,
-            imageOffsetX: 20,
-          ),
-          // 5. Doctor Appointments (بدون استجابة عند الكبس)
-          _serviceCard(
-            title: 'Doctor Appointments',
-            subtitle: 'Book vet consults',
-            icon: Icons.medical_services_outlined,
-            color: const Color(0xFFD9F1F9),
-            iconColor: const Color(0xFF4A9BA4),
-          ),
-          // 6. Health Records
-          _serviceCard(
-            title: 'Health Records',
-            subtitle: 'Medical history',
-            icon: Icons.receipt_long,
-            color: const Color(0xFFD9F1F9),
-            iconColor: const Color(0xFF4A9BA4),
-            imagePath: 'assets/icons/health_records.icon.png',
-            imageWidth: 148,
-            imageHeight: 148,
-            imageRight: -16,
-            imageBottom: -48,
-            imageOffsetX: 20,
+          if (imagePath != null)
+            Positioned(
+              bottom: imageBottom,
+              right: imageRight,
+              child: Transform.translate(
+                offset: Offset(imageOffsetX, imageOffsetY),
+                child: Image.asset(
+                  imagePath,
+                  width: imageWidth,
+                  height: imageHeight,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+          Align(
+            alignment: Alignment.bottomLeft,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF6A4529),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF6E5C4D),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
-    ],
-  );
-}
+    );
+  }
 
-// دالة بناء الكرت الأساسية (تأكدي أن هذه الدالة موجودة تحت الدالة السابقة مباشرة)
-Widget _serviceCard({
-  required String title,
-  required String subtitle,
-  required IconData icon,
-  required Color color,
-  Color iconColor = const Color(0xFF6B6B6B),
-  String? imagePath,
-  double imageWidth = 92,
-  double imageHeight = 92,
-  double imageRight = -10,
-  double imageBottom = -8,
-  double imageOffsetX = 0,
-  double imageOffsetY = 0,
-}) {
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-    decoration: BoxDecoration(
-      color: color,
-      borderRadius: BorderRadius.circular(16),
-    ),
-    child: Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Align(
-          alignment: Alignment.topLeft,
-          child: Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: Colors.white70,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, size: 18, color: iconColor),
-          ),
-        ),
-        if (imagePath != null)
-          Positioned(
-            bottom: imageBottom,
-            right: imageRight,
-            child: Transform.translate(
-              offset: Offset(imageOffsetX, imageOffsetY),
-              child: Image.asset(
-                imagePath,
-                width: imageWidth,
-                height: imageHeight,
-                fit: BoxFit.contain,
-              ),
-            ),
-          ),
-        Align(
-          alignment: Alignment.bottomLeft,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF6A4529),
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: const TextStyle(fontSize: 13, color: Color(0xFF6E5C4D)),
-              ),
-            ],
-          ),
-        ),
-      ],
-    ),
-  );
-}
+  Widget _buildTappableServiceCard({
+    required BuildContext context,
+    required Widget screen,
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+    Color iconColor = const Color(0xFF6B6B6B),
+    String? imagePath,
+    double imageWidth = 92,
+    double imageHeight = 92,
+    double imageRight = -10,
+    double imageBottom = -8,
+    double imageOffsetX = 0,
+    double imageOffsetY = 0,
+  }) {
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => screen),
+      ),
+      child: _serviceCard(
+        title: title,
+        subtitle: subtitle,
+        icon: icon,
+        color: color,
+        iconColor: iconColor,
+        imagePath: imagePath,
+        imageWidth: imageWidth,
+        imageHeight: imageHeight,
+        imageRight: imageRight,
+        imageBottom: imageBottom,
+        imageOffsetX: imageOffsetX,
+        imageOffsetY: imageOffsetY,
+      ),
+    );
+  }
 
-// دالة المساعدة لجعل الكرت قابلاً للضغط
-Widget _buildTappableServiceCard({
-  required BuildContext context,
-  required Widget screen,
-  required String title,
-  required String subtitle,
-  required IconData icon,
-  required Color color,
-  Color iconColor = const Color(0xFF6B6B6B),
-  String? imagePath,
-  double imageWidth = 92,
-  double imageHeight = 92,
-  double imageRight = -10,
-  double imageBottom = -8,
-  double imageOffsetX = 0,
-  double imageOffsetY = 0,
-}) {
-  return GestureDetector(
-    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => screen)),
-    child: _serviceCard(
-      title: title,
-      subtitle: subtitle,
-      icon: icon,
-      color: color,
-      iconColor: iconColor,
-      imagePath: imagePath,
-      imageWidth: imageWidth,
-      imageHeight: imageHeight,
-      imageRight: imageRight,
-      imageBottom: imageBottom,
-      imageOffsetX: imageOffsetX,
-      imageOffsetY: imageOffsetY,
-    ),
-  );
-}
   Widget _buildUpcomingReminderCard() {
     return StreamBuilder<QuerySnapshot>(
       stream: _db.reminders,
@@ -514,16 +527,19 @@ Widget _buildTappableServiceCard({
         final docs = snapshot.data?.docs ?? [];
 
         // Find the first upcoming reminder (dateTime >= now), sorted ascending
-        final upcoming = docs
-            .map((d) {
-              final data = d.data() as Map<String, dynamic>;
-              final ts = data['dateTime'] as Timestamp?;
-              return {...data, '_dt': ts?.toDate() ?? now};
-            })
-            .where((r) => !(r['_dt'] as DateTime).isBefore(now))
-            .toList()
-          ..sort((a, b) =>
-              (a['_dt'] as DateTime).compareTo(b['_dt'] as DateTime));
+        final upcoming =
+            docs
+                .map((d) {
+                  final data = d.data() as Map<String, dynamic>;
+                  final ts = data['dateTime'] as Timestamp?;
+                  return {...data, '_dt': ts?.toDate() ?? now};
+                })
+                .where((r) => !(r['_dt'] as DateTime).isBefore(now))
+                .toList()
+              ..sort(
+                (a, b) =>
+                    (a['_dt'] as DateTime).compareTo(b['_dt'] as DateTime),
+              );
 
         final next = upcoming.isNotEmpty ? upcoming.first : null;
 
@@ -598,7 +614,9 @@ Widget _buildTappableServiceCard({
                                     fontSize: 11,
                                   ),
                                 ),
-                                if ((next['notes'] ?? '').toString().isNotEmpty) ...[
+                                if ((next['notes'] ?? '')
+                                    .toString()
+                                    .isNotEmpty) ...[
                                   const SizedBox(height: 6),
                                   Text(
                                     next['notes'].toString(),
@@ -616,7 +634,9 @@ Widget _buildTappableServiceCard({
                             const SizedBox(width: 12),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 6),
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(6),
@@ -643,14 +663,24 @@ Widget _buildTappableServiceCard({
 
   String _formatReminderDate(DateTime dt) {
     final months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     final hour = dt.hour == 0
         ? 12
         : dt.hour > 12
-            ? dt.hour - 12
-            : dt.hour;
+        ? dt.hour - 12
+        : dt.hour;
     final ampm = dt.hour < 12 ? 'AM' : 'PM';
     final minute = dt.minute.toString().padLeft(2, '0');
     return '${months[dt.month - 1]} ${dt.day}, ${dt.year} at $hour:$minute $ampm';
