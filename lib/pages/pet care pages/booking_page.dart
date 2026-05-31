@@ -32,7 +32,7 @@ class _BookingPageState extends State<BookingPage> {
   final Color bgCream = const Color(0xFFE8F4F1);
   final DatabaseService _db = DatabaseService();
 
-  // Controllers لجمع بيانات اليوزر
+  
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
@@ -136,7 +136,7 @@ class _BookingPageState extends State<BookingPage> {
     "6:00 PM",
   ];
 
-  // دالة لإظهار نافذة التحقق
+  
   void _showVerificationDialog(BuildContext context, String email) {
     final TextEditingController codeController = TextEditingController();
 
@@ -284,7 +284,7 @@ class _BookingPageState extends State<BookingPage> {
                         'clinicName': widget.clinicName,
                       };
 
-                      // الانتقال لصفحة التأكيد
+                      
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -409,7 +409,7 @@ class _BookingPageState extends State<BookingPage> {
     );
   }
 
-  // --- المكونات الداخلية ---
+  
 
   Widget _buildServiceDetailCard() {
     return Container(

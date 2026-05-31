@@ -22,7 +22,6 @@ class _MyPetPageState extends State<MyPetPage> {
   final DatabaseService _db = DatabaseService();
   final List<String> _ageUnits = const ['Weeks', 'Months', 'Years'];
 
-  // --- 1. ميثود الإضافة (Add Pet) - Integrated with Firestore ---
   void _showAddPetSheet() {
     final nameCtrl = TextEditingController();
     final breedCtrl = TextEditingController();
@@ -184,7 +183,9 @@ class _MyPetPageState extends State<MyPetPage> {
                             if (nameCtrl.text.trim().isEmpty) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content: Text("Please enter your pet's name."),
+                                  content: Text(
+                                    "Please enter your pet's name.",
+                                  ),
                                 ),
                               );
                               return;
@@ -251,7 +252,6 @@ class _MyPetPageState extends State<MyPetPage> {
     );
   }
 
-  // --- 2. نافذة QR حسب تصميم Figma الجديد ---
   void _showQRCodeDialog(Map pet, String petId) {
     bool isCodeActive = pet['qrActive'] != false;
     showDialog(
@@ -364,13 +364,18 @@ class _MyPetPageState extends State<MyPetPage> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.qr_code_2,
-                              size: 60, color: Colors.grey[400]),
+                          Icon(
+                            Icons.qr_code_2,
+                            size: 60,
+                            color: Colors.grey[400],
+                          ),
                           const SizedBox(height: 8),
                           Text(
                             "QR Code Inactive",
                             style: TextStyle(
-                                color: Colors.grey[500], fontSize: 12),
+                              color: Colors.grey[500],
+                              fontSize: 12,
+                            ),
                           ),
                         ],
                       ),
@@ -423,8 +428,9 @@ class _MyPetPageState extends State<MyPetPage> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: OutlinedButton(
-                          onPressed:
-                              isCodeActive ? () => _printPetQrTag(qrUrl, pet) : null,
+                          onPressed: isCodeActive
+                              ? () => _printPetQrTag(qrUrl, pet)
+                              : null,
                           child: const Text(
                             "Print QR",
                             style: TextStyle(fontSize: 12),
@@ -442,7 +448,6 @@ class _MyPetPageState extends State<MyPetPage> {
     );
   }
 
-  // --- 3. نافذة Edit حسب تصميم Figma الجديد ---
   void _showQRCodeEditDialog(Map pet, String petId) {
     final ownerNameCtrl = TextEditingController(text: pet['ownerName']);
     final ownerPhoneCtrl = TextEditingController(text: pet['ownerPhone']);
@@ -508,7 +513,9 @@ class _MyPetPageState extends State<MyPetPage> {
                       onPressed: () => Navigator.pop(context),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: primaryGreen,
-                        side: BorderSide(color: primaryGreen.withValues(alpha: 0.3)),
+                        side: BorderSide(
+                          color: primaryGreen.withValues(alpha: 0.3),
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
@@ -623,14 +630,18 @@ class _MyPetPageState extends State<MyPetPage> {
                           child: newImg != null
                               ? ClipOval(
                                   child: kIsWeb
-                                      ? Image.network(newImg!,
+                                      ? Image.network(
+                                          newImg!,
                                           width: 100,
                                           height: 100,
-                                          fit: BoxFit.cover)
-                                      : Image.file(File(newImg!),
+                                          fit: BoxFit.cover,
+                                        )
+                                      : Image.file(
+                                          File(newImg!),
                                           width: 100,
                                           height: 100,
-                                          fit: BoxFit.cover),
+                                          fit: BoxFit.cover,
+                                        ),
                                 )
                               : Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
@@ -854,7 +865,10 @@ class _MyPetPageState extends State<MyPetPage> {
                         child: Text(
                           "Error loading pets:\n${snapshot.error}",
                           textAlign: TextAlign.center,
-                          style: const TextStyle(color: Colors.red, fontSize: 13),
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 13,
+                          ),
                         ),
                       ),
                     );
@@ -916,10 +930,18 @@ class _MyPetPageState extends State<MyPetPage> {
                 child: ClipOval(
                   child: pet['imagePath'] != null
                       ? (kIsWeb
-                          ? Image.network(pet['imagePath'],
-                              width: 48, height: 48, fit: BoxFit.cover)
-                          : Image.file(File(pet['imagePath']),
-                              width: 48, height: 48, fit: BoxFit.cover))
+                            ? Image.network(
+                                pet['imagePath'],
+                                width: 48,
+                                height: 48,
+                                fit: BoxFit.cover,
+                              )
+                            : Image.file(
+                                File(pet['imagePath']),
+                                width: 48,
+                                height: 48,
+                                fit: BoxFit.cover,
+                              ))
                       : const Icon(Icons.pets, size: 24, color: Colors.grey),
                 ),
               ),

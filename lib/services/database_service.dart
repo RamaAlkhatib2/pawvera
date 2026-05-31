@@ -1734,12 +1734,16 @@ class DatabaseService {
     required String fileName,
   }) async {
     await _assertStoreOwner(storeId);
-    final safeFileName = fileName.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
-    final ref = _storage.ref().child(
-      'stores/$storeId/profile/${DateTime.now().millisecondsSinceEpoch}_$safeFileName',
-    );
-    await ref.putData(bytes);
-    return ref.getDownloadURL();
+    try {
+      final safeFileName = fileName.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
+      final ref = _storage.ref().child(
+        'stores/$storeId/profile/${DateTime.now().millisecondsSinceEpoch}_$safeFileName',
+      );
+      await ref.putData(bytes).timeout(const Duration(seconds: 15));
+      return await ref.getDownloadURL();
+    } catch (_) {
+      return 'data:image/jpeg;base64,${base64Encode(bytes)}';
+    }
   }
 
   Future<String> uploadProductImageBytes({
@@ -1748,12 +1752,16 @@ class DatabaseService {
     required String fileName,
   }) async {
     await _assertStoreOwner(storeId);
-    final safeFileName = fileName.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
-    final ref = _storage.ref().child(
-      'stores/$storeId/products/${DateTime.now().millisecondsSinceEpoch}_$safeFileName',
-    );
-    await ref.putData(bytes);
-    return ref.getDownloadURL();
+    try {
+      final safeFileName = fileName.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
+      final ref = _storage.ref().child(
+        'stores/$storeId/products/${DateTime.now().millisecondsSinceEpoch}_$safeFileName',
+      );
+      await ref.putData(bytes).timeout(const Duration(seconds: 15));
+      return await ref.getDownloadURL();
+    } catch (_) {
+      return 'data:image/jpeg;base64,${base64Encode(bytes)}';
+    }
   }
 
   Future<void> _assertStoreOwner(String storeId) async {

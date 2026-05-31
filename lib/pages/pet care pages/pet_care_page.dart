@@ -4,13 +4,7 @@ import 'clinic_details_page.dart';
 import 'package:pawvera/services/database_service.dart';
 
 class ServiceProvider {
-  final String id,
-      name,
-      description,
-      distance,
-      location,
-      hours,
-      imageUrl;
+  final String id, name, description, distance, location, hours, imageUrl;
   final List<String> petTypes; // empty = serves all pet types
   final double rating;
   final int ratingCount;
@@ -79,7 +73,6 @@ class _PetCarePageState extends State<PetCarePage> {
     _db.toggleFavoritePetCareShop(shopId);
   }
 
-  // --- الفلاتر الجديدة المستخرجة من الصورة ---
   final List<String> _sortOptions = [
     'Highest Rated',
     'Nearest',
@@ -223,7 +216,8 @@ class _PetCarePageState extends State<PetCarePage> {
                   p.description.toLowerCase().contains(query) ||
                   p.tags.any((tag) => tag.toLowerCase().contains(query));
               final matchesOffer = !_showOffersOnly || p.hasOffer;
-              final matchesFav = !_showFavoritesOnly || _favoriteIds.contains(p.id);
+              final matchesFav =
+                  !_showFavoritesOnly || _favoriteIds.contains(p.id);
               final petTypeLower = _selectedPetType.toLowerCase();
               final matchesPet =
                   _selectedPetType == "All Pet Types" ||
@@ -231,7 +225,9 @@ class _PetCarePageState extends State<PetCarePage> {
               final categoryLower = _selectedCategory.toLowerCase();
               final matchesCategory =
                   _selectedCategory == "All" ||
-                  p.tags.any((tag) => tag.toLowerCase().contains(categoryLower));
+                  p.tags.any(
+                    (tag) => tag.toLowerCase().contains(categoryLower),
+                  );
 
               return matchesSearch &&
                   matchesOffer &&
@@ -266,7 +262,6 @@ class _PetCarePageState extends State<PetCarePage> {
     );
   }
 
-  // --- ويدجت شريط الفلاتر الأفقي (المطلوب) ---
   Widget _buildCategoryFilter() {
     return SizedBox(
       height: 38,
@@ -714,8 +709,12 @@ class _PetCarePageState extends State<PetCarePage> {
                       border: Border.all(color: Colors.grey.shade200),
                     ),
                     child: Icon(
-                      _favoriteIds.contains(p.id) ? Icons.favorite : Icons.favorite_border,
-                      color: _favoriteIds.contains(p.id) ? Colors.red : Colors.grey.shade400,
+                      _favoriteIds.contains(p.id)
+                          ? Icons.favorite
+                          : Icons.favorite_border,
+                      color: _favoriteIds.contains(p.id)
+                          ? Colors.red
+                          : Colors.grey.shade400,
                       size: 20,
                     ),
                   ),
