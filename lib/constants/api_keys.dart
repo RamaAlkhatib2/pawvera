@@ -1,0 +1,2 @@
+const String kDogApiKey = 'live_VJULB4iRBn9JqciCQ3QVkXE4Qih2EyLqj8KRcMIGvcill49nHo49Vf6NbBSoN3GC';
+const String kCatApiKey = 'live_rBkOPhhQUxvCLAtAhk5RqRGCMViggJTTqFbZhq6Fdg4h4Y1m6NWxIdjYnSCfKcxw';

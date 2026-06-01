@@ -8,6 +8,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:pawvera/services/database_service.dart';
+import '../services/breed_service.dart';
 
 class MyPetPage extends StatefulWidget {
   const MyPetPage({super.key});
@@ -33,13 +34,35 @@ class _MyPetPageState extends State<MyPetPage> {
     String selectedGender = 'Male';
     String selectedAgeUnit = 'Years';
     String? imagePath;
+    List<BreedInfo> fetchedBreeds = [];
+    bool loadingBreeds = false;
+    BreedInfo? selectedBreedInfo;
+    bool breedsInit = false;
+
+    Future<void> loadBreeds(String type, StateSetter ss) async {
+      if (type != 'Dog' && type != 'Cat') {
+        ss(() { fetchedBreeds = []; selectedBreedInfo = null; });
+        return;
+      }
+      ss(() => loadingBreeds = true);
+      final result = await BreedService.fetchBreeds(type);
+      ss(() {
+        fetchedBreeds = result;
+        loadingBreeds = false;
+      });
+    }
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => StatefulBuilder(
-        builder: (context, setSheetState) => Container(
+        builder: (context, setSheetState) {
+        if (!breedsInit) {
+          breedsInit = true;
+          Future.microtask(() => loadBreeds(selectedType, setSheetState));
+        }
+        return Container(
           padding: EdgeInsets.only(
             bottom: MediaQuery.of(context).viewInsets.bottom + 20,
             top: 20,
@@ -83,10 +106,93 @@ class _MyPetPageState extends State<MyPetPage> {
                 _buildDropdown(
                   ['Dog', 'Cat', 'Bird', 'Rabbit', 'Fish'],
                   selectedType,
-                  (v) => setSheetState(() => selectedType = v!),
+                  (v) {
+                    setSheetState(() {
+                      selectedType = v!;
+                      selectedBreedInfo = null;
+                      breedCtrl.clear();
+                    });
+                    loadBreeds(v!, setSheetState);
+                  },
                 ),
                 _buildLabel("Breed"),
-                _buildTextField(breedCtrl, "Breed"),
+                if (loadingBreeds)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 10),
+                    child: Center(
+                      child: SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                  )
+                else
+                  GestureDetector(
+                    onTap: fetchedBreeds.isEmpty
+                        ? null
+                        : () async {
+                            final selected = await _showBreedSearchDialog(
+                              context,
+                              fetchedBreeds,
+                            );
+                            if (selected != null) {
+                              breedCtrl.text = selected;
+                              final info = fetchedBreeds.firstWhere(
+                                (b) => b.name == selected,
+                                orElse: () => BreedInfo(name: selected),
+                              );
+                              setSheetState(() => selectedBreedInfo = info);
+                            }
+                          },
+                    child: AbsorbPointer(
+                      absorbing: fetchedBreeds.isNotEmpty,
+                      child: _buildTextField(
+                        breedCtrl,
+                        fetchedBreeds.isNotEmpty
+                            ? 'Tap to select breed'
+                            : 'Breed',
+                      ),
+                    ),
+                  ),
+                if (selectedBreedInfo != null &&
+                    selectedBreedInfo!.temperament.isNotEmpty)
+                  Container(
+                    margin: const EdgeInsets.only(top: 6),
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF5B9D8E).withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: const Color(0xFF5B9D8E).withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '🐾 ${selectedBreedInfo!.temperament}',
+                          style: TextStyle(fontSize: 11, color: Colors.grey[700]),
+                        ),
+                        if (selectedBreedInfo!.lifeSpan.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 3),
+                            child: Text(
+                              '⏳ Life span: ${selectedBreedInfo!.lifeSpan}',
+                              style: TextStyle(fontSize: 11, color: Colors.grey[700]),
+                            ),
+                          ),
+                        if (selectedBreedInfo!.origin.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 3),
+                            child: Text(
+                              '🌍 Origin: ${selectedBreedInfo!.origin}',
+                              style: TextStyle(fontSize: 11, color: Colors.grey[700]),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
 
                 Row(
                   children: [
@@ -246,7 +352,8 @@ class _MyPetPageState extends State<MyPetPage> {
               ],
             ),
           ),
-        ),
+        );
+        },
       ),
     );
   }
@@ -1046,6 +1153,77 @@ class _MyPetPageState extends State<MyPetPage> {
   }
 
   // Helpers
+  static Future<String?> _showBreedSearchDialog(
+    BuildContext context,
+    List<BreedInfo> breeds,
+  ) {
+    final searchCtrl = TextEditingController();
+    var filtered = List<BreedInfo>.from(breeds);
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setD) => AlertDialog(
+          title: const Text(
+            'Select Breed',
+            style: TextStyle(fontSize: 16, color: Color(0xFF634732)),
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            height: 360,
+            child: Column(
+              children: [
+                TextField(
+                  controller: searchCtrl,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    hintText: 'Search breed...',
+                    prefixIcon: const Icon(Icons.search, size: 20),
+                    filled: true,
+                    fillColor: const Color(0xFFF0F4F3),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide.none,
+                    ),
+                    isDense: true,
+                  ),
+                  onChanged: (q) => setD(() {
+                    filtered = q.isEmpty
+                        ? List<BreedInfo>.from(breeds)
+                        : breeds
+                            .where((b) => b.name
+                                .toLowerCase()
+                                .contains(q.toLowerCase()))
+                            .toList();
+                  }),
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: filtered.length,
+                    itemBuilder: (_, i) => ListTile(
+                      dense: true,
+                      title: Text(
+                        filtered[i].name,
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                      onTap: () => Navigator.pop(ctx, filtered[i].name),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildLabel(String l) => Padding(
     padding: const EdgeInsets.only(top: 10, bottom: 5),
     child: Text(
