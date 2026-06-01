@@ -59,7 +59,6 @@ class _MyBookingsPageState extends State<MyBookingsPage>
     super.dispose();
   }
 
-  // --- دالة الحذف النهائي من Firestore ---
   void _confirmDeletion(String bookingId) async {
     await _db.deleteBooking(bookingId);
     if (mounted) {
@@ -69,7 +68,6 @@ class _MyBookingsPageState extends State<MyBookingsPage>
     }
   }
 
-  // --- نافذة الإلغاء الاحترافية (نفس أول مرة) ---
   void _showCancelDialog(
     BuildContext context,
     Map<String, dynamic> bookingData,
@@ -381,8 +379,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
             final booked = snap.docs
                 .where((doc) {
                   final d = doc.data();
-                  final status =
-                      (d['status'] ?? '').toString().toLowerCase();
+                  final status = (d['status'] ?? '').toString().toLowerCase();
                   // Exclude cancelled and the booking being rescheduled
                   if (status == 'cancelled') return false;
                   if (shopBookingId.isNotEmpty && doc.id == shopBookingId) {
@@ -616,14 +613,14 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                                         color: isSelected
                                             ? const Color(0xFF2F72FF)
                                             : isBooked
-                                                ? Colors.grey.shade200
-                                                : const Color(0xFFD5D9DE),
+                                            ? Colors.grey.shade200
+                                            : const Color(0xFFD5D9DE),
                                       ),
                                       backgroundColor: isSelected
                                           ? const Color(0xFFE9F0FF)
                                           : isBooked
-                                              ? Colors.grey.shade100
-                                              : Colors.white,
+                                          ? Colors.grey.shade100
+                                          : Colors.white,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(8),
                                       ),
@@ -635,8 +632,8 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                                         color: isSelected
                                             ? const Color(0xFF2F72FF)
                                             : isBooked
-                                                ? Colors.grey.shade400
-                                                : const Color(0xFF444444),
+                                            ? Colors.grey.shade400
+                                            : const Color(0xFF444444),
                                         fontWeight: FontWeight.w500,
                                         decoration: isBooked
                                             ? TextDecoration.lineThrough
@@ -787,8 +784,9 @@ class _MyBookingsPageState extends State<MyBookingsPage>
     var submitting = false;
 
     final shopId = (data['shopId'] ?? '').toString().trim();
-    final serviceName =
-        (data['serviceName'] ?? data['service'] ?? '').toString().trim();
+    final serviceName = (data['serviceName'] ?? data['service'] ?? '')
+        .toString()
+        .trim();
     final serviceId = (data['serviceId'] ?? '').toString().trim();
     final customerName = (data['name'] ?? data['userName'] ?? '')
         .toString()
@@ -850,9 +848,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                       if (serviceStars < 1 || shopStars < 1) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text(
-                              'Please rate both service and shop.',
-                            ),
+                            content: Text('Please rate both service and shop.'),
                           ),
                         );
                         return;
@@ -892,14 +888,16 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                         Navigator.of(ctx).pop();
                         ScaffoldMessenger.of(ctx).showSnackBar(
                           const SnackBar(
-                            content: Text('Thanks! Your ratings were submitted.'),
+                            content: Text(
+                              'Thanks! Your ratings were submitted.',
+                            ),
                           ),
                         );
                       } catch (e) {
                         if (!ctx.mounted) return;
-                        ScaffoldMessenger.of(ctx).showSnackBar(
-                          SnackBar(content: Text('$e')),
-                        );
+                        ScaffoldMessenger.of(
+                          ctx,
+                        ).showSnackBar(SnackBar(content: Text('$e')));
                         setSheetState(() => submitting = false);
                       }
                     },
@@ -1256,7 +1254,8 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                 const SizedBox(width: 10),
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () => _showCancelDialog(context, data, bookingId),
+                    onPressed: () =>
+                        _showCancelDialog(context, data, bookingId),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.red,
                       side: const BorderSide(color: Colors.red),

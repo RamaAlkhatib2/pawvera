@@ -199,7 +199,6 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
     );
   }
 
-  // دالة مساعدة لتنسيق الأسطر داخل النافذة
   Widget _buildDialogRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -240,7 +239,6 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            // بطاقة نجاح التحقق (Email Verified)
             _buildStatusCard(
               icon: Icons.check_circle_outline,
               title: "Email Verified!",
@@ -248,7 +246,7 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
               color: Colors.green,
             ),
             const SizedBox(height: 12),
-            // بطاقة الخصم (Discount Applied)
+
             _buildStatusCard(
               icon: Icons.percent,
               title: "Discount Applied!",
@@ -257,7 +255,6 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
             ),
             const SizedBox(height: 25),
 
-            // ملخص الحجز (Booking Summary)
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -310,7 +307,6 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
             ),
             const SizedBox(height: 20),
 
-            // معلومات الاتصال
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -333,7 +329,6 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
             ),
             const SizedBox(height: 30),
 
-            // زر التأكيد النهائي
             SizedBox(
               width: double.infinity,
               height: 55,
