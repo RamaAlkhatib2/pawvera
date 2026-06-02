@@ -1,4 +1,4 @@
-name: Build Debug APK
+name: Flutter CI Pipeline
 
 on:
   push:
@@ -31,14 +31,8 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Analyze code (Linting)
+        run: flutter analyze
+
       - name: Run unit tests
         run: flutter test
-
-      - name: Build debug APK
-        run: flutter build apk --debug
-
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: debug-apk
-          path: build/app/outputs/flutter-apk/app-debug.apk
