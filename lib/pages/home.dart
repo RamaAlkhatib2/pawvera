@@ -1,6 +1,5 @@
-import 'dart:io';
 import 'dart:async';
-import 'package:flutter/foundation.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'supplies_store.dart';
@@ -223,27 +222,38 @@ class _HomePageState extends State<Home> {
     String? imagePath,
   }) {
     final hasImage = imagePath != null && imagePath.isNotEmpty;
+    final textChild = Text(
+      initial,
+      style: const TextStyle(
+        fontSize: 18,
+        color: Colors.white,
+        fontWeight: FontWeight.bold,
+      ),
+    );
+    Widget imageChild() {
+      if (imagePath!.startsWith('data:')) {
+        try {
+          final bytes =
+              base64Decode(imagePath.substring(imagePath.indexOf(',') + 1));
+          return Image.memory(bytes, width: 56, height: 56, fit: BoxFit.cover,
+              errorBuilder: (ctx, e, st) => textChild);
+        } catch (_) {
+          return textChild;
+        }
+      }
+      return Image.network(imagePath, width: 56, height: 56, fit: BoxFit.cover,
+          errorBuilder: (ctx, e, st) => textChild);
+    }
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         CircleAvatar(
           radius: 28,
           backgroundColor: color,
-          backgroundImage: hasImage
-              ? (kIsWeb
-                    ? NetworkImage(imagePath) as ImageProvider
-                    : FileImage(File(imagePath)))
-              : null,
           child: hasImage
-              ? null
-              : Text(
-                  initial,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+              ? ClipOval(child: imageChild())
+              : textChild,
         ),
         const SizedBox(height: 6),
         SizedBox(

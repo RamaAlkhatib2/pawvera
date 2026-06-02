@@ -98,6 +98,23 @@ class DatabaseService {
     });
   }
 
+  Future<String> uploadPetImage({
+    required String uid,
+    required Uint8List bytes,
+    required String fileName,
+  }) async {
+    try {
+      final safe = fileName.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
+      final ref = _storage.ref().child(
+        'users/$uid/pets/${DateTime.now().millisecondsSinceEpoch}_$safe',
+      );
+      await ref.putData(bytes).timeout(const Duration(seconds: 30));
+      return await ref.getDownloadURL();
+    } catch (_) {
+      return 'data:image/jpeg;base64,${base64Encode(bytes)}';
+    }
+  }
+
   // Get list of pets for current user
   Stream<QuerySnapshot> get userPets {
     String uid = _auth.currentUser!.uid;
