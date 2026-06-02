@@ -1,4 +1,4 @@
-name: Build Debug APK with Firebase
+name: Flutter CI Pipeline
 
 on:
   push:
@@ -31,14 +31,8 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Create google-services.json from Secret
-        run: echo "${{ secrets.GOOGLE_SERVICES_JSON }}" > android/app/google-services.json
+      - name: Analyze code syntax (Linting)
+        run: flutter analyze
 
-      - name: Build debug APK
-        run: flutter build apk --debug
-
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: debug-apk
-          path: build/app/outputs/flutter-apk/app-debug.apk
+      - name: Run unit tests
+        run: flutter test
