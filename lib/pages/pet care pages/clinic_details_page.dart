@@ -196,9 +196,16 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    _buildInfoBubble(Icons.location_on_outlined, shopLocation),
+                    Flexible(
+                      child: _buildInfoBubble(
+                        Icons.location_on_outlined,
+                        shopLocation,
+                      ),
+                    ),
                     const SizedBox(width: 8),
-                    _buildInfoBubble(Icons.access_time, shopHours),
+                    Flexible(
+                      child: _buildInfoBubble(Icons.access_time, shopHours),
+                    ),
                   ],
                 ),
               ],
@@ -1172,10 +1179,18 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 16, color: Colors.grey.shade700),
           const SizedBox(width: 6),
-          Text(text, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          Flexible(
+            child: Text(
+              text,
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
+          ),
         ],
       ),
     );

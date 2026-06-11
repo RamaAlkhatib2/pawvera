@@ -231,131 +231,148 @@ class _CartProductCard extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.teal.shade100),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Stack(
-            clipBehavior: Clip.none,
+          // ── Top row: image + title/brand + delete ──
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: image.isEmpty
-                    ? Container(
-                        width: 100,
-                        height: 100,
-                        color: Colors.blueGrey.shade50,
-                        child: const Icon(
-                          Icons.pets,
-                          color: Color(0xFF4FA294),
-                          size: 34,
-                        ),
-                      )
-                    : Image.network(
-                        image,
-                        width: 100,
-                        height: 100,
-                        fit: BoxFit.cover,
-                      ),
-              ),
-              if (discountPct != null && discountPct > 0)
-                Positioned(
-                  top: 4,
-                  left: 4,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.red.shade600,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      '-${discountPct.round()}%',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 11,
-                      ),
-                    ),
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: _isValidUrl(image)
+                        ? Image.network(
+                            image,
+                            width: 80,
+                            height: 80,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, e, stack) => _placeholder(),
+                          )
+                        : _placeholder(),
                   ),
+                  if (discountPct != null && discountPct > 0)
+                    Positioned(
+                      top: 4,
+                      left: 4,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 5,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade600,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          '-${discountPct.round()}%',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF5A2F0E),
+                        fontWeight: FontWeight.w800,
+                        fontSize: 15,
+                      ),
+                    ),
+                    if (brand.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        brand,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.blueGrey.shade600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
+              ),
+              IconButton(
+                onPressed: onRemove,
+                icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              ),
             ],
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFF5A2F0E),
-                    fontWeight: FontWeight.w800,
-                    fontSize: 16,
-                  ),
-                ),
-                if (brand.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    brand,
-                    style: TextStyle(color: Colors.blueGrey.shade600),
-                  ),
-                ],
-                const SizedBox(height: 12),
-                Text(
-                  '${price.toStringAsFixed(0)} JOD',
-                  style: const TextStyle(
-                    color: Colors.green,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 18,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          const SizedBox(height: 12),
+          // ── Bottom row: price (left) + quantity controls (right) ──
           Row(
-            mainAxisSize: MainAxisSize.min,
             children: [
+              Text(
+                '${price.toStringAsFixed(2)} JOD',
+                style: const TextStyle(
+                  color: Colors.green,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 17,
+                ),
+              ),
+              const Spacer(),
               CartQuantityButton(icon: Icons.remove, onTap: onDecrease),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 10),
                 child: Text(
                   '$quantity',
                   style: const TextStyle(
                     color: Color(0xFF5A2F0E),
                     fontWeight: FontWeight.w800,
+                    fontSize: 15,
                   ),
                 ),
               ),
               CartQuantityButton(icon: Icons.add, onTap: onIncrease),
-              const SizedBox(width: 8),
-              Material(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                elevation: 1,
-                child: IconButton(
-                  onPressed: onRemove,
-                  icon: const Icon(
-                    Icons.delete_outline,
-                    color: Colors.redAccent,
-                  ),
-                ),
-              ),
             ],
           ),
         ],
       ),
     );
   }
+
+  bool _isValidUrl(String url) {
+    if (url.isEmpty) return false;
+    try {
+      final uri = Uri.parse(url);
+      return uri.hasScheme &&
+          uri.host.isNotEmpty &&
+          (uri.scheme == 'http' || uri.scheme == 'https');
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Widget _placeholder() => Container(
+    width: 80,
+    height: 80,
+    color: Colors.blueGrey.shade50,
+    child: const Icon(Icons.pets, color: Color(0xFF4FA294), size: 30),
+  );
 }
 
 /// Shared +/- control (product page + cart).

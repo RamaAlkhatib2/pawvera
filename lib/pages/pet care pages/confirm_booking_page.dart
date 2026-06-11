@@ -213,12 +213,18 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.end,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),

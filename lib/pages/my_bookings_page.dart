@@ -1160,15 +1160,20 @@ class _MyBookingsPageState extends State<MyBookingsPage>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                data['service'] ?? "Service",
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 17,
+              Expanded(
+                child: Text(
+                  data['service'] ?? "Service",
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 17,
+                  ),
                 ),
               ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,
@@ -1219,7 +1224,10 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                 style: TextStyle(color: Colors.grey, fontSize: 11),
               ),
               Text(
-                "${data['price']} JOD",
+                () {
+                  final p = (data['price'] ?? '').toString();
+                  return p.toUpperCase().contains('JOD') ? p : '$p JOD';
+                }(),
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   color: Colors.purple,
