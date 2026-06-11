@@ -424,10 +424,19 @@ class _SuppliesStoreState extends State<SuppliesStore> {
     final storeId = (store['id'] ?? '').toString().trim();
     final fallbackRating = ((store['ratingAvg'] as num?)?.toDouble() ?? 0)
         .toStringAsFixed(1);
-    final tags = ((store['tags'] as List?) ?? const [])
-        .map((tag) => tag.toString())
-        .where((tag) => tag.trim().isNotEmpty)
+    final rawCategories = (store['categories'] as List?) ??
+        (store['tags'] as List?) ??
+        const [];
+    final categories = rawCategories
+        .map((item) => item.toString().trim())
+        .where((item) => item.isNotEmpty)
         .toList();
+    final street = (store['street'] ?? store['address'] ?? '').toString().trim();
+    final location = (store['location'] ?? store['city'] ?? '').toString().trim();
+    final displayLocation = street.isNotEmpty ? street : location;
+    final addressLine = [street, location]
+        .where((value) => value.isNotEmpty)
+        .join(' • ');
     final activeOffers =
         (store['activeOffers'] as List?)?.cast<Map<String, dynamic>>() ??
         const <Map<String, dynamic>>[];
@@ -454,7 +463,7 @@ class _SuppliesStoreState extends State<SuppliesStore> {
                 'time': store['businessHours'] ?? store['hours'] ?? '9AM - 9PM',
                 'rating': fallbackRating,
                 'reviews': '(${store['ratingCount'] ?? 0})',
-                'categories': tags,
+                'categories': categories,
               },
             ),
           ),
@@ -589,35 +598,35 @@ class _SuppliesStoreState extends State<SuppliesStore> {
                 ),
               ),
             ],
-            if (tags.isNotEmpty) ...[
+            if (categories.isNotEmpty) ...[
               const SizedBox(height: 10),
               Wrap(
                 spacing: 8,
-                children: tags
+                children: categories
                     .map(
-                      (tag) => Chip(
-                        label: Text(tag, style: const TextStyle(fontSize: 11)),
+                      (category) => Chip(
+                        label: Text(category, style: const TextStyle(fontSize: 11)),
                         backgroundColor: Colors.grey.shade50,
                       ),
                     )
                     .toList(),
               ),
             ],
-            const Divider(),
+            const SizedBox(height: 10),
+            if (addressLine.isNotEmpty) ...[
+              Text(
+                addressLine,
+                style: const TextStyle(
+                  color: Colors.grey,
+                  fontSize: 12,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 6),
+            ],
             Row(
               children: [
-                const Icon(
-                  Icons.location_on_outlined,
-                  size: 14,
-                  color: Colors.grey,
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    (store['location'] ?? '').toString(),
-                    style: const TextStyle(color: Colors.black, fontSize: 12),
-                  ),
-                ),
                 const Icon(Icons.access_time, size: 14, color: Colors.grey),
                 const SizedBox(width: 4),
                 Text(
@@ -626,6 +635,8 @@ class _SuppliesStoreState extends State<SuppliesStore> {
                 ),
               ],
             ),
+            const SizedBox(height: 6),
+            const Divider(),
           ],
         ),
       ),
