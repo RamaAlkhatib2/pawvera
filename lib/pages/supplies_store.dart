@@ -1,4 +1,5 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/database_service.dart';
 import 'buyer_my_orders_page.dart';
@@ -31,6 +32,38 @@ class _SuppliesStoreState extends State<SuppliesStore> {
     _searchController.dispose();
     super.dispose();
   }
+
+  Widget _buildStoreImage(String url) {
+    if (url.isEmpty) return _storePlaceholder();
+    if (url.startsWith('data:')) {
+      try {
+        final bytes = base64Decode(url.substring(url.indexOf(',') + 1));
+        return Image.memory(
+          bytes,
+          width: 80,
+          height: 80,
+          fit: BoxFit.cover,
+          errorBuilder: (context, e, stack) => _storePlaceholder(),
+        );
+      } catch (_) {
+        return _storePlaceholder();
+      }
+    }
+    return Image.network(
+      url,
+      width: 80,
+      height: 80,
+      fit: BoxFit.cover,
+      errorBuilder: (context, e, stack) => _storePlaceholder(),
+    );
+  }
+
+  Widget _storePlaceholder() => Container(
+    width: 80,
+    height: 80,
+    color: Colors.grey.shade100,
+    child: const Icon(Icons.store, color: Colors.grey, size: 30),
+  );
 
   void _toggleFavoriteStoresFilter() {
     setState(() {
@@ -433,7 +466,6 @@ class _SuppliesStoreState extends State<SuppliesStore> {
         .toList();
     final street = (store['street'] ?? store['address'] ?? '').toString().trim();
     final location = (store['location'] ?? store['city'] ?? '').toString().trim();
-    final displayLocation = street.isNotEmpty ? street : location;
     final addressLine = [street, location]
         .where((value) => value.isNotEmpty)
         .join(' • ');
@@ -483,22 +515,9 @@ class _SuppliesStoreState extends State<SuppliesStore> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(10),
-                    image: bannerUrl.isEmpty
-                        ? null
-                        : DecorationImage(
-                            image: NetworkImage(bannerUrl),
-                            fit: BoxFit.cover,
-                          ),
-                  ),
-                  child: bannerUrl.isEmpty
-                      ? const Icon(Icons.store, color: Colors.grey)
-                      : null,
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: _buildStoreImage(bannerUrl),
                 ),
                 const SizedBox(width: 12),
                 Expanded(

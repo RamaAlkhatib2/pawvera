@@ -2509,11 +2509,19 @@ class _WishlistProductCard extends StatelessWidget {
                             size: 42,
                           ),
                         )
-                      : Image.network(
+                      : _flexImage(
                           image,
                           width: double.infinity,
                           height: double.infinity,
-                          fit: BoxFit.cover,
+                          placeholder: Container(
+                            width: double.infinity,
+                            color: Colors.blueGrey.shade50,
+                            child: const Icon(
+                              Icons.pets,
+                              color: Color(0xFF4FA294),
+                              size: 42,
+                            ),
+                          ),
                         ),
                 ),
                 Positioned(

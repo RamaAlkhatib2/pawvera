@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
@@ -249,15 +251,7 @@ class _CartProductCard extends StatelessWidget {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: _isValidUrl(image)
-                        ? Image.network(
-                            image,
-                            width: 80,
-                            height: 80,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, e, stack) => _placeholder(),
-                          )
-                        : _placeholder(),
+                    child: _buildProductImage(image),
                   ),
                   if (discountPct != null && discountPct > 0)
                     Positioned(
@@ -355,24 +349,36 @@ class _CartProductCard extends StatelessWidget {
     );
   }
 
-  bool _isValidUrl(String url) {
-    if (url.isEmpty) return false;
-    try {
-      final uri = Uri.parse(url);
-      return uri.hasScheme &&
-          uri.host.isNotEmpty &&
-          (uri.scheme == 'http' || uri.scheme == 'https');
-    } catch (_) {
-      return false;
+  Widget _buildProductImage(String url) {
+    final placeholder = Container(
+      width: 80,
+      height: 80,
+      color: Colors.blueGrey.shade50,
+      child: const Icon(Icons.pets, color: Color(0xFF4FA294), size: 30),
+    );
+    if (url.isEmpty) return placeholder;
+    if (url.startsWith('data:')) {
+      try {
+        final bytes = base64Decode(url.substring(url.indexOf(',') + 1));
+        return Image.memory(
+          bytes,
+          width: 80,
+          height: 80,
+          fit: BoxFit.cover,
+          errorBuilder: (context, e, stack) => placeholder,
+        );
+      } catch (_) {
+        return placeholder;
+      }
     }
+    return Image.network(
+      url,
+      width: 80,
+      height: 80,
+      fit: BoxFit.cover,
+      errorBuilder: (context, e, stack) => placeholder,
+    );
   }
-
-  Widget _placeholder() => Container(
-    width: 80,
-    height: 80,
-    color: Colors.blueGrey.shade50,
-    child: const Icon(Icons.pets, color: Color(0xFF4FA294), size: 30),
-  );
 }
 
 /// Shared +/- control (product page + cart).
