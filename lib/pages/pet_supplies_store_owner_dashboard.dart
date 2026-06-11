@@ -5193,6 +5193,7 @@ class _StoreSettingsTabState extends State<_StoreSettingsTab> {
   final _phone = TextEditingController();
   final _email = TextEditingController();
   final _hours = TextEditingController();
+  final _categories = TextEditingController();
   String _storeImageUrl = '';
   bool _uploadingStoreImage = false;
   bool _loading = true;
@@ -5218,6 +5219,7 @@ class _StoreSettingsTabState extends State<_StoreSettingsTab> {
       _phone.text = (data['phone'] ?? '').toString();
       _email.text = (data['email'] ?? '').toString();
       _hours.text = (data['businessHours'] ?? data['hours'] ?? '').toString();
+      _categories.text = ((data['categories'] as List?)?.cast<String>() ?? const <String>[]) .join(', ');
       _storeImageUrl =
           (data['storeImageUrl'] ?? data['image'] ?? '').toString().trim();
     } catch (_) {}
@@ -5234,6 +5236,7 @@ class _StoreSettingsTabState extends State<_StoreSettingsTab> {
     _phone.dispose();
     _email.dispose();
     _hours.dispose();
+    _categories.dispose();
     super.dispose();
   }
 
@@ -5281,6 +5284,12 @@ class _StoreSettingsTabState extends State<_StoreSettingsTab> {
                     controller: _description,
                     decoration: const InputDecoration(labelText: 'Description'),
                     maxLines: 3,
+                  ),
+                  TextField(
+                    controller: _categories,
+                    decoration: const InputDecoration(
+                      labelText: 'Categories (comma separated)',
+                    ),
                   ),
                   TextField(
                     controller: _phone,
@@ -5395,6 +5404,11 @@ class _StoreSettingsTabState extends State<_StoreSettingsTab> {
                             'phone': _phone.text.trim(),
                             'businessHours': _hours.text.trim(),
                             'hours': _hours.text.trim(),
+                            'categories': _categories.text
+                                .split(',')
+                                .map((e) => e.trim())
+                                .where((e) => e.isNotEmpty)
+                                .toList(),
                             if (_storeImageUrl.isNotEmpty)
                               'storeImageUrl': _storeImageUrl,
                             if (_storeImageUrl.isNotEmpty) 'image': _storeImageUrl,

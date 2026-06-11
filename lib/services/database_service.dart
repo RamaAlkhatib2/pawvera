@@ -4,8 +4,8 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:typed_data';
 import 'dart:convert';
 
-/// Firestore may store `tags` as mixed types; never throw from stream transforms.
-List<String> _storeTagsNormalized(Object? raw) {
+/// Firestore may store `tags` or `categories` as mixed types; never throw from stream transforms.
+List<String> _storeListNormalized(Object? raw) {
   if (raw is! List) return <String>[];
   return raw
       .map((e) => e.toString().trim().toLowerCase())
@@ -602,7 +602,12 @@ class DatabaseService {
         final description = (data['description'] ?? '')
             .toString()
             .toLowerCase();
-        final tags = _storeTagsNormalized(data['tags']);
+        final tags = _storeListNormalized(data['tags']);
+        final categories = _storeListNormalized(data['categories']);
+        final combinedTags = {
+          ...tags,
+          ...categories,
+        };
         final hasOffers = data['hasActiveOffers'] == true;
 
         final matchesSearch =
@@ -610,7 +615,7 @@ class DatabaseService {
             name.contains(normalizedQuery) ||
             description.contains(normalizedQuery);
         final matchesCategory =
-            normalizedCategory == 'all' || tags.contains(normalizedCategory);
+            normalizedCategory == 'all' || combinedTags.contains(normalizedCategory);
         final matchesOffer = !offersOnly || hasOffers;
 
         return matchesSearch && matchesCategory && matchesOffer;
