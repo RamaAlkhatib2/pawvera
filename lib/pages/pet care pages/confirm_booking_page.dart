@@ -18,6 +18,16 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
   final DatabaseService _db = DatabaseService();
   bool _isProcessing = false;
 
+  double _parsePriceValue() {
+    final match = RegExp(r'[\d.]+').firstMatch(_textValue('price'));
+    return match != null ? double.tryParse(match.group(0)!) ?? 0 : 0;
+  }
+
+  String _priceCurrency() {
+    final suffix = _textValue('price').replaceAll(RegExp(r'[\d.\s]'), '').trim();
+    return suffix.isNotEmpty ? suffix : 'JOD';
+  }
+
   String _textValue(String key, {String fallback = "-"}) {
     final value = widget.bookingData[key];
     if (value == null) return fallback;
@@ -79,9 +89,9 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
       // Save to Hive (local)
       var box = Hive.box('myBox');
       List<dynamic> currentBookings = box.get('all_bookings', defaultValue: []);
-      List<Map<String, dynamic>> updatedList = List<Map<String, dynamic>>.from(
-        currentBookings,
-      );
+      List<Map<String, dynamic>> updatedList = currentBookings
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
       updatedList.add(widget.bookingData);
       await box.put('all_bookings', updatedList);
 
@@ -250,7 +260,7 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
             _buildStatusCard(
               icon: Icons.percent,
               title: "Discount Applied!",
-              subtitle: "You're saving \$3.75 with 15% off",
+              subtitle: "You're saving ${(_parsePriceValue() * 0.15).toStringAsFixed(2)} ${_priceCurrency()} with 15% off",
               color: Colors.green,
             ),
             const SizedBox(height: 25),
@@ -279,10 +289,10 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                   ),
                   _buildSummaryRow("Pet", _textValue('pet')),
                   const Divider(height: 30),
-                  _buildSummaryRow("Original Price", "25.00 JOD"),
+                  _buildSummaryRow("Original Price", _textValue('price')),
                   _buildSummaryRow(
                     "Discount (15%)",
-                    "-3.75 JOD",
+                    "-${(_parsePriceValue() * 0.15).toStringAsFixed(2)} ${_priceCurrency()}",
                     isDiscount: true,
                   ),
                   Row(
@@ -293,7 +303,7 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                       Text(
-                        _textValue('price'),
+                        "${(_parsePriceValue() * 0.85).toStringAsFixed(2)} ${_priceCurrency()}",
                         style: TextStyle(
                           color: primaryGreen,
                           fontWeight: FontWeight.bold,
@@ -352,7 +362,7 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                         ),
                       )
                     : Text(
-                        "Confirm Booking (${_textValue('price')})",
+                        "Confirm Booking (${(_parsePriceValue() * 0.85).toStringAsFixed(2)} ${_priceCurrency()})",
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
