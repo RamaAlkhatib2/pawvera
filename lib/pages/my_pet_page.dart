@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -33,6 +34,7 @@ class _MyPetPageState extends State<MyPetPage> {
     String selectedGender = 'Male';
     String selectedAgeUnit = 'Years';
     String? imagePath;
+    Future<String>? petUploadFuture;
     List<BreedInfo> fetchedBreeds = [];
     bool loadingBreeds = false;
     BreedInfo? selectedBreedInfo;
@@ -250,9 +252,20 @@ class _MyPetPageState extends State<MyPetPage> {
                     onPressed: () async {
                       final img = await ImagePicker().pickImage(
                         source: ImageSource.gallery,
+                        maxWidth: 800,
+                        maxHeight: 800,
+                        imageQuality: 80,
                       );
                       if (img != null) {
                         setSheetState(() => imagePath = img.path);
+                        final uid = FirebaseAuth.instance.currentUser!.uid;
+                        petUploadFuture = img.readAsBytes().then(
+                          (bytes) => _db.uploadPetImage(
+                            uid: uid,
+                            bytes: bytes,
+                            fileName: img.name,
+                          ),
+                        );
                       }
                     },
                     icon: Icon(Icons.image, color: primaryGreen),
@@ -297,6 +310,10 @@ class _MyPetPageState extends State<MyPetPage> {
                               return;
                             }
                             try {
+                              String? uploadedUrl;
+                              if (petUploadFuture != null) {
+                                uploadedUrl = await petUploadFuture;
+                              }
                               final ageValue = ageValueCtrl.text.trim();
                               final newPet = {
                                 'name': nameCtrl.text.trim(),
@@ -310,7 +327,7 @@ class _MyPetPageState extends State<MyPetPage> {
                                 'ageUnit': selectedAgeUnit,
                                 'weight': weightCtrl.text.trim(),
                                 'color': colorCtrl.text.trim(),
-                                'imagePath': imagePath,
+                                'imagePath': uploadedUrl,
                                 'ownerName': '',
                                 'ownerPhone': '',
                                 'ownerEmail': '',
@@ -676,6 +693,8 @@ class _MyPetPageState extends State<MyPetPage> {
     String selectedGender = pet['gender'] as String? ?? 'Male';
     String selectedAgeUnit = _extractAgeUnit(pet);
     String? newImg = pet['imagePath'];
+    bool saving = false;
+    Future<String>? uploadFuture;
 
     showDialog(
       context: context,
@@ -721,9 +740,22 @@ class _MyPetPageState extends State<MyPetPage> {
                         onTap: () async {
                           final img = await ImagePicker().pickImage(
                             source: ImageSource.gallery,
+                            maxWidth: 800,
+                            maxHeight: 800,
+                            imageQuality: 80,
                           );
                           if (img != null) {
                             setDialogState(() => newImg = img.path);
+                            // Start upload immediately in background
+                            final uid =
+                                FirebaseAuth.instance.currentUser!.uid;
+                            uploadFuture = img.readAsBytes().then(
+                              (bytes) => _db.uploadPetImage(
+                                uid: uid,
+                                bytes: bytes,
+                                fileName: img.name,
+                              ),
+                            );
                           }
                         },
                         child: Container(
@@ -864,24 +896,40 @@ class _MyPetPageState extends State<MyPetPage> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () async {
-                          final ageValue = ageValueCtrl.text.trim();
-                          await _db.updatePet(petId, {
-                            'name': nameCtrl.text,
-                            'type': selectedType,
-                            'breed': breedCtrl.text,
-                            'gender': selectedGender,
-                            'age': ageValue.isEmpty
-                                ? ''
-                                : '$ageValue $selectedAgeUnit',
-                            'ageValue': ageValue,
-                            'ageUnit': selectedAgeUnit,
-                            'weight': weightCtrl.text,
-                            'color': colorCtrl.text,
-                            'imagePath': newImg,
-                          });
-                          if (context.mounted) Navigator.pop(context);
-                        },
+                        onPressed: saving
+                            ? null
+                            : () async {
+                                setDialogState(() => saving = true);
+                                try {
+                                  String? uploadedUrl = newImg;
+                                  if (uploadFuture != null) {
+                                    uploadedUrl = await uploadFuture;
+                                  }
+                                  final ageValue = ageValueCtrl.text.trim();
+                                  await _db.updatePet(petId, {
+                                    'name': nameCtrl.text,
+                                    'type': selectedType,
+                                    'breed': breedCtrl.text,
+                                    'gender': selectedGender,
+                                    'age': ageValue.isEmpty
+                                        ? ''
+                                        : '$ageValue $selectedAgeUnit',
+                                    'ageValue': ageValue,
+                                    'ageUnit': selectedAgeUnit,
+                                    'weight': weightCtrl.text,
+                                    'color': colorCtrl.text,
+                                    'imagePath': uploadedUrl,
+                                  });
+                                  if (context.mounted) Navigator.pop(context);
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    setDialogState(() => saving = false);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Save failed: $e')),
+                                    );
+                                  }
+                                }
+                              },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: primaryGreen,
                           shape: RoundedRectangleBorder(
@@ -889,10 +937,19 @@ class _MyPetPageState extends State<MyPetPage> {
                           ),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
-                        child: const Text(
-                          "Save Changes",
-                          style: TextStyle(color: Colors.white),
-                        ),
+                        child: saving
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text(
+                                "Save Changes",
+                                style: TextStyle(color: Colors.white),
+                              ),
                       ),
                     ),
                   ],
@@ -1035,21 +1092,11 @@ class _MyPetPageState extends State<MyPetPage> {
                   color: Colors.grey[100],
                 ),
                 child: ClipOval(
-                  child: pet['imagePath'] != null
-                      ? (kIsWeb
-                            ? Image.network(
-                                pet['imagePath'],
-                                width: 48,
-                                height: 48,
-                                fit: BoxFit.cover,
-                              )
-                            : Image.file(
-                                File(pet['imagePath']),
-                                width: 48,
-                                height: 48,
-                                fit: BoxFit.cover,
-                              ))
-                      : const Icon(Icons.pets, size: 24, color: Colors.grey),
+                  child: _petImage(
+                    pet['imagePath'] as String?,
+                    size: 48,
+                    placeholder: const Icon(Icons.pets, size: 24, color: Colors.grey),
+                  ),
                 ),
               ),
               const SizedBox(width: 10),
@@ -1243,6 +1290,35 @@ class _MyPetPageState extends State<MyPetPage> {
           ],
         ),
       ),
+    );
+  }
+
+  static Widget _petImage(
+    String? path, {
+    required double size,
+    required Widget placeholder,
+  }) {
+    if (path == null || path.isEmpty) return placeholder;
+    if (path.startsWith('data:')) {
+      try {
+        final bytes = base64Decode(path.substring(path.indexOf(',') + 1));
+        return Image.memory(
+          bytes,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          errorBuilder: (ctx, e, st) => placeholder,
+        );
+      } catch (_) {
+        return placeholder;
+      }
+    }
+    return Image.network(
+      path,
+      width: size,
+      height: size,
+      fit: BoxFit.cover,
+      errorBuilder: (ctx, e, st) => placeholder,
     );
   }
 

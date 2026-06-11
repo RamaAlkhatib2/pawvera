@@ -1,6 +1,5 @@
-import 'dart:io';
 import 'dart:async';
-import 'package:flutter/foundation.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'supplies_store.dart';
@@ -223,27 +222,38 @@ class _HomePageState extends State<Home> {
     String? imagePath,
   }) {
     final hasImage = imagePath != null && imagePath.isNotEmpty;
+    final textChild = Text(
+      initial,
+      style: const TextStyle(
+        fontSize: 18,
+        color: Colors.white,
+        fontWeight: FontWeight.bold,
+      ),
+    );
+    Widget imageChild() {
+      if (imagePath!.startsWith('data:')) {
+        try {
+          final bytes =
+              base64Decode(imagePath.substring(imagePath.indexOf(',') + 1));
+          return Image.memory(bytes, width: 56, height: 56, fit: BoxFit.cover,
+              errorBuilder: (ctx, e, st) => textChild);
+        } catch (_) {
+          return textChild;
+        }
+      }
+      return Image.network(imagePath, width: 56, height: 56, fit: BoxFit.cover,
+          errorBuilder: (ctx, e, st) => textChild);
+    }
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         CircleAvatar(
           radius: 28,
           backgroundColor: color,
-          backgroundImage: hasImage
-              ? (kIsWeb
-                    ? NetworkImage(imagePath) as ImageProvider
-                    : FileImage(File(imagePath)))
-              : null,
           child: hasImage
-              ? null
-              : Text(
-                  initial,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+              ? ClipOval(child: imageChild())
+              : textChild,
         ),
         const SizedBox(height: 6),
         SizedBox(
@@ -321,10 +331,10 @@ class _HomePageState extends State<Home> {
               color: const Color(0xFFF4CFC6),
               iconColor: const Color(0xFFCF755A),
               imagePath: 'assets/icons/reminders.icon.png',
-              imageWidth: 170,
-              imageHeight: 170,
-              imageRight: -18,
-              imageBottom: -18,
+              imageWidth: 120,
+              imageHeight: 120,
+              imageRight: -8,
+              imageBottom: -20,
               imageOffsetX: 40,
             ),
             // 2. Adoption
@@ -337,10 +347,10 @@ class _HomePageState extends State<Home> {
               color: const Color(0xFFDFF6EF),
               iconColor: const Color(0xFF4C9B8C),
               imagePath: 'assets/icons/adoption.icon.png',
-              imageWidth: 112,
-              imageHeight: 112,
-              imageRight: 0,
-              imageBottom: -18,
+              imageWidth: 80,
+              imageHeight: 80,
+              imageRight: -8,
+              imageBottom: -20,
             ),
             // 3. Pet Supplies
             _buildTappableServiceCard(
@@ -352,10 +362,10 @@ class _HomePageState extends State<Home> {
               color: const Color(0xFFF7EACD),
               iconColor: const Color(0xFFD09A3A),
               imagePath: 'assets/icons/pet_supplies.icon.png',
-              imageWidth: 138,
-              imageHeight: 138,
-              imageRight: -16,
-              imageBottom: -44,
+              imageWidth: 100,
+              imageHeight: 100,
+              imageRight: -7,
+              imageBottom: -36,
               imageOffsetX: 20,
             ),
             // 4. Pet Care
@@ -368,8 +378,8 @@ class _HomePageState extends State<Home> {
               color: const Color(0xFFFDE0C8),
               iconColor: const Color(0xFFE08C52),
               imagePath: 'assets/icons/pet_care.icon.png',
-              imageWidth: 172,
-              imageHeight: 172,
+              imageWidth: 125,
+              imageHeight: 125,
               imageRight: -16,
               imageBottom: -34,
               imageOffsetX: 20,
@@ -390,10 +400,10 @@ class _HomePageState extends State<Home> {
               color: const Color(0xFFD9F1F9),
               iconColor: const Color(0xFF4A9BA4),
               imagePath: 'assets/icons/health_records.icon.png',
-              imageWidth: 148,
-              imageHeight: 148,
-              imageRight: -16,
-              imageBottom: -48,
+              imageWidth: 110,
+              imageHeight: 110,
+              imageRight: -25,
+              imageBottom: -45,
               imageOffsetX: 20,
             ),
           ],
@@ -416,68 +426,82 @@ class _HomePageState extends State<Home> {
     double imageOffsetX = 0,
     double imageOffsetY = 0,
   }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Align(
-            alignment: Alignment.topLeft,
-            child: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: Colors.white70,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, size: 18, color: iconColor),
-            ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(16),
           ),
-          if (imagePath != null)
-            Positioned(
-              bottom: imageBottom,
-              right: imageRight,
-              child: Transform.translate(
-                offset: Offset(imageOffsetX, imageOffsetY),
-                child: Image.asset(
-                  imagePath,
-                  width: imageWidth,
-                  height: imageHeight,
-                  fit: BoxFit.contain,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Align(
+                alignment: Alignment.topLeft,
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: const BoxDecoration(
+                    color: Colors.white70,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, size: 18, color: iconColor),
                 ),
               ),
-            ),
-          Align(
-            alignment: Alignment.bottomLeft,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF6A4529),
+              if (imagePath != null)
+                Positioned(
+                  bottom: imageBottom,
+                  right: imageRight,
+                  child: Transform.translate(
+                    offset: Offset(imageOffsetX, imageOffsetY),
+                    child: Image.asset(
+                      imagePath,
+                      width: imageWidth,
+                      height: imageHeight,
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFF6E5C4D),
+              Align(
+                alignment: Alignment.bottomLeft,
+                child: SizedBox(
+                  width: constraints.maxWidth * (imagePath != null ? 0.7 : 0.9),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF6A4529),
+                          height: 1.1,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          subtitle,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: Color(0xFF6E5C4D),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      }
     );
   }
 
