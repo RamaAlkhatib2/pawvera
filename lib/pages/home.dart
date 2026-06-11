@@ -331,10 +331,10 @@ class _HomePageState extends State<Home> {
               color: const Color(0xFFF4CFC6),
               iconColor: const Color(0xFFCF755A),
               imagePath: 'assets/icons/reminders.icon.png',
-              imageWidth: 170,
-              imageHeight: 170,
-              imageRight: -18,
-              imageBottom: -18,
+              imageWidth: 120,
+              imageHeight: 120,
+              imageRight: -8,
+              imageBottom: -20,
               imageOffsetX: 40,
             ),
             // 2. Adoption
@@ -347,10 +347,10 @@ class _HomePageState extends State<Home> {
               color: const Color(0xFFDFF6EF),
               iconColor: const Color(0xFF4C9B8C),
               imagePath: 'assets/icons/adoption.icon.png',
-              imageWidth: 112,
-              imageHeight: 112,
-              imageRight: 0,
-              imageBottom: -18,
+              imageWidth: 80,
+              imageHeight: 80,
+              imageRight: -8,
+              imageBottom: -20,
             ),
             // 3. Pet Supplies
             _buildTappableServiceCard(
@@ -362,10 +362,10 @@ class _HomePageState extends State<Home> {
               color: const Color(0xFFF7EACD),
               iconColor: const Color(0xFFD09A3A),
               imagePath: 'assets/icons/pet_supplies.icon.png',
-              imageWidth: 138,
-              imageHeight: 138,
-              imageRight: -16,
-              imageBottom: -44,
+              imageWidth: 100,
+              imageHeight: 100,
+              imageRight: -7,
+              imageBottom: -36,
               imageOffsetX: 20,
             ),
             // 4. Pet Care
@@ -378,8 +378,8 @@ class _HomePageState extends State<Home> {
               color: const Color(0xFFFDE0C8),
               iconColor: const Color(0xFFE08C52),
               imagePath: 'assets/icons/pet_care.icon.png',
-              imageWidth: 172,
-              imageHeight: 172,
+              imageWidth: 125,
+              imageHeight: 125,
               imageRight: -16,
               imageBottom: -34,
               imageOffsetX: 20,
@@ -400,10 +400,10 @@ class _HomePageState extends State<Home> {
               color: const Color(0xFFD9F1F9),
               iconColor: const Color(0xFF4A9BA4),
               imagePath: 'assets/icons/health_records.icon.png',
-              imageWidth: 148,
-              imageHeight: 148,
-              imageRight: -16,
-              imageBottom: -48,
+              imageWidth: 110,
+              imageHeight: 110,
+              imageRight: -25,
+              imageBottom: -45,
               imageOffsetX: 20,
             ),
           ],
@@ -466,7 +466,7 @@ class _HomePageState extends State<Home> {
               Align(
                 alignment: Alignment.bottomLeft,
                 child: SizedBox(
-                  width: constraints.maxWidth * (imagePath != null ? 0.6 : 0.9),
+                  width: constraints.maxWidth * (imagePath != null ? 0.7 : 0.9),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -474,7 +474,7 @@ class _HomePageState extends State<Home> {
                       Text(
                         title,
                         style: const TextStyle(
-                          fontSize: 16,
+                          fontSize: 14,
                           fontWeight: FontWeight.w700,
                           color: Color(0xFF6A4529),
                           height: 1.1,
@@ -489,7 +489,7 @@ class _HomePageState extends State<Home> {
                         child: Text(
                           subtitle,
                           style: const TextStyle(
-                            fontSize: 12,
+                            fontSize: 10,
                             color: Color(0xFF6E5C4D),
                           ),
                         ),
