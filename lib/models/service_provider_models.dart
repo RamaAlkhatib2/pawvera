@@ -27,6 +27,7 @@ class ShopProfile {
   final String ownerId;
   final String shopName;
   final String address;
+  final String description;
   final String phone;
   final String email;
   final String workingHours;
@@ -46,6 +47,7 @@ class ShopProfile {
     required this.ownerId,
     required this.shopName,
     required this.address,
+    this.description = '',
     required this.phone,
     required this.email,
     required this.workingHours,
@@ -66,6 +68,7 @@ class ShopProfile {
     'ownerId': ownerId,
     'shopName': shopName,
     'address': address,
+    'description': description,
     'phone': phone,
     'email': email,
     'workingHours': workingHours,
@@ -87,6 +90,7 @@ class ShopProfile {
       ownerId: (map['ownerId'] ?? '').toString(),
       shopName: (map['shopName'] ?? '').toString(),
       address: (map['address'] ?? '').toString(),
+      description: (map['description'] ?? '').toString(),
       phone: (map['phone'] ?? '').toString(),
       email: (map['email'] ?? '').toString(),
       workingHours: (map['workingHours'] ?? '').toString(),
@@ -108,6 +112,7 @@ class ShopProfile {
   ShopProfile copyWith({
     String? shopName,
     String? address,
+    String? description,
     String? phone,
     String? email,
     String? workingHours,
@@ -123,6 +128,7 @@ class ShopProfile {
     ownerId: ownerId,
     shopName: shopName ?? this.shopName,
     address: address ?? this.address,
+    description: description ?? this.description,
     phone: phone ?? this.phone,
     email: email ?? this.email,
     workingHours: workingHours ?? this.workingHours,

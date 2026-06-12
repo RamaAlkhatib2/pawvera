@@ -776,12 +776,12 @@ class _MyBookingsPageState extends State<MyBookingsPage>
     );
   }
 
-  void _showRateDialog(Map<String, dynamic> data, String bookingId) {
+  Future<void> _showRateDialog(
+    Map<String, dynamic> data,
+    String bookingId,
+  ) async {
     final serviceComment = TextEditingController();
     final shopComment = TextEditingController();
-    var serviceStars = 0;
-    var shopStars = 0;
-    var submitting = false;
 
     final shopId = (data['shopId'] ?? '').toString().trim();
     final serviceName = (data['serviceName'] ?? data['service'] ?? '')
@@ -792,11 +792,52 @@ class _MyBookingsPageState extends State<MyBookingsPage>
         .toString()
         .trim();
 
-    showDialog(
+    var serviceStars = 0;
+    var shopStars = 0;
+    var submitting = false;
+
+    try {
+      final existingServiceReview = await _db.getPetCareServiceReviewForBooking(
+        bookingId,
+      );
+      if (existingServiceReview != null) {
+        serviceStars =
+            (existingServiceReview['stars'] as int?) ??
+            int.tryParse(existingServiceReview['stars']?.toString() ?? '') ??
+            0;
+        serviceComment.text = (existingServiceReview['comment'] ?? '')
+            .toString();
+      }
+
+      final existingShopReview = await _db.getPetCareShopReviewForBooking(
+        bookingId,
+      );
+      if (existingShopReview != null) {
+        shopStars =
+            (existingShopReview['stars'] as int?) ??
+            int.tryParse(existingShopReview['stars']?.toString() ?? '') ??
+            0;
+        shopComment.text = (existingShopReview['comment'] ?? '').toString();
+      }
+    } catch (_) {
+      // Ignore failures and continue with blank values.
+    }
+
+    if (!mounted) {
+      serviceComment.dispose();
+      shopComment.dispose();
+      return;
+    }
+
+    await showDialog<void>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheetState) => AlertDialog(
-          title: const Text('Rate your experience'),
+          title: Text(
+            serviceStars > 0 || shopStars > 0
+                ? 'Edit your rating'
+                : 'Rate your experience',
+          ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -838,7 +879,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
           ),
           actions: [
             TextButton(
-              onPressed: submitting ? null : () => Navigator.pop(ctx),
+              onPressed: () => Navigator.pop(context),
               child: const Text('Cancel'),
             ),
             FilledButton(
@@ -846,19 +887,25 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                   ? null
                   : () async {
                       if (serviceStars < 1 || shopStars < 1) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Please rate both service and shop.'),
-                          ),
-                        );
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Please rate both service and shop.',
+                              ),
+                            ),
+                          );
+                        }
                         return;
                       }
                       if (shopId.isEmpty || serviceName.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Missing booking data for rating.'),
-                          ),
-                        );
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Missing booking data for rating.'),
+                            ),
+                          );
+                        }
                         return;
                       }
 
@@ -884,9 +931,9 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                               ? null
                               : customerName,
                         );
-                        if (!ctx.mounted) return;
-                        Navigator.of(ctx).pop();
-                        ScaffoldMessenger.of(ctx).showSnackBar(
+                        if (!mounted) return;
+                        Navigator.of(context).pop();
+                        ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text(
                               'Thanks! Your ratings were submitted.',
@@ -894,9 +941,9 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                           ),
                         );
                       } catch (e) {
-                        if (!ctx.mounted) return;
+                        if (!mounted) return;
                         ScaffoldMessenger.of(
-                          ctx,
+                          context,
                         ).showSnackBar(SnackBar(content: Text('$e')));
                         setSheetState(() => submitting = false);
                       }
@@ -912,10 +959,10 @@ class _MyBookingsPageState extends State<MyBookingsPage>
           ],
         ),
       ),
-    ).then((_) {
-      serviceComment.dispose();
-      shopComment.dispose();
-    });
+    );
+
+    serviceComment.dispose();
+    shopComment.dispose();
   }
 
   @override
