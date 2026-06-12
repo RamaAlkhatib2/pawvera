@@ -18,6 +18,7 @@ class PetService {
   final bool hasOffer;
   final double ratingAvg;
   final int ratingCount;
+  final String serviceId;
 
   PetService({
     required this.title,
@@ -31,6 +32,7 @@ class PetService {
     required this.hasOffer,
     this.ratingAvg = 0,
     this.ratingCount = 0,
+    this.serviceId = "",
   });
 }
 
@@ -227,7 +229,7 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
                 Row(
                   children: [
                     Icon(
-                      Icons.location_on,
+                      Icons.near_me_outlined,
                       size: 16,
                       color: Colors.blueGrey.shade400,
                     ),
@@ -534,6 +536,7 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
             hasOffer: false,
             ratingAvg: ratingAvg,
             ratingCount: ratingCount,
+            serviceId: doc.id,
           );
         }).toList();
 
@@ -569,6 +572,9 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
                   duration: allServices[i].duration,
                   subtitle: allServices[i].subtitle,
                   hasOffer: true,
+                  ratingAvg: allServices[i].ratingAvg,
+                  ratingCount: allServices[i].ratingCount,
+                  serviceId: allServices[i].serviceId,
                 );
               }
             }
@@ -699,18 +705,28 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
           ),
           const SizedBox(height: 16),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              if (service.petTypes.isEmpty)
-                _buildTag('All Pets', Colors.blue.shade50, Colors.blue)
-              else
-                ...service.petTypes.map(
-                  (t) => Padding(
-                    padding: const EdgeInsets.only(right: 6),
-                    child: _buildTag(t, Colors.blue.shade50, Colors.blue),
-                  ),
+              Flexible(
+                child: Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    if (service.petTypes.isEmpty)
+                      _buildTag('All Pets', Colors.blue.shade50, Colors.blue)
+                    else
+                      ...service.petTypes.map(
+                        (t) => _buildTag(t, Colors.blue.shade50, Colors.blue),
+                      ),
+                    _buildTag(
+                      service.duration,
+                      Colors.grey.shade200,
+                      Colors.black54,
+                    ),
+                  ],
                 ),
-              _buildTag(service.duration, Colors.grey.shade200, Colors.black54),
-              const Spacer(),
+              ),
+              const SizedBox(width: 10),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -769,6 +785,7 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
                       providerName: widget.provider.name,
                       duration: service.duration,
                       shopId: widget.provider.id,
+                      serviceId: service.serviceId,
                     ),
                   ),
                 ),
@@ -894,80 +911,27 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
           );
         }
         final avg = DatabaseService.averageStarsFromReviewDocs(docs);
-        return _shopRatingBadgeChip(avg.toStringAsFixed(1));
-      },
-    );
-  }
-
-  Widget _buildLiveShopRatingSummaryLine() {
-    final shopId = _getProviderShopId();
-    final fallbackCount = _fallbackRatingCount();
-
-    if (shopId.isEmpty) {
-      final n = fallbackCount > 0 ? fallbackCount : 0;
-      final avg = fallbackCount > 0 ? _fallbackRatingAvg() : 0.0;
-      return Text(
-        '${avg.toStringAsFixed(1)} · $n review${n == 1 ? '' : 's'}',
-        style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-      );
-    }
-
-    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: _db.streamServiceShopReviews(shopId),
-      builder: (context, snap) {
-        if (!snap.hasData) {
-          return Text(
-            'Loading reviews…',
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-          );
-        }
-        final docs = snap.data!.docs
-            .where((d) => DatabaseService.reviewDocIsServiceShop(d.data()))
-            .toList();
-        if (docs.isEmpty) {
-          final n = fallbackCount > 0 ? fallbackCount : 0;
-          final avg = fallbackCount > 0 ? _fallbackRatingAvg() : 0.0;
-          return Text(
-            '${avg.toStringAsFixed(1)} · $n review${n == 1 ? '' : 's'}',
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-          );
-        }
-        final avg = DatabaseService.averageStarsFromReviewDocs(docs);
         final n = docs.length;
-        return Text(
-          '${avg.toStringAsFixed(1)} · $n review${n == 1 ? '' : 's'}',
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey.shade700,
-            fontWeight: FontWeight.w500,
-          ),
-        );
+        return _shopRatingBadgeChip('${avg.toStringAsFixed(1)} ($n)');
       },
     );
   }
+
 
   Widget _shopRatingBadgeChip(String label) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF8E1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFFE082)),
+        color: Colors.green.shade50,
+        borderRadius: BorderRadius.circular(7),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.star, color: Colors.amber, size: 16),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF274C4B),
-            ),
-          ),
-        ],
+      child: Text(
+        '★ $label',
+        style: const TextStyle(
+          color: Colors.green,
+          fontWeight: FontWeight.w800,
+          fontSize: 12,
+        ),
       ),
     );
   }

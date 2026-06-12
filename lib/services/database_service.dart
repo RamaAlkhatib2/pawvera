@@ -156,7 +156,7 @@ class DatabaseService {
           'userPhone': bookingData['phone'] ?? '',
           'petName': bookingData['pet'] ?? '',
           'petBreed': '',
-          'serviceId': '',
+          'serviceId': bookingData['serviceId'] ?? '',
           'serviceName': bookingData['service'] ?? '',
           'servicePrice':
               double.tryParse(priceStr.replaceAll(RegExp(r'[^0-9.]'), '')) ??
@@ -1427,9 +1427,7 @@ class DatabaseService {
       }
     }
     try {
-      final ratingId = oid.isNotEmpty
-          ? '${_uid}_${oid}_$productId'
-          : '${_uid}_$productId';
+      final ratingId = '${_uid}_$productId';
       final cn = _reviewCustomerName(customerName);
       await _reviews.doc(ratingId).set({
         'id': ratingId,
@@ -1494,9 +1492,7 @@ class DatabaseService {
       }
     }
     try {
-      final ratingId = oid.isNotEmpty
-          ? '${_uid}_${oid}_store_$storeId'
-          : '${_uid}_store_$storeId';
+      final ratingId = '${_uid}_store_$storeId';
       final cn = _reviewCustomerName(customerName);
       await _reviews.doc(ratingId).set({
         'id': ratingId,
@@ -1632,9 +1628,9 @@ class DatabaseService {
       throw Exception('Invalid shop.');
     }
     final oid = (bookingId ?? '').trim();
-    final ratingId = oid.isNotEmpty
-        ? '${_uid}_${oid}_shop_$id'
-        : '${_uid}_shop_$id';
+    // One review doc per user per shop — including bookingId in the key would
+    // create a new doc for every booking instead of updating the existing one.
+    final ratingId = '${_uid}_shop_$id';
     final cn = _reviewCustomerName(customerName);
     try {
       await _reviews.doc(ratingId).set({

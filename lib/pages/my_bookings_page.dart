@@ -23,6 +23,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
   bool _isLoading = true;
   String? _errorMessage;
   StreamSubscription<QuerySnapshot>? _bookingsSubscription;
+  bool _ratingDialogOpen = false;
 
   @override
   void initState() {
@@ -757,212 +758,81 @@ class _MyBookingsPageState extends State<MyBookingsPage>
     );
   }
 
-  Widget _buildStarSelector({
-    required int value,
-    required ValueChanged<int> onChanged,
-  }) {
-    return Row(
-      children: List.generate(5, (i) {
-        final star = i + 1;
-        return IconButton(
-          visualDensity: VisualDensity.compact,
-          icon: Icon(
-            star <= value ? Icons.star : Icons.star_border,
-            color: Colors.amber,
-          ),
-          onPressed: () => onChanged(star),
-        );
-      }),
-    );
-  }
-
   Future<void> _showRateDialog(
     Map<String, dynamic> data,
     String bookingId,
   ) async {
-    final serviceComment = TextEditingController();
-    final shopComment = TextEditingController();
+    if (_ratingDialogOpen) return;
 
     final shopId = (data['shopId'] ?? '').toString().trim();
-    final serviceName = (data['serviceName'] ?? data['service'] ?? '')
-        .toString()
-        .trim();
+    final serviceName =
+        (data['serviceName'] ?? data['service'] ?? '').toString().trim();
     final serviceId = (data['serviceId'] ?? '').toString().trim();
-    final customerName = (data['name'] ?? data['userName'] ?? '')
-        .toString()
-        .trim();
+    final customerName =
+        (data['name'] ?? data['userName'] ?? '').toString().trim();
 
-    var serviceStars = 0;
-    var shopStars = 0;
-    var submitting = false;
+    var initialServiceStars = 0;
+    var initialShopStars = 0;
+    var initialServiceComment = '';
+    var initialShopComment = '';
 
     try {
-      final existingServiceReview = await _db.getPetCareServiceReviewForBooking(
-        bookingId,
-      );
+      final existingServiceReview =
+          await _db.getPetCareServiceReviewForBooking(bookingId);
       if (existingServiceReview != null) {
-        serviceStars =
+        initialServiceStars =
             (existingServiceReview['stars'] as int?) ??
-            int.tryParse(existingServiceReview['stars']?.toString() ?? '') ??
+            int.tryParse(
+                  existingServiceReview['stars']?.toString() ?? '',
+                ) ??
             0;
-        serviceComment.text = (existingServiceReview['comment'] ?? '')
-            .toString();
+        initialServiceComment =
+            (existingServiceReview['comment'] ?? '').toString();
       }
 
-      final existingShopReview = await _db.getPetCareShopReviewForBooking(
-        bookingId,
-      );
+      final existingShopReview =
+          await _db.getPetCareShopReviewForBooking(bookingId);
       if (existingShopReview != null) {
-        shopStars =
+        initialShopStars =
             (existingShopReview['stars'] as int?) ??
             int.tryParse(existingShopReview['stars']?.toString() ?? '') ??
             0;
-        shopComment.text = (existingShopReview['comment'] ?? '').toString();
+        initialShopComment =
+            (existingShopReview['comment'] ?? '').toString();
       }
-    } catch (_) {
-      // Ignore failures and continue with blank values.
-    }
+    } catch (_) {}
 
-    if (!mounted) {
-      serviceComment.dispose();
-      shopComment.dispose();
-      return;
-    }
+    if (!mounted) return;
+    if (_ratingDialogOpen) return;
+    _ratingDialogOpen = true;
 
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) => AlertDialog(
-          title: Text(
-            serviceStars > 0 || shopStars > 0
-                ? 'Edit your rating'
-                : 'Rate your experience',
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Service Rating',
-                  style: TextStyle(fontWeight: FontWeight.w700),
-                ),
-                _buildStarSelector(
-                  value: serviceStars,
-                  onChanged: (v) => setSheetState(() => serviceStars = v),
-                ),
-                TextField(
-                  controller: serviceComment,
-                  maxLines: 2,
-                  decoration: const InputDecoration(
-                    hintText: 'Comment about the service (optional)',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Shop Rating',
-                  style: TextStyle(fontWeight: FontWeight.w700),
-                ),
-                _buildStarSelector(
-                  value: shopStars,
-                  onChanged: (v) => setSheetState(() => shopStars = v),
-                ),
-                TextField(
-                  controller: shopComment,
-                  maxLines: 2,
-                  decoration: const InputDecoration(
-                    hintText: 'Comment about the shop (optional)',
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: submitting
-                  ? null
-                  : () async {
-                      if (serviceStars < 1 || shopStars < 1) {
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Please rate both service and shop.',
-                              ),
-                            ),
-                          );
-                        }
-                        return;
-                      }
-                      if (shopId.isEmpty || serviceName.isEmpty) {
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Missing booking data for rating.'),
-                            ),
-                          );
-                        }
-                        return;
-                      }
-
-                      setSheetState(() => submitting = true);
-                      try {
-                        await _db.ratePetCareService(
-                          bookingId: bookingId,
-                          shopId: shopId,
-                          serviceName: serviceName,
-                          serviceId: serviceId.isEmpty ? null : serviceId,
-                          stars: serviceStars,
-                          comment: serviceComment.text.trim(),
-                          customerName: customerName.isEmpty
-                              ? null
-                              : customerName,
-                        );
-                        await _db.rateServiceShop(
-                          shopId: shopId,
-                          stars: shopStars,
-                          comment: shopComment.text.trim(),
-                          bookingId: bookingId,
-                          customerName: customerName.isEmpty
-                              ? null
-                              : customerName,
-                        );
-                        if (!mounted) return;
-                        Navigator.of(context).pop();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Thanks! Your ratings were submitted.',
-                            ),
-                          ),
-                        );
-                      } catch (e) {
-                        if (!mounted) return;
-                        ScaffoldMessenger.of(
-                          context,
-                        ).showSnackBar(SnackBar(content: Text('$e')));
-                        setSheetState(() => submitting = false);
-                      }
-                    },
-              child: submitting
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Submit'),
-            ),
-          ],
+    try {
+      final submitted = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => _RateBookingDialog(
+          shopId: shopId,
+          serviceName: serviceName,
+          serviceId: serviceId,
+          customerName: customerName,
+          bookingId: bookingId,
+          initialServiceStars: initialServiceStars,
+          initialShopStars: initialShopStars,
+          initialServiceComment: initialServiceComment,
+          initialShopComment: initialShopComment,
+          db: _db,
         ),
-      ),
-    );
-
-    serviceComment.dispose();
-    shopComment.dispose();
+      );
+      if (mounted && submitted == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Thanks! Your ratings were submitted.'),
+          ),
+        );
+      }
+    } finally {
+      _ratingDialogOpen = false;
+    }
   }
 
   @override
@@ -1342,6 +1212,203 @@ class _MyBookingsPageState extends State<MyBookingsPage>
             ),
         ],
       ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Dedicated StatefulWidget for the booking rating dialog.
+// Using a real StatefulWidget (instead of StatefulBuilder) gives TextField
+// a stable element tree and avoids _dependents.isEmpty crashes when the
+// keyboard opens or text changes trigger InheritedWidget lookups.
+// ---------------------------------------------------------------------------
+class _RateBookingDialog extends StatefulWidget {
+  final String shopId;
+  final String serviceName;
+  final String serviceId;
+  final String customerName;
+  final String bookingId;
+  final int initialServiceStars;
+  final int initialShopStars;
+  final String initialServiceComment;
+  final String initialShopComment;
+  final DatabaseService db;
+
+  const _RateBookingDialog({
+    required this.shopId,
+    required this.serviceName,
+    required this.serviceId,
+    required this.customerName,
+    required this.bookingId,
+    required this.initialServiceStars,
+    required this.initialShopStars,
+    required this.initialServiceComment,
+    required this.initialShopComment,
+    required this.db,
+  });
+
+  @override
+  State<_RateBookingDialog> createState() => _RateBookingDialogState();
+}
+
+class _RateBookingDialogState extends State<_RateBookingDialog> {
+  late final TextEditingController _serviceComment;
+  late final TextEditingController _shopComment;
+  late int _serviceStars;
+  late int _shopStars;
+  bool _submitting = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _serviceComment =
+        TextEditingController(text: widget.initialServiceComment);
+    _shopComment = TextEditingController(text: widget.initialShopComment);
+    _serviceStars = widget.initialServiceStars;
+    _shopStars = widget.initialShopStars;
+  }
+
+  @override
+  void dispose() {
+    _serviceComment.dispose();
+    _shopComment.dispose();
+    super.dispose();
+  }
+
+  Widget _buildStarRow({
+    required int value,
+    required ValueChanged<int> onChanged,
+  }) {
+    return Row(
+      children: List.generate(5, (i) {
+        final star = i + 1;
+        return IconButton(
+          visualDensity: VisualDensity.compact,
+          icon: Icon(
+            star <= value ? Icons.star : Icons.star_border,
+            color: Colors.amber,
+          ),
+          onPressed: () => onChanged(star),
+        );
+      }),
+    );
+  }
+
+  Future<void> _submit() async {
+    if (_serviceStars < 1 || _shopStars < 1) {
+      setState(() => _error = 'Please rate both service and shop.');
+      return;
+    }
+    if (widget.shopId.isEmpty || widget.serviceName.isEmpty) {
+      setState(() => _error = 'Missing booking data for rating.');
+      return;
+    }
+    setState(() {
+      _submitting = true;
+      _error = null;
+    });
+    try {
+      await widget.db.ratePetCareService(
+        bookingId: widget.bookingId,
+        shopId: widget.shopId,
+        serviceName: widget.serviceName,
+        serviceId: widget.serviceId.isEmpty ? null : widget.serviceId,
+        stars: _serviceStars,
+        comment: _serviceComment.text.trim(),
+        customerName:
+            widget.customerName.isEmpty ? null : widget.customerName,
+      );
+      await widget.db.rateServiceShop(
+        shopId: widget.shopId,
+        stars: _shopStars,
+        comment: _shopComment.text.trim(),
+        bookingId: widget.bookingId,
+        customerName:
+            widget.customerName.isEmpty ? null : widget.customerName,
+      );
+      if (mounted) Navigator.of(context).pop(true);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _submitting = false;
+          _error = '$e';
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(
+        _serviceStars > 0 || _shopStars > 0
+            ? 'Edit your rating'
+            : 'Rate your experience',
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_error != null) ...[
+              Text(
+                _error!,
+                style: const TextStyle(color: Colors.red, fontSize: 12),
+              ),
+              const SizedBox(height: 8),
+            ],
+            const Text(
+              'Service Rating',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+            _buildStarRow(
+              value: _serviceStars,
+              onChanged: (v) => setState(() => _serviceStars = v),
+            ),
+            TextField(
+              controller: _serviceComment,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                hintText: 'Comment about the service (optional)',
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Shop Rating',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+            _buildStarRow(
+              value: _shopStars,
+              onChanged: (v) => setState(() => _shopStars = v),
+            ),
+            TextField(
+              controller: _shopComment,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                hintText: 'Comment about the shop (optional)',
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed:
+              _submitting ? null : () => Navigator.of(context).pop(false),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: _submitting ? null : _submit,
+          child: _submitting
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Submit'),
+        ),
+      ],
     );
   }
 }

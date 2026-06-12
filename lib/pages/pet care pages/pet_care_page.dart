@@ -433,7 +433,9 @@ class _PetCarePageState extends State<PetCarePage> {
   }
 
   String _serviceShopRatingLabel(double fallbackAvg, int fallbackCount) {
-    if (fallbackCount > 0) return fallbackAvg.toStringAsFixed(1);
+    if (fallbackCount > 0) {
+      return '${fallbackAvg.toStringAsFixed(1)} ($fallbackCount)';
+    }
     return '0.0';
   }
 
@@ -468,7 +470,8 @@ class _PetCarePageState extends State<PetCarePage> {
           );
         }
         final avg = DatabaseService.averageStarsFromReviewDocs(docs);
-        return _serviceShopRatingChip(avg.toStringAsFixed(1));
+        final n = docs.length;
+        return _serviceShopRatingChip('${avg.toStringAsFixed(1)} ($n)');
       },
     );
   }
