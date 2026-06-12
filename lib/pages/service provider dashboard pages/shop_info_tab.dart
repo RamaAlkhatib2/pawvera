@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -57,9 +58,9 @@ class _ShopInfoTabState extends State<ShopInfoTab> {
               final picker = ImagePicker();
               final XFile? image = await picker.pickImage(
                 source: ImageSource.gallery,
-                maxWidth: 1024,
-                maxHeight: 1024,
-                imageQuality: 85,
+                maxWidth: 512,
+                maxHeight: 512,
+                imageQuality: 60,
               );
               if (image != null) {
                 final bytes = await image.readAsBytes();
@@ -150,23 +151,33 @@ class _ShopInfoTabState extends State<ShopInfoTab> {
           height: height,
           width: double.infinity,
           fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => buildPlaceholderImage(height),
+          errorBuilder: (_, e, s) => buildPlaceholderImage(height),
         ),
       );
     }
     if (imageUrl != null && imageUrl.isNotEmpty) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(12),
-        child: Image.network(
-          imageUrl,
-          height: height,
-          width: double.infinity,
-          fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => buildPlaceholderImage(height),
-        ),
+        child: _buildSavedImage(imageUrl, height),
       );
     }
     return buildPlaceholderImage(height);
+  }
+
+  Widget _buildSavedImage(String url, double height) {
+    if (url.startsWith('data:')) {
+      try {
+        final bytes = base64Decode(url.substring(url.indexOf(',') + 1));
+        return Image.memory(bytes, height: height, width: double.infinity,
+            fit: BoxFit.cover,
+            errorBuilder: (_, e, s) => buildPlaceholderImage(height));
+      } catch (_) {
+        return buildPlaceholderImage(height);
+      }
+    }
+    return Image.network(url, height: height, width: double.infinity,
+        fit: BoxFit.cover,
+        errorBuilder: (_, e, s) => buildPlaceholderImage(height));
   }
 
   Widget buildPlaceholderImage(double height) {

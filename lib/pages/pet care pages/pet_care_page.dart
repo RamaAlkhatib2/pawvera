@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'clinic_details_page.dart';
@@ -628,36 +630,7 @@ class _PetCarePageState extends State<PetCarePage> {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(16),
-                  child: p.imageUrl.isNotEmpty
-                      ? Image.network(
-                          p.imageUrl,
-                          width: 96,
-                          height: 96,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              Container(
-                                width: 96,
-                                height: 96,
-                                color: const Color(
-                                  0xFF2D6A64,
-                                ).withValues(alpha: 0.1),
-                                child: const Icon(
-                                  Icons.storefront,
-                                  color: Color(0xFF2D6A64),
-                                  size: 36,
-                                ),
-                              ),
-                        )
-                      : Container(
-                          width: 96,
-                          height: 96,
-                          color: const Color(0xFF2D6A64).withValues(alpha: 0.1),
-                          child: const Icon(
-                            Icons.storefront,
-                            color: Color(0xFF2D6A64),
-                            size: 36,
-                          ),
-                        ),
+                  child: _buildShopImage(p.imageUrl, 96, 96),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -856,4 +829,25 @@ class _PetCarePageState extends State<PetCarePage> {
       ),
     ),
   );
+
+  Widget _buildShopImage(String url, double width, double height) {
+    final placeholder = Container(
+      width: width,
+      height: height,
+      color: const Color(0xFF2D6A64).withValues(alpha: 0.1),
+      child: const Icon(Icons.storefront, color: Color(0xFF2D6A64), size: 36),
+    );
+    if (url.isEmpty) return placeholder;
+    if (url.startsWith('data:')) {
+      try {
+        final bytes = base64Decode(url.substring(url.indexOf(',') + 1));
+        return Image.memory(bytes, width: width, height: height, fit: BoxFit.cover,
+            errorBuilder: (context, e, stack) => placeholder);
+      } catch (_) {
+        return placeholder;
+      }
+    }
+    return Image.network(url, width: width, height: height, fit: BoxFit.cover,
+        errorBuilder: (context, e, stack) => placeholder);
+  }
 }
