@@ -67,13 +67,17 @@ class _BankAuthorizationDialogState extends State<BankAuthorizationDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final maxHeight = screenHeight - keyboardHeight - 48;
+
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
       backgroundColor: _mintBg,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 400),
-        child: Padding(
+        constraints: BoxConstraints(maxWidth: 400, maxHeight: maxHeight),
+        child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -289,3 +293,4 @@ class _BankAuthorizationDialogState extends State<BankAuthorizationDialog> {
     );
   }
 }
+

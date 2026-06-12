@@ -638,6 +638,10 @@ class DatabaseService {
     ).snapshots().map(_activeOffersFromSnapshot);
   }
 
+  Future<List<Map<String, dynamic>>> fetchActivePetStoreOffers(
+    String storeId,
+  ) => _fetchActivePetStoreOffers(storeId);
+
   Stream<List<Map<String, dynamic>>> streamStoreProducts(
     String storeId, {
     String searchQuery = '',
@@ -660,7 +664,14 @@ class DatabaseService {
             final productCategory = (data['category'] ?? '')
                 .toString()
                 .toLowerCase();
-            final hasOffer = (data['offer'] ?? '').toString().trim().isNotEmpty;
+            final offerText =
+                (data['offer'] ?? '').toString().trim().isNotEmpty;
+            final flaggedOnSale = data['hasSale'] == true;
+            final origPrice = (data['originalPrice'] as num?)?.toDouble();
+            final curPrice = (data['price'] as num?)?.toDouble() ?? 0;
+            final pricedDown =
+                origPrice != null && origPrice > curPrice;
+            final hasOffer = offerText || flaggedOnSale || pricedDown;
 
             final matchesSearch =
                 normalizedQuery.isEmpty ||
@@ -693,11 +704,22 @@ class DatabaseService {
     return _usersCart.doc(_uid).collection('cart_items').snapshots();
   }
 
+  Stream<QuerySnapshot<Map<String, dynamic>>> streamMyCartForStore(
+    String storeId,
+  ) {
+    return _usersCart
+        .doc(_uid)
+        .collection('cart_items')
+        .where('storeId', isEqualTo: storeId)
+        .snapshots();
+  }
+
   Future<void> addOrUpdateCartItem({
     required String storeId,
     required String productId,
     required int quantity,
     required Map<String, dynamic> productSnapshot,
+    String? storeName,
   }) async {
     try {
       final itemRef = _usersCart
@@ -706,9 +728,15 @@ class DatabaseService {
           .doc(productId);
       final now = FieldValue.serverTimestamp();
       final existing = await itemRef.get();
+      final sn = (storeName ??
+              productSnapshot['storeName'] ??
+              '')
+          .toString()
+          .trim();
       final data = <String, dynamic>{
         'id': productId,
         'storeId': storeId,
+        if (sn.isNotEmpty) 'storeName': sn,
         'productId': productId,
         'userId': _uid,
         'title': productSnapshot['title'],
@@ -1016,8 +1044,20 @@ class DatabaseService {
       for (final offer in offers.where((o) => o['kind'] == 'store_wide')) {
         final minOrder = ((offer['minOrderJod'] as num?)?.toDouble() ?? 0);
         final pct = ((offer['discountPercent'] as num?)?.toDouble() ?? 0);
+        final filterByPriceRange = offer['filterByPriceRange'] as bool? ?? false;
         if (pct <= 0 || subtotal < minOrder) continue;
-        final value = subtotal * (pct / 100);
+        double qualifying = subtotal;
+        if (filterByPriceRange) {
+          final pMin = ((offer['priceMinJod'] as num?)?.toDouble() ?? 0);
+          final pMax = ((offer['priceMaxJod'] as num?)?.toDouble() ?? 0);
+          qualifying = items.fold(0.0, (acc, item) {
+            final price = ((item['price'] as num?)?.toDouble() ?? 0);
+            final qty = ((item['quantity'] as num?)?.toInt() ?? 1);
+            return (pMin <= price && price <= pMax) ? acc + price * qty : acc;
+          });
+        }
+        if (qualifying <= 0) continue;
+        final value = qualifying * (pct / 100);
         if (value > discount) {
           discount = value;
           appliedOffer = offer;
@@ -1077,6 +1117,57 @@ class DatabaseService {
   /// Single-field [where] avoids a composite index. Sort by [createdAt] in the UI.
   Stream<QuerySnapshot<Map<String, dynamic>>> streamMyOrders() {
     return _orders.where('userId', isEqualTo: _uid).snapshots();
+  }
+
+  /// Buyer-side self-notification: called from the buyer's own app context so
+  /// the write goes to the buyer's OWN sub-collection (no cross-user permission
+  /// issues). Idempotent — uses [buyerNotifiedStatus] on the order to skip if
+  /// this status was already notified.
+  Future<void> selfNotifyOrderStatus(
+    String orderId,
+    Map<String, dynamic> orderData,
+  ) async {
+    final uid = _uid;
+    if (uid.isEmpty) return;
+
+    final status = (orderData['status'] ?? '').toString();
+    final alreadyNotified =
+        (orderData['buyerNotifiedStatus'] ?? '').toString();
+
+    // Skip pending, cancelled, or already-notified states.
+    if (status.isEmpty ||
+        status == 'pending' ||
+        status == alreadyNotified) {
+      return;
+    }
+
+    final storeName =
+        (orderData['storeName'] ?? 'the store').toString().trim();
+    final (title, description) =
+        _orderStatusNotificationText(status, storeName);
+    if (title.isEmpty) {
+      return;
+    }
+
+    try {
+      final ref = _notificationsCol.doc();
+      await ref.set({
+        'id': ref.id,
+        'userId': uid,
+        'title': title,
+        'description': description,
+        'type': 'order',
+        'isRead': false,
+        'orderId': orderId,
+        'orderStatus': status,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      // Stamp the order so we don't notify for this status again.
+      await _orders.doc(orderId).update({'buyerNotifiedStatus': status});
+    } catch (e) {
+      // ignore: avoid_print
+      print('[PawVera] selfNotifyOrderStatus error: $e');
+    }
   }
 
   // --- Pet Care: Ratings ---
@@ -1280,6 +1371,26 @@ class DatabaseService {
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
+
+      // Recompute and persist aggregate rating on the product document so that
+      // ratingAvg / ratingCount shown in store cards stay up to date.
+      final allReviews = await _reviews
+          .where('productId', isEqualTo: productId)
+          .where('type', isEqualTo: 'product')
+          .get();
+      final count = allReviews.docs.length;
+      final avg = count > 0
+          ? allReviews.docs.fold<int>(
+                0,
+                (acc, d) =>
+                    acc + ((d.data()['stars'] as num?)?.toInt() ?? 0),
+              ) /
+              count
+          : 0.0;
+      await _products.doc(productId).update({
+        'ratingAvg': avg,
+        'ratingCount': count,
+      });
     } catch (_) {
       throw Exception('Unable to submit product rating.');
     }
@@ -1344,6 +1455,19 @@ class DatabaseService {
       id,
       () => _reviews.where('storeId', isEqualTo: id).snapshots(),
     );
+  }
+
+  /// Fresh (non-cached) stream for the reviews dialog. The cached stream in
+  /// [streamStoreReviews] is single-subscription; the rating chip holds the
+  /// only listener, so the dialog must open its own independent Firestore listener.
+  Stream<QuerySnapshot<Map<String, dynamic>>> streamStoreReviewsDirect(
+    String storeId,
+  ) {
+    final id = storeId.trim();
+    if (id.isEmpty) {
+      return const Stream<QuerySnapshot<Map<String, dynamic>>>.empty();
+    }
+    return _reviews.where('storeId', isEqualTo: id).snapshots();
   }
 
   /// All reviews for this supplier (store + product). Filter in UI if needed.
@@ -1609,6 +1733,47 @@ class DatabaseService {
     return _orders.where('storeId', isEqualTo: storeId).snapshots();
   }
 
+  Future<void> markOrderAsRated(String orderId) async {
+    await _orders.doc(orderId).update({'isRated': true});
+  }
+
+  /// Returns a map of existing star ratings for an order.
+  /// Key 'store' = store rating; key = productId for each product.
+  /// Values are star counts (0 means not yet rated).
+  Future<Map<String, int>> fetchExistingOrderRatings({
+    required String orderId,
+    required String storeId,
+    required List<String> productIds,
+  }) async {
+    final result = <String, int>{};
+    final futures = <Future<void>>[];
+
+    futures.add(() async {
+      final doc = await _reviews
+          .doc('${_uid}_${orderId}_store_$storeId')
+          .get();
+      if (doc.exists) {
+        result['store'] =
+            ((doc.data()?['stars'] as num?)?.toInt() ?? 0);
+      }
+    }());
+
+    for (final pid in productIds) {
+      futures.add(() async {
+        final doc = await _reviews
+            .doc('${_uid}_${orderId}_$pid')
+            .get();
+        if (doc.exists) {
+          result[pid] =
+              ((doc.data()?['stars'] as num?)?.toInt() ?? 0);
+        }
+      }());
+    }
+
+    await Future.wait(futures);
+    return result;
+  }
+
   Future<void> updateOrderStatus({
     required String orderId,
     required String status,
@@ -1629,6 +1794,90 @@ class DatabaseService {
       'Order updated',
       'Order $orderId set to $status',
     );
+    await _notifyBuyerOrderStatus(
+      orderId: orderId,
+      orderData: orderData,
+      status: status,
+    );
+  }
+
+  Future<void> _notifyBuyerOrderStatus({
+    required String orderId,
+    required Map<String, dynamic> orderData,
+    required String status,
+  }) async {
+    final buyerId = (orderData['userId'] ?? '').toString().trim();
+    if (buyerId.isEmpty) {
+      // ignore: avoid_print
+      print('[PawVera] _notifyBuyerOrderStatus: buyerId is empty, skipping');
+      return;
+    }
+    final storeName =
+        (orderData['storeName'] ?? 'the store').toString().trim();
+    final (title, description) = _orderStatusNotificationText(status, storeName);
+    if (title.isEmpty) {
+      // ignore: avoid_print
+      print('[PawVera] _notifyBuyerOrderStatus: no text for status "$status", skipping');
+      return;
+    }
+    // ignore: avoid_print
+    print('[PawVera] Writing order notification → users/$buyerId/notifications  status=$status');
+    try {
+      final ref = _db
+          .collection('users')
+          .doc(buyerId)
+          .collection('notifications')
+          .doc();
+      await ref.set({
+        'id': ref.id,
+        'userId': buyerId,
+        'title': title,
+        'description': description,
+        'type': 'order',
+        'isRead': false,
+        'orderId': orderId,
+        'orderStatus': status,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      // ignore: avoid_print
+      print('[PawVera] Order notification written successfully (${ref.id})');
+    } catch (e) {
+      // ignore: avoid_print
+      print('[PawVera] Failed to write order notification: $e');
+    }
+  }
+
+  static (String, String) _orderStatusNotificationText(
+    String status,
+    String storeName,
+  ) {
+    return switch (status) {
+      'confirmed' => (
+        'Order Confirmed',
+        'Your order from $storeName has been confirmed and is being processed.',
+      ),
+      'preparing' => (
+        'Order Being Prepared',
+        'Great news! $storeName is now preparing your order.',
+      ),
+      'out_for_delivery' => (
+        'Out for Delivery',
+        'Your order from $storeName is on its way to you!',
+      ),
+      'delivered' => (
+        'Order Delivered',
+        'Your order from $storeName has been delivered. Enjoy!',
+      ),
+      'completed' => (
+        'Order Completed',
+        'Your order from $storeName is complete. You can now leave a review.',
+      ),
+      'cancelled' => (
+        'Order Cancelled',
+        'Your order from $storeName has been cancelled.',
+      ),
+      _ => ('', ''),
+    };
   }
 
   CollectionReference<Map<String, dynamic>> _petStoreOffersCol(
@@ -1705,6 +1954,11 @@ class DatabaseService {
     await _assertStoreOwner(storeId);
     await _petStoreOffersCol(storeId).doc(offerId).delete();
     await appendPetStoreAuditLog(storeId, 'Offer removed', offerId);
+  }
+
+  Future<String> fetchCurrentUserName() async {
+    final uid = _auth.currentUser?.uid ?? '';
+    return (await fetchUserDisplayName(uid)) ?? '';
   }
 
   Future<String?> fetchUserDisplayName(String uid) async {

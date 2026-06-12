@@ -230,6 +230,7 @@ class _StoreDetailsState extends State<StoreDetails> {
                             productId: (product['id'] ?? '').toString(),
                             quantity: 1,
                             productSnapshot: product,
+                            storeName: (widget.storeData['name'] ?? '').toString(),
                           );
                           if (!context.mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -363,7 +364,7 @@ class _StoreHero extends StatelessWidget {
                   ),
                   const SizedBox(width: 6),
                   StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                    stream: service.streamMyCart(),
+                    stream: service.streamMyCartForStore(_storeId),
                     builder: (context, snapshot) {
                       final count =
                           snapshot.data?.docs.fold<int>(
@@ -379,7 +380,12 @@ class _StoreHero extends StatelessWidget {
                         count: count,
                         onTap: () => Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const MyCartPage()),
+                          MaterialPageRoute(
+                            builder: (_) => MyCartPage(
+                              storeId: _storeId,
+                              storeName: name,
+                            ),
+                          ),
                         ),
                       );
                     },
@@ -1001,8 +1007,21 @@ class _OfferBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final title = (offer['title'] ?? 'Store offer').toString();
-    final description = (offer['description'] ?? '').toString();
     final validUntil = (offer['validUntilText'] ?? '').toString();
+    final minOrderJod = ((offer['minOrderJod'] as num?)?.toDouble() ?? 0);
+    final filterByPriceRange = offer['filterByPriceRange'] as bool? ?? false;
+    final priceMin = ((offer['priceMinJod'] as num?)?.toDouble() ?? 0);
+    final priceMax = ((offer['priceMaxJod'] as num?)?.toDouble() ?? 0);
+    final condParts = <String>[];
+    if (minOrderJod > 0) {
+      condParts.add('On orders above ${minOrderJod.toStringAsFixed(0)} JOD');
+    }
+    if (filterByPriceRange && priceMin > 0 && priceMax > 0) {
+      condParts.add(
+        'Products priced ${priceMin.toStringAsFixed(0)}–${priceMax.toStringAsFixed(0)} JOD',
+      );
+    }
+    final description = condParts.join(' • ');
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 10),
@@ -1225,37 +1244,6 @@ double _averageRatingFromStoreReviewDocs(
   return sum / docs.length;
 }
 
-List<Widget> _averageStarRow(double avg, {double size = 22}) {
-  final out = <Widget>[];
-  for (var i = 0; i < 5; i++) {
-    final threshold = i + 1.0;
-    IconData icon;
-    Color color;
-    if (avg >= threshold - 1e-6) {
-      icon = Icons.star_rounded;
-      color = Colors.amber.shade700;
-    } else if (avg >= threshold - 0.5) {
-      icon = Icons.star_half_rounded;
-      color = Colors.amber.shade700;
-    } else {
-      icon = Icons.star_outline_rounded;
-      color = Colors.grey.shade400;
-    }
-    out.add(Icon(icon, color: color, size: size));
-  }
-  return out;
-}
-
-String _formatReviewDate(dynamic createdAt) {
-  if (createdAt is Timestamp) {
-    final d = createdAt.toDate();
-    final y = d.year.toString().padLeft(4, '0');
-    final m = d.month.toString().padLeft(2, '0');
-    final day = d.day.toString().padLeft(2, '0');
-    return '$y-$m-$day';
-  }
-  return '';
-}
 
 class _StoreReviewsDialog extends StatelessWidget {
   const _StoreReviewsDialog({
@@ -1268,20 +1256,17 @@ class _StoreReviewsDialog extends StatelessWidget {
   final String storeName;
   final DatabaseService databaseService;
 
-  static const _mintBg = Color(0xFFF0F9F9);
-  static const _brown = Color(0xFF5A2F0E);
   static const _teal = Color(0xFF4FA294);
 
   @override
   Widget build(BuildContext context) {
-    final maxH = MediaQuery.sizeOf(context).height * 0.78;
     return Dialog(
-      backgroundColor: _mintBg,
+      backgroundColor: const Color(0xFFF0F9F9),
       insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 22),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: SizedBox(
         width: 520,
-        height: maxH.clamp(420.0, 640.0),
+        height: 560,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -1323,7 +1308,7 @@ class _StoreReviewsDialog extends StatelessWidget {
             const SizedBox(height: 16),
             Expanded(
               child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                stream: databaseService.streamStoreReviews(storeId),
+                stream: databaseService.streamStoreReviewsDirect(storeId),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(
@@ -1335,15 +1320,14 @@ class _StoreReviewsDialog extends StatelessWidget {
                       child: Padding(
                         padding: const EdgeInsets.all(20),
                         child: Text(
-                          'Could not load reviews.\n${snapshot.error}',
+                          'Could not load reviews.',
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.red.shade800),
+                          style: TextStyle(color: Colors.red.shade700),
                         ),
                       ),
                     );
                   }
-                  final raw = snapshot.data?.docs ?? [];
-                  final docs = raw
+                  final docs = (snapshot.data?.docs ?? [])
                       .where((d) => _storeReviewDocIsStore(d.data()))
                       .toList()
                     ..sort((a, b) {
@@ -1363,72 +1347,40 @@ class _StoreReviewsDialog extends StatelessWidget {
                   return Padding(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Container(
                           width: double.infinity,
-                          padding: const EdgeInsets.all(18),
+                          padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(14),
                             border: Border.all(color: Colors.grey.shade200),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.04),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
                           ),
                           child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                flex: 2,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      avg.toStringAsFixed(1),
-                                      style: TextStyle(
-                                        color: Colors.brown.shade900,
-                                        fontSize: 40,
-                                        fontWeight: FontWeight.w900,
-                                        height: 1,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Row(children: _averageStarRow(avg)),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      '$count rating${count == 1 ? '' : 's'}',
-                                      style: TextStyle(
-                                        color: Colors.blueGrey.shade600,
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
+                              Text(
+                                avg.toStringAsFixed(1),
+                                style: TextStyle(
+                                  color: Colors.brown.shade900,
+                                  fontSize: 36,
+                                  fontWeight: FontWeight.w900,
+                                  height: 1,
                                 ),
                               ),
+                              const SizedBox(width: 12),
                               Expanded(
-                                flex: 3,
-                                child: Padding(
-                                  padding: const EdgeInsets.only(top: 6),
-                                  child: Text(
-                                    'Based on $count customer ${count == 1 ? 'review' : 'reviews'}',
-                                    style: TextStyle(
-                                      color: Colors.blueGrey.shade700,
-                                      fontSize: 15,
-                                      height: 1.35,
-                                    ),
+                                child: Text(
+                                  'Based on $count customer ${count == 1 ? 'review' : 'reviews'}',
+                                  style: TextStyle(
+                                    color: Colors.blueGrey.shade700,
+                                    fontSize: 14,
                                   ),
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 12),
                         if (docs.isEmpty)
                           Expanded(
                             child: Center(
@@ -1441,38 +1393,25 @@ class _StoreReviewsDialog extends StatelessWidget {
                         else
                           Expanded(
                             child: ListView.separated(
-                              padding: EdgeInsets.zero,
                               itemCount: docs.length,
                               separatorBuilder: (_, _) =>
-                                  const SizedBox(height: 12),
+                                  const SizedBox(height: 10),
                               itemBuilder: (context, index) {
                                 final data = docs[index].data();
                                 final name =
                                     (data['customerName'] ?? 'Customer')
                                         .toString()
                                         .trim();
-                                final displayName =
-                                    name.isEmpty ? 'Customer' : name;
                                 final comment =
                                     (data['comment'] ?? '').toString().trim();
                                 final stars =
                                     ((data['stars'] as num?)?.toInt() ?? 0)
                                         .clamp(0, 5);
-                                final verified = (data['orderId'] ?? '')
-                                    .toString()
-                                    .trim()
-                                    .isNotEmpty;
-                                final dateStr =
-                                    _formatReviewDate(data['createdAt']);
-                                final initial = displayName.isNotEmpty
-                                    ? displayName[0].toUpperCase()
-                                    : '?';
-
                                 return Container(
-                                  padding: const EdgeInsets.all(16),
+                                  padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
                                     color: Colors.white,
-                                    borderRadius: BorderRadius.circular(14),
+                                    borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
                                       color: Colors.grey.shade200,
                                     ),
@@ -1481,150 +1420,32 @@ class _StoreReviewsDialog extends StatelessWidget {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          CircleAvatar(
-                                            radius: 22,
-                                            backgroundColor: _teal,
-                                            child: Text(
-                                              initial,
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.w800,
-                                                fontSize: 18,
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Row(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    Expanded(
-                                                      child: Wrap(
-                                                        crossAxisAlignment:
-                                                            WrapCrossAlignment
-                                                                .center,
-                                                        spacing: 8,
-                                                        runSpacing: 6,
-                                                        children: [
-                                                          Text(
-                                                            displayName,
-                                                            style:
-                                                                const TextStyle(
-                                                              color: _brown,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w800,
-                                                              fontSize: 16,
-                                                            ),
-                                                          ),
-                                                          if (verified)
-                                                            Container(
-                                                              padding:
-                                                                  const EdgeInsets
-                                                                      .symmetric(
-                                                                horizontal: 8,
-                                                                vertical: 3,
-                                                              ),
-                                                              decoration:
-                                                                  BoxDecoration(
-                                                                color: Colors
-                                                                    .green
-                                                                    .shade50,
-                                                                borderRadius:
-                                                                    BorderRadius
-                                                                        .circular(
-                                                                            20),
-                                                                border: Border.all(
-                                                                  color: Colors
-                                                                      .green
-                                                                      .shade600,
-                                                                  width: 1,
-                                                                ),
-                                                              ),
-                                                              child: Row(
-                                                                mainAxisSize:
-                                                                    MainAxisSize
-                                                                        .min,
-                                                                children: [
-                                                                  Icon(
-                                                                    Icons
-                                                                        .verified_rounded,
-                                                                    size: 14,
-                                                                    color: Colors
-                                                                        .green
-                                                                        .shade700,
-                                                                  ),
-                                                                  const SizedBox(
-                                                                      width: 4),
-                                                                  Text(
-                                                                    'Verified',
-                                                                    style:
-                                                                        TextStyle(
-                                                                      fontSize:
-                                                                          11,
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .w700,
-                                                                      color: Colors
-                                                                          .green
-                                                                          .shade800,
-                                                                    ),
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                            ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                    if (dateStr.isNotEmpty)
-                                                      Text(
-                                                        dateStr,
-                                                        style: TextStyle(
-                                                          color: Colors
-                                                              .blueGrey
-                                                              .shade600,
-                                                          fontSize: 12,
-                                                          fontWeight:
-                                                              FontWeight.w600,
-                                                        ),
-                                                      ),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 10),
-                                      Row(
-                                        children: List.generate(
-                                          5,
-                                          (i) => Icon(
-                                            i < stars
-                                                ? Icons.star_rounded
-                                                : Icons.star_outline_rounded,
-                                            color: Colors.amber.shade700,
-                                            size: 18,
-                                          ),
+                                      Text(
+                                        name.isEmpty ? 'Customer' : name,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          color: Color(0xFF274C4B),
                                         ),
                                       ),
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: List.generate(5, (i) {
+                                          return Icon(
+                                            i < stars
+                                                ? Icons.star
+                                                : Icons.star_border,
+                                            size: 16,
+                                            color: Colors.amber,
+                                          );
+                                        }),
+                                      ),
                                       if (comment.isNotEmpty) ...[
-                                        const SizedBox(height: 10),
+                                        const SizedBox(height: 6),
                                         Text(
                                           comment,
                                           style: TextStyle(
-                                            color: Colors.blueGrey.shade800,
-                                            fontSize: 14,
-                                            height: 1.45,
+                                            color: Colors.grey.shade700,
+                                            fontSize: 13,
                                           ),
                                         ),
                                       ],
@@ -1747,6 +1568,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                 SliverToBoxAdapter(child: _buildHeader()),
                 SliverToBoxAdapter(child: _buildProductCard(product)),
                 SliverToBoxAdapter(child: _buildQuantityAndAdd(product)),
+                SliverToBoxAdapter(child: _buildProductReviews()),
                 SliverToBoxAdapter(child: _buildRelatedTitle()),
                 _buildRelatedGrid(),
               ],
@@ -2170,6 +1992,97 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildProductReviews() {
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: _databaseService.streamProductReviews(_productId),
+      builder: (context, snapshot) {
+        final docs = snapshot.data?.docs ?? [];
+        final reviews = docs
+            .where((d) => (d.data()['type'] ?? '') == 'product')
+            .toList();
+        if (reviews.isEmpty) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(14, 4, 14, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 8, vertical: 10),
+                child: Text(
+                  'Customer Reviews (${reviews.length})',
+                  style: const TextStyle(
+                    color: _brown,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              for (final doc in reviews) _buildReviewCard(doc.data()),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildReviewCard(Map<String, dynamic> data) {
+    final name =
+        (data['customerName'] ?? '').toString().trim();
+    final displayName = name.isNotEmpty ? name : 'Customer';
+    final stars = ((data['stars'] as num?)?.toInt() ?? 0).clamp(0, 5);
+    final comment = (data['comment'] ?? '').toString().trim();
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.teal.shade100),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  displayName,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: Color(0xFF274C4B),
+                  ),
+                ),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: List.generate(5, (i) {
+                  return Icon(
+                    i < stars ? Icons.star : Icons.star_border,
+                    size: 16,
+                    color: Colors.amber,
+                  );
+                }),
+              ),
+            ],
+          ),
+          if (comment.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              comment,
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.blueGrey.shade700,
+                height: 1.4,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -2654,6 +2567,50 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   String _paymentMethod = 'credit';
   bool _loading = false;
+  List<Map<String, dynamic>> _activeOffers = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadOffers();
+  }
+
+  Future<void> _loadOffers() async {
+    final ids = widget.cartDocs
+        .map((d) => (d.data()['storeId'] ?? '').toString())
+        .where((s) => s.isNotEmpty)
+        .toSet();
+    if (ids.length != 1) return;
+    try {
+      final offers = await _databaseService.fetchActivePetStoreOffers(ids.first);
+      if (mounted) setState(() => _activeOffers = offers);
+    } catch (_) {}
+  }
+
+  double _computeDiscount() {
+    double best = 0;
+    for (final offer in _activeOffers.where((o) => o['kind'] == 'store_wide')) {
+      final minOrder = ((offer['minOrderJod'] as num?)?.toDouble() ?? 0);
+      final pct = ((offer['discountPercent'] as num?)?.toDouble() ?? 0);
+      final filterByPriceRange = offer['filterByPriceRange'] as bool? ?? false;
+      if (pct <= 0) continue;
+      double qualifying = widget.subtotal;
+      if (filterByPriceRange) {
+        final pMin = ((offer['priceMinJod'] as num?)?.toDouble() ?? 0);
+        final pMax = ((offer['priceMaxJod'] as num?)?.toDouble() ?? 0);
+        qualifying = widget.cartDocs.fold(0.0, (acc, doc) {
+          final data = doc.data();
+          final price = ((data['price'] as num?)?.toDouble() ?? 0);
+          final qty = ((data['quantity'] as num?)?.toInt() ?? 1);
+          return (pMin <= price && price <= pMax) ? acc + price * qty : acc;
+        });
+      }
+      if (qualifying <= 0 || widget.subtotal < minOrder) continue;
+      final value = qualifying * (pct / 100);
+      if (value > best) best = value;
+    }
+    return best;
+  }
 
   @override
   void dispose() {
@@ -2763,7 +2720,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
   @override
   Widget build(BuildContext context) {
     final deliveryFee = widget.cartDocs.isEmpty ? 0.0 : 5.0;
-    final total = widget.subtotal + deliveryFee;
+    final discount = _computeDiscount();
+    final total = widget.subtotal - discount + deliveryFee;
     final storeIds = widget.cartDocs
         .map((doc) => (doc.data()['storeId'] ?? '').toString())
         .where((id) => id.isNotEmpty)
@@ -2910,9 +2868,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     Expanded(
                       child: TextField(
                         controller: _phoneCtrl,
-                        keyboardType: TextInputType.phone,
+                        keyboardType: TextInputType.number,
                         inputFormatters: [
                           FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(9),
                         ],
                         decoration: _fieldDec(
                           label: 'Phone Number',
@@ -3085,6 +3044,30 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 ),
                 const SizedBox(height: 14),
                 _summaryLine('Items ($_itemCount)', widget.subtotal),
+                if (discount > 0) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Text(
+                        'Discount',
+                        style: TextStyle(
+                          color: Colors.green.shade700,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '-${discount.toStringAsFixed(2)} JOD',
+                        style: TextStyle(
+                          color: Colors.green.shade700,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 8),
                 _summaryLine('Delivery Fee', deliveryFee),
                 Divider(height: 22, color: Colors.teal.shade100),
@@ -3245,7 +3228,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
     final storeId = storeIds.first;
     final deliveryFee = widget.cartDocs.isEmpty ? 0.0 : 5.0;
-    final orderTotalJod = widget.subtotal + deliveryFee;
+    final orderTotalJod = widget.subtotal - _computeDiscount() + deliveryFee;
 
     if (_paymentMethod == 'credit') {
       if (!mounted) return;

@@ -302,8 +302,10 @@ class _MyOrdersPageState extends State<MyOrdersPage> {
     final order = doc.data();
     final status = (order['status'] ?? 'pending').toString();
     final normalizedStatus = status.toLowerCase();
+    final isRated = order['isRated'] == true;
     final canRate =
-        normalizedStatus == 'completed' || normalizedStatus == 'delivered';
+        (normalizedStatus == 'completed' || normalizedStatus == 'delivered') &&
+        !isRated;
     return _OrderCard(
       orderId: orderId,
       order: order,
@@ -531,37 +533,55 @@ class _RatePetStoreOrderSheet extends StatefulWidget {
 }
 
 class _RatePetStoreOrderSheetState extends State<_RatePetStoreOrderSheet> {
-  final _productComment = TextEditingController();
+  // One stars value + comment controller per product.
+  final Map<String, int> _productStars = {};
+  final Map<String, TextEditingController> _productComments = {};
+  // Ordered list of (productId, title) so the UI preserves order.
+  final List<MapEntry<String, String>> _products = [];
+
   final _storeComment = TextEditingController();
   late final String _storeId;
-  late final List<Map<String, dynamic>> _items;
-  String? _productId;
-  int _productStars = 5;
-  int _storeStars = 5;
+  int _storeStars = 0;
   bool _submitting = false;
-
-  List<MapEntry<String, String>> _productChoices() {
-    final out = <MapEntry<String, String>>[];
-    for (final m in _items) {
-      final pid = (m['productId'] ?? m['id'] ?? '').toString().trim();
-      if (pid.isEmpty) continue;
-      out.add(MapEntry(pid, (m['title'] ?? pid).toString()));
-    }
-    return out;
-  }
 
   @override
   void initState() {
     super.initState();
     _storeId = (widget.order['storeId'] ?? '').toString();
-    _items = _orderLineItems(widget.order);
-    final ch = _productChoices();
-    _productId = ch.isEmpty ? null : ch.first.key;
+    final items = _orderLineItems(widget.order);
+    final seen = <String>{};
+    for (final m in items) {
+      final pid = (m['productId'] ?? m['id'] ?? '').toString().trim();
+      if (pid.isEmpty || !seen.add(pid)) continue;
+      _products.add(MapEntry(pid, (m['title'] ?? pid).toString()));
+      _productStars[pid] = 0;
+      _productComments[pid] = TextEditingController();
+    }
+    _loadExistingRatings();
+  }
+
+  Future<void> _loadExistingRatings() async {
+    try {
+      final ratings = await widget.databaseService.fetchExistingOrderRatings(
+        orderId: widget.orderDocId,
+        storeId: _storeId,
+        productIds: _products.map((e) => e.key).toList(),
+      );
+      if (!mounted) return;
+      setState(() {
+        _storeStars = ratings['store'] ?? 0;
+        for (final entry in _products) {
+          _productStars[entry.key] = ratings[entry.key] ?? 0;
+        }
+      });
+    } catch (_) {}
   }
 
   @override
   void dispose() {
-    _productComment.dispose();
+    for (final c in _productComments.values) {
+      c.dispose();
+    }
     _storeComment.dispose();
     super.dispose();
   }
@@ -571,11 +591,11 @@ class _RatePetStoreOrderSheetState extends State<_RatePetStoreOrderSheet> {
       children: List.generate(5, (i) {
         final n = i + 1;
         return IconButton(
+          visualDensity: VisualDensity.compact,
           onPressed: () => onChanged(n),
           icon: Icon(
             value >= n ? Icons.star : Icons.star_border,
-            color: Colors.amber.shade700,
-            size: 32,
+            color: Colors.amber,
           ),
         );
       }),
@@ -589,23 +609,27 @@ class _RatePetStoreOrderSheetState extends State<_RatePetStoreOrderSheet> {
       );
       return;
     }
-    final productChoices = _productChoices();
-    if (productChoices.isNotEmpty &&
-        (_productId == null || _productId!.isEmpty)) {
+    if (_storeStars == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Choose a product to rate.')),
+        const SnackBar(content: Text('Please rate the store before submitting.')),
       );
       return;
     }
     setState(() => _submitting = true);
     try {
-      if (productChoices.isNotEmpty && _productId != null) {
+      final customerName =
+          await widget.databaseService.fetchCurrentUserName();
+      // Rate each product the user tapped stars for.
+      for (final entry in _products) {
+        final stars = _productStars[entry.key] ?? 0;
+        if (stars == 0) continue;
         await widget.databaseService.rateProduct(
           storeId: _storeId,
-          productId: _productId!,
-          stars: _productStars,
-          comment: _productComment.text.trim(),
+          productId: entry.key,
+          stars: stars,
+          comment: _productComments[entry.key]?.text.trim(),
           orderId: widget.orderDocId,
+          customerName: customerName.isEmpty ? null : customerName,
         );
       }
       await widget.databaseService.rateStore(
@@ -613,7 +637,10 @@ class _RatePetStoreOrderSheetState extends State<_RatePetStoreOrderSheet> {
         stars: _storeStars,
         comment: _storeComment.text.trim(),
         orderId: widget.orderDocId,
+        customerName: customerName.isEmpty ? null : customerName,
       );
+      // Stamp the order so the "Rate Order" button disappears permanently.
+      await widget.databaseService.markOrderAsRated(widget.orderDocId);
       if (!mounted) return;
       final messenger = ScaffoldMessenger.maybeOf(context);
       Navigator.pop(context);
@@ -645,6 +672,7 @@ class _RatePetStoreOrderSheetState extends State<_RatePetStoreOrderSheet> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // Drag handle
                 Center(
                   child: Container(
                     width: 40,
@@ -667,57 +695,45 @@ class _RatePetStoreOrderSheetState extends State<_RatePetStoreOrderSheet> {
                 Text(
                   'Order #${widget.orderDocId}',
                   style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 16),
-                ...() {
-                  final productChoiceList = _productChoices();
-                  if (productChoiceList.isEmpty) return <Widget>[];
-                  final selected =
-                      _productId != null &&
-                          productChoiceList.any((e) => e.key == _productId)
-                      ? _productId!
-                      : productChoiceList.first.key;
-                  return [
-                    DropdownButtonFormField<String>(
-                      key: ValueKey<String>(selected),
-                      initialValue: selected,
-                      decoration: const InputDecoration(
-                        labelText: 'Product',
-                        border: OutlineInputBorder(),
+                // ── Per-product rating rows ─────────────────────────────
+                if (_products.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  for (final entry in _products) ...[
+                    Text(
+                      entry.value,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
                       ),
-                      items: productChoiceList
-                          .map(
-                            (e) => DropdownMenuItem<String>(
-                              value: e.key,
-                              child: Text(
-                                e.value,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (v) => setState(() => _productId = v),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Product rating',
-                      style: TextStyle(fontWeight: FontWeight.w600),
                     ),
                     _starRow(
-                      value: _productStars,
-                      onChanged: (n) => setState(() => _productStars = n),
+                      value: _productStars[entry.key] ?? 0,
+                      onChanged: (n) =>
+                          setState(() => _productStars[entry.key] = n),
                     ),
                     TextField(
-                      controller: _productComment,
+                      controller: _productComments[entry.key],
                       maxLines: 2,
                       decoration: const InputDecoration(
-                        labelText: 'Product comment (optional)',
+                        hintText: 'Product comment (optional)',
                         border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                  ];
-                }(),
+                    const SizedBox(height: 14),
+                  ],
+                  Divider(color: Colors.grey.shade200),
+                ],
+                // ── Store rating ────────────────────────────────────────
+                const SizedBox(height: 4),
                 const Text(
                   'Store rating',
                   style: TextStyle(fontWeight: FontWeight.w600),
@@ -730,8 +746,12 @@ class _RatePetStoreOrderSheetState extends State<_RatePetStoreOrderSheet> {
                   controller: _storeComment,
                   maxLines: 2,
                   decoration: const InputDecoration(
-                    labelText: 'Store comment (optional)',
+                    hintText: 'Store comment (optional)',
                     border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 20),
