@@ -126,11 +126,7 @@ class _PetCarePageState extends State<PetCarePage> {
     return ServiceProvider(
       id: shopId,
       name: (data['shopName'] ?? 'Pet Shop').toString(),
-      description:
-          (data['description'] ??
-                  data['address'] ??
-                  'Professional pet care services')
-              .toString(),
+      description: (data['description'] ?? '').toString(),
       distance: '1.5 km', // default; could be derived from geolocation later
       location: (data['address'] ?? 'Unknown location').toString(),
       hours: (data['workingHours'] ?? '9:00 AM - 7:00 PM').toString(),
