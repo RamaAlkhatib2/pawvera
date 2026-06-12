@@ -90,88 +90,134 @@ class _MyCartPageState extends State<MyCartPage> {
           if (docs.isEmpty) {
             return const Center(child: Text('Cart is empty.'));
           }
-          final subtotal = _cartTotal(docs);
-          final deliveryFee = docs.isEmpty ? 0.0 : 5.0;
-          final total = subtotal + deliveryFee;
+
+          // Group cart items by storeId so each store has its own checkout flow.
+          final Map<String, List<QueryDocumentSnapshot<Map<String, dynamic>>>>
+              grouped = {};
+          for (final d in docs) {
+            final sid = (d.data()['storeId'] ?? '').toString();
+            grouped.putIfAbsent(sid, () => []).add(d);
+          }
+
+          final groups = grouped.entries.toList();
 
           return Column(
             children: [
               Expanded(
-                child: ListView.builder(
+                child: ListView.separated(
                   padding: const EdgeInsets.all(16),
-                  itemCount: docs.length,
-                  itemBuilder: (context, index) {
-                    final item = docs[index].data();
-                    final qty = ((item['quantity'] as num?)?.toInt() ?? 1);
-                    final productId = (item['productId'] ?? docs[index].id)
-                        .toString();
-                    return _CartProductCard(
-                      item: item,
-                      quantity: qty,
-                      onDecrease: qty <= 1
-                          ? null
-                          : () => _databaseService.addOrUpdateCartItem(
-                                storeId: (item['storeId'] ?? '').toString(),
-                                productId: productId,
-                                quantity: qty - 1,
-                                productSnapshot: item,
-                              ),
-                      onIncrease: () => _databaseService.addOrUpdateCartItem(
-                        storeId: (item['storeId'] ?? '').toString(),
-                        productId: productId,
-                        quantity: qty + 1,
-                        productSnapshot: item,
+                  itemCount: groups.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (context, groupIndex) {
+                    final entry = groups[groupIndex];
+                    final storeDocs = entry.value;
+                    final storeSubtotal = _cartTotal(storeDocs);
+                    final deliveryFee = storeDocs.isEmpty ? 0.0 : 5.0;
+                    final storeTotal = storeSubtotal + deliveryFee;
+                    final first = storeDocs.first.data();
+                    final storeName = (first['storeName'] ?? '').toString().isEmpty
+                        ? 'Store'
+                        : (first['storeName'] ?? '').toString();
+
+                    return Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.teal.shade50),
                       ),
-                      onRemove: () =>
-                          _databaseService.removeCartItem(productId),
-                    );
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Container(
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.teal.shade100),
-                  ),
-                  child: Column(
-                    children: [
-                      _cartSummaryRow('Subtotal', subtotal),
-                      const SizedBox(height: 10),
-                      _cartSummaryRow('Delivery Fee', deliveryFee),
-                      Divider(height: 22, color: Colors.teal.shade100),
-                      _cartSummaryRow('Total', total, bold: true),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: FilledButton.icon(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => CheckoutPage(
-                                  cartDocs: docs,
-                                  subtotal: subtotal,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.storefront_outlined, size: 18),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  storeName,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                  ),
                                 ),
                               ),
-                            );
-                          },
-                          style: FilledButton.styleFrom(
-                            backgroundColor: _teal,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              Text('${storeDocs.length} item${storeDocs.length==1? '':'s'}'),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Column(
+                            children: List.generate(storeDocs.length, (i) {
+                              final item = storeDocs[i].data();
+                              final qty = ((item['quantity'] as num?)?.toInt() ?? 1);
+                              final productId = (item['productId'] ?? storeDocs[i].id).toString();
+                              return _CartProductCard(
+                                item: item,
+                                quantity: qty,
+                                onDecrease: qty <= 1
+                                    ? null
+                                    : () => _databaseService.addOrUpdateCartItem(
+                                          storeId: (item['storeId'] ?? '').toString(),
+                                          productId: productId,
+                                          quantity: qty - 1,
+                                          productSnapshot: item,
+                                        ),
+                                onIncrease: () => _databaseService.addOrUpdateCartItem(
+                                  storeId: (item['storeId'] ?? '').toString(),
+                                  productId: productId,
+                                  quantity: qty + 1,
+                                  productSnapshot: item,
+                                ),
+                                onRemove: () => _databaseService.removeCartItem(productId),
+                              );
+                            }),
+                          ),
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Column(
+                              children: [
+                                _cartSummaryRow('Subtotal', storeSubtotal),
+                                const SizedBox(height: 8),
+                                _cartSummaryRow('Delivery Fee', deliveryFee),
+                                Divider(height: 20, color: Colors.teal.shade50),
+                                _cartSummaryRow('Total', storeTotal, bold: true),
+                                const SizedBox(height: 12),
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 44,
+                                  child: FilledButton.icon(
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => CheckoutPage(
+                                            cartDocs: storeDocs,
+                                            subtotal: storeSubtotal,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    style: FilledButton.styleFrom(
+                                      backgroundColor: const Color(0xFF4FA294),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    ),
+                                    icon: const Icon(Icons.credit_card),
+                                    label: const Text('Checkout for this store'),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          icon: const Icon(Icons.credit_card),
-                          label: const Text('Proceed to Checkout'),
-                        ),
+                        ],
                       ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
               ),
             ],

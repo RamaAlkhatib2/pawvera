@@ -754,6 +754,26 @@ class DatabaseService {
     }
   }
 
+  /// Removes only cart items that belong to [storeId] for the current user.
+  Future<void> removeCartItemsForStore(String storeId) async {
+    try {
+      if (storeId.trim().isEmpty) return;
+      final cartSnapshot = await _usersCart
+          .doc(_uid)
+          .collection('cart_items')
+          .where('storeId', isEqualTo: storeId)
+          .get();
+      if (cartSnapshot.docs.isEmpty) return;
+      final batch = _db.batch();
+      for (final doc in cartSnapshot.docs) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+    } catch (_) {
+      throw Exception('Unable to update your cart at the moment.');
+    }
+  }
+
   /// Clears the cart then adds each line from a previous pet-store [order]
   /// (same shape as saved in `orders`). Same flow as shopping then checkout.
   Future<void> refillCartFromPetStoreOrder(Map<String, dynamic> order) async {
@@ -1067,7 +1087,9 @@ class DatabaseService {
       }
       await orderRef.set(orderData);
 
-      await clearMyCart();
+      // Remove only the items from the purchased store so other stores'
+      // items remain in the user's cart.
+      await removeCartItemsForStore(storeId);
       return (orderId: orderRef.id, totalJod: total);
     } catch (_) {
       throw Exception('Could not place order. Please try again.');
