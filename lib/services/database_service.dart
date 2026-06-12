@@ -436,18 +436,22 @@ class DatabaseService {
   // Call on app open to convert due reminders into notification docs.
   Future<void> checkAndFireDueReminderNotifications() async {
     final uid = _auth.currentUser!.uid;
-    final now = Timestamp.fromDate(DateTime.now());
+    final now = DateTime.now();
+    // Single-field query (no composite index needed); filter dateTime in Dart.
     final snap = await _db
         .collection('users')
         .doc(uid)
         .collection('reminders')
         .where('notificationSent', isEqualTo: false)
-        .where('dateTime', isLessThanOrEqualTo: now)
         .get();
-    if (snap.docs.isEmpty) return;
+    final dueDocs = snap.docs.where((doc) {
+      final dt = (doc.data()['dateTime'] as Timestamp?)?.toDate();
+      return dt != null && !dt.isAfter(now);
+    }).toList();
+    if (dueDocs.isEmpty) return;
 
     final batch = _db.batch();
-    for (final doc in snap.docs) {
+    for (final doc in dueDocs) {
       final data = doc.data();
       final notifRef = _notificationsCol.doc();
       batch.set(notifRef, {

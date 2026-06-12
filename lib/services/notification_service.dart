@@ -48,6 +48,10 @@ class NotificationService {
     if (!_ready) await init();
     if (scheduledAt.isBefore(DateTime.now())) return;
 
+    // Convert local DateTime → UTC so the notification fires at the correct
+    // wall-clock time regardless of what tz.local defaults to.
+    final scheduledUtc = tz.TZDateTime.from(scheduledAt.toUtc(), tz.UTC);
+
     const details = NotificationDetails(
       android: AndroidNotificationDetails(
         _channelId,
@@ -64,19 +68,20 @@ class NotificationService {
         _notifId(reminderId),
         title,
         'Time for $title for $petName',
-        tz.TZDateTime.from(scheduledAt, tz.local),
+        scheduledUtc,
         details,
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
         payload: reminderId,
       );
-    } catch (_) {
+    } catch (e) {
+      // Exact alarm not permitted — fall back to inexact (fires within a window).
       await _plugin.zonedSchedule(
         _notifId(reminderId),
         title,
         'Time for $title for $petName',
-        tz.TZDateTime.from(scheduledAt, tz.local),
+        scheduledUtc,
         details,
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
