@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:pawvera/services/database_service.dart';
@@ -139,21 +141,7 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             child: shopImageUrl != null
-                ? Image.network(
-                    shopImageUrl,
-                    width: double.infinity,
-                    height: 170,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      height: 170,
-                      color: Colors.grey.shade200,
-                      child: const Icon(
-                        Icons.store,
-                        size: 50,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  )
+                ? _buildShopBannerImage(shopImageUrl)
                 : Container(
                     height: 170,
                     color: Colors.grey.shade200,
@@ -1212,5 +1200,27 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
         ),
       ),
     );
+  }
+
+  Widget _buildShopBannerImage(String url) {
+    final placeholder = Container(
+      height: 170,
+      color: Colors.grey.shade200,
+      child: const Icon(Icons.store, size: 50, color: Colors.grey),
+    );
+    if (url.isEmpty) return placeholder;
+    if (url.startsWith('data:')) {
+      try {
+        final bytes = base64Decode(url.substring(url.indexOf(',') + 1));
+        return Image.memory(bytes, width: double.infinity, height: 170,
+            fit: BoxFit.cover,
+            errorBuilder: (context, e, stack) => placeholder);
+      } catch (_) {
+        return placeholder;
+      }
+    }
+    return Image.network(url, width: double.infinity, height: 170,
+        fit: BoxFit.cover,
+        errorBuilder: (context, e, stack) => placeholder);
   }
 }
