@@ -91,7 +91,8 @@ class ServiceProviderController extends ChangeNotifier {
       _listenToShop(shopDoc.id);
       // Auto-fix placeholder or bad shop names
       final existingName = (shopDoc.data()['shopName'] as String?) ?? '';
-      final badName = existingName.isEmpty ||
+      final badName =
+          existingName.isEmpty ||
           existingName == 'Pawfect Spa' ||
           existingName == 'My Pet Shop' ||
           RegExp(r'\.\d+').hasMatch(existingName); // username like petpro.1542
@@ -138,6 +139,7 @@ class ServiceProviderController extends ChangeNotifier {
       'ownerId': ownerId,
       'shopName': shopName,
       'address': '',
+      'description': '',
       'phone': '',
       'email': _auth.currentUser?.email ?? '',
       'workingHours': '9:00 AM - 7:00 PM',
@@ -288,12 +290,14 @@ class ServiceProviderController extends ChangeNotifier {
     String? workingHours,
     String? imageUrl,
     List<String>? petTypes,
+    String? description,
   }) async {
     final id = shopId;
     if (id == null) return;
     final data = <String, dynamic>{'updatedAt': FieldValue.serverTimestamp()};
     if (shopName != null) data['shopName'] = shopName;
     if (address != null) data['address'] = address;
+    if (description != null) data['description'] = description;
     if (phone != null) data['phone'] = phone;
     if (email != null) data['email'] = email;
     if (workingHours != null) data['workingHours'] = workingHours;

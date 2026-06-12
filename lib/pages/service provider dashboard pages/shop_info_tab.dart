@@ -18,15 +18,18 @@ class _ShopInfoTabState extends State<ShopInfoTab> {
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _hoursController = TextEditingController();
-  final TextEditingController _customPetTypeController = TextEditingController();
+  final TextEditingController _customPetTypeController =
+      TextEditingController();
 
   @override
   void dispose() {
     _nameController.dispose();
     _locationController.dispose();
+    _descriptionController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
     _hoursController.dispose();
@@ -37,6 +40,7 @@ class _ShopInfoTabState extends State<ShopInfoTab> {
   void _openEditShopInfo(ShopProfile shop) {
     _nameController.text = shop.shopName;
     _locationController.text = shop.address;
+    _descriptionController.text = shop.description;
     _phoneController.text = shop.phone;
     _emailController.text = shop.email;
     _hoursController.text = shop.workingHours;
@@ -93,6 +97,7 @@ class _ShopInfoTabState extends State<ShopInfoTab> {
                 await ctrl.updateShopInfo(
                   shopName: _nameController.text,
                   address: _locationController.text,
+                  description: _descriptionController.text,
                   phone: _phoneController.text,
                   email: _emailController.text,
                   workingHours: _hoursController.text,
@@ -123,14 +128,13 @@ class _ShopInfoTabState extends State<ShopInfoTab> {
               onSave: saveShopInfo,
               allPetTypes: allPetTypes,
               selectedPetTypes: selectedPetTypes,
-              onTogglePetType: (type) =>
-                  setSheetState(() {
-                    if (selectedPetTypes.contains(type)) {
-                      selectedPetTypes.remove(type);
-                    } else {
-                      selectedPetTypes.add(type);
-                    }
-                  }),
+              onTogglePetType: (type) => setSheetState(() {
+                if (selectedPetTypes.contains(type)) {
+                  selectedPetTypes.remove(type);
+                } else {
+                  selectedPetTypes.add(type);
+                }
+              }),
             );
           },
         );
@@ -168,16 +172,24 @@ class _ShopInfoTabState extends State<ShopInfoTab> {
     if (url.startsWith('data:')) {
       try {
         final bytes = base64Decode(url.substring(url.indexOf(',') + 1));
-        return Image.memory(bytes, height: height, width: double.infinity,
-            fit: BoxFit.cover,
-            errorBuilder: (_, e, s) => buildPlaceholderImage(height));
+        return Image.memory(
+          bytes,
+          height: height,
+          width: double.infinity,
+          fit: BoxFit.cover,
+          errorBuilder: (_, e, s) => buildPlaceholderImage(height),
+        );
       } catch (_) {
         return buildPlaceholderImage(height);
       }
     }
-    return Image.network(url, height: height, width: double.infinity,
-        fit: BoxFit.cover,
-        errorBuilder: (_, e, s) => buildPlaceholderImage(height));
+    return Image.network(
+      url,
+      height: height,
+      width: double.infinity,
+      fit: BoxFit.cover,
+      errorBuilder: (_, e, s) => buildPlaceholderImage(height),
+    );
   }
 
   Widget buildPlaceholderImage(double height) {
@@ -492,6 +504,26 @@ class _ShopInfoTabState extends State<ShopInfoTab> {
             _buildLabel("Location *"),
             _buildTextField(_locationController, "Address"),
             const SizedBox(height: 15),
+            _buildLabel("Description"),
+            TextField(
+              controller: _descriptionController,
+              maxLines: 3,
+              decoration: InputDecoration(
+                hintText:
+                    "Short description about your services (shown to pet owners)",
+                filled: true,
+                fillColor: Colors.grey[50],
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: Colors.grey[300]!),
+                ),
+              ),
+            ),
+            const SizedBox(height: 15),
             _buildLabel("Phone *"),
             _buildTextField(_phoneController, "Phone number"),
             const SizedBox(height: 15),
@@ -505,10 +537,7 @@ class _ShopInfoTabState extends State<ShopInfoTab> {
             Wrap(
               spacing: 8,
               runSpacing: 4,
-              children: {
-                ...allPetTypes,
-                ...selectedPetTypes,
-              }.map((type) {
+              children: {...allPetTypes, ...selectedPetTypes}.map((type) {
                 final selected = selectedPetTypes.contains(type);
                 return FilterChip(
                   label: Text(type),
@@ -539,7 +568,9 @@ class _ShopInfoTabState extends State<ShopInfoTab> {
                       filled: true,
                       fillColor: Colors.grey[50],
                       contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 10),
+                        horizontal: 10,
+                        vertical: 10,
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                         borderSide: BorderSide(color: Colors.grey[200]!),
@@ -559,12 +590,17 @@ class _ShopInfoTabState extends State<ShopInfoTab> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryTeal,
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 10),
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
-                  child: const Text("Add",
-                      style: TextStyle(color: Colors.white, fontSize: 12)),
+                  child: const Text(
+                    "Add",
+                    style: TextStyle(color: Colors.white, fontSize: 12),
+                  ),
                 ),
               ],
             ),
