@@ -67,7 +67,8 @@ class DatabaseService {
     return sum / docs.length;
   }
 
-  List<QueryDocumentSnapshot<Map<String, dynamic>>> _filterServiceShopReviewDocs(
+  List<QueryDocumentSnapshot<Map<String, dynamic>>>
+  _filterServiceShopReviewDocs(
     List<QueryDocumentSnapshot<Map<String, dynamic>>> raw,
   ) {
     return raw.where((d) => reviewDocIsServiceShop(d.data())).toList();
@@ -297,7 +298,10 @@ class DatabaseService {
     if (doc.exists) {
       await ref.delete();
     } else {
-      await ref.set({'shopId': shopId, 'createdAt': FieldValue.serverTimestamp()});
+      await ref.set({
+        'shopId': shopId,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
     }
   }
 
@@ -317,8 +321,9 @@ class DatabaseService {
           .get();
       return snap.docs
           .where((doc) {
-            final status =
-                (doc.data()['status'] ?? '').toString().toLowerCase();
+            final status = (doc.data()['status'] ?? '')
+                .toString()
+                .toLowerCase();
             return status != 'cancelled';
           })
           .map((doc) => (doc.data()['time'] ?? '').toString())
@@ -359,7 +364,9 @@ class DatabaseService {
       return snap.docs.any((doc) {
         final d = doc.data();
         final status = (d['status'] ?? '').toString().toLowerCase();
-        return status != 'cancelled' && d['pet'] == petName && d['time'] == time;
+        return status != 'cancelled' &&
+            d['pet'] == petName &&
+            d['time'] == time;
       });
     } catch (_) {
       return false;
@@ -604,10 +611,7 @@ class DatabaseService {
             .toLowerCase();
         final tags = _storeListNormalized(data['tags']);
         final categories = _storeListNormalized(data['categories']);
-        final combinedTags = {
-          ...tags,
-          ...categories,
-        };
+        final combinedTags = {...tags, ...categories};
         final hasOffers = data['hasActiveOffers'] == true;
 
         final matchesSearch =
@@ -615,7 +619,8 @@ class DatabaseService {
             name.contains(normalizedQuery) ||
             description.contains(normalizedQuery);
         final matchesCategory =
-            normalizedCategory == 'all' || combinedTags.contains(normalizedCategory);
+            normalizedCategory == 'all' ||
+            combinedTags.contains(normalizedCategory);
         final matchesOffer = !offersOnly || hasOffers;
 
         return matchesSearch && matchesCategory && matchesOffer;
@@ -1126,6 +1131,46 @@ class DatabaseService {
     return true;
   }
 
+  Future<QueryDocumentSnapshot<Map<String, dynamic>>?>
+  _getPetCareServiceReviewForBooking(String bookingId) async {
+    final id = bookingId.trim();
+    if (id.isEmpty) return null;
+    final snap = await _reviews
+        .where('bookingId', isEqualTo: id)
+        .where('type', isEqualTo: 'service')
+        .where('userId', isEqualTo: _uid)
+        .limit(1)
+        .get();
+    return snap.docs.isNotEmpty ? snap.docs.first : null;
+  }
+
+  Future<QueryDocumentSnapshot<Map<String, dynamic>>?>
+  _getPetCareShopReviewForBooking(String bookingId) async {
+    final id = bookingId.trim();
+    if (id.isEmpty) return null;
+    final snap = await _reviews
+        .where('bookingId', isEqualTo: id)
+        .where('type', isEqualTo: 'service_shop')
+        .where('userId', isEqualTo: _uid)
+        .limit(1)
+        .get();
+    return snap.docs.isNotEmpty ? snap.docs.first : null;
+  }
+
+  Future<Map<String, dynamic>?> getPetCareServiceReviewForBooking(
+    String bookingId,
+  ) async {
+    final doc = await _getPetCareServiceReviewForBooking(bookingId);
+    return doc?.data();
+  }
+
+  Future<Map<String, dynamic>?> getPetCareShopReviewForBooking(
+    String bookingId,
+  ) async {
+    final doc = await _getPetCareShopReviewForBooking(bookingId);
+    return doc?.data();
+  }
+
   Future<void> _syncPetCareServiceRatingAggregate({
     required String shopId,
     String? serviceId,
@@ -1140,8 +1185,7 @@ class DatabaseService {
         final t = (m['type'] ?? '').toString();
         if (t != 'service') return false;
         if ((serviceId ?? '').trim().isNotEmpty) {
-          return (m['serviceId'] ?? '').toString().trim() ==
-              serviceId!.trim();
+          return (m['serviceId'] ?? '').toString().trim() == serviceId!.trim();
         }
         final n = (serviceName ?? '').trim().toLowerCase();
         if (n.isEmpty) return false;
@@ -1191,9 +1235,14 @@ class DatabaseService {
     if (stars < 1 || stars > 5) {
       throw Exception('Rating must be between 1 and 5 stars.');
     }
-    final ok = await canRatePetCareBooking(bookingId: bookingId, shopId: shopId);
+    final ok = await canRatePetCareBooking(
+      bookingId: bookingId,
+      shopId: shopId,
+    );
     if (!ok) {
-      throw Exception('You can only rate your own completed/confirmed booking.');
+      throw Exception(
+        'You can only rate your own completed/confirmed booking.',
+      );
     }
     final sid = shopId.trim();
     final svcId = (serviceId ?? '').trim();
@@ -1202,7 +1251,9 @@ class DatabaseService {
       throw Exception('Invalid service rating payload.');
     }
     final suffix = svcId.isNotEmpty ? svcId : svcName.toLowerCase();
-    final ratingId = '${_uid}_${bookingId.trim()}_service_$suffix';
+    final existingReview = await _getPetCareServiceReviewForBooking(bookingId);
+    final ratingId =
+        existingReview?.id ?? '${_uid}_${bookingId.trim()}_service_$suffix';
     final cn = _reviewCustomerName(customerName);
     try {
       await _reviews.doc(ratingId).set({
@@ -1418,10 +1469,7 @@ class DatabaseService {
       final snap = await _reviews.where('shopId', isEqualTo: id).get();
       final docs = _filterServiceShopReviewDocs(snap.docs);
       if (docs.isNotEmpty) {
-        return (
-          avg: averageStarsFromReviewDocs(docs),
-          count: docs.length,
-        );
+        return (avg: averageStarsFromReviewDocs(docs), count: docs.length);
       }
     } catch (_) {}
 
