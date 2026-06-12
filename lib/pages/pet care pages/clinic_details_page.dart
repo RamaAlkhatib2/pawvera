@@ -71,9 +71,23 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
+        leading: Container(
+          margin: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 4,
+              ),
+            ],
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.black, size: 20),
+            onPressed: () => Navigator.pop(context),
+            padding: EdgeInsets.zero,
+          ),
         ),
         title: Text(
           widget.provider.name,
@@ -156,14 +170,14 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(
                       child: Text(
                         widget.provider.name,
                         style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
                           color: Color(0xFF274C4B),
                         ),
                       ),
@@ -175,24 +189,57 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                _buildLiveShopRatingSummaryLine(),
-                const SizedBox(height: 6),
                 Text(
                   shopDescription,
-                  style: const TextStyle(color: Colors.grey, fontSize: 13),
+                  style: TextStyle(
+                    color: Colors.blueGrey.shade700,
+                    fontSize: 12,
+                  ),
                 ),
-                const SizedBox(height: 12),
+                const Divider(height: 18),
                 Row(
                   children: [
-                    Flexible(
-                      child: _buildInfoBubble(
-                        Icons.location_on_outlined,
-                        shopLocation,
+                    Expanded(
+                      child: _infoTile(
+                        icon: Icons.location_on_outlined,
+                        title: 'Distance',
+                        value: shopLocation,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: _buildInfoBubble(Icons.access_time, shopHours),
+                    Expanded(
+                      child: _infoTile(
+                        icon: Icons.access_time,
+                        title: 'Hours',
+                        value: shopHours,
+                        green: true,
+                      ),
+                    ),
+                  ],
+                ),
+                const Divider(height: 18),
+                const Text(
+                  'Available Services',
+                  style: TextStyle(color: Colors.blueGrey, fontSize: 11),
+                ),
+                const SizedBox(height: 6),
+                _buildAvailableServicesChips(),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.location_on,
+                      size: 16,
+                      color: Colors.blueGrey.shade400,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        shopLocation,
+                        style: TextStyle(
+                          color: Colors.blueGrey.shade600,
+                          fontSize: 12,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -471,8 +518,8 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
           final priceVal = (data['price'] as num?)?.toDouble() ?? 0.0;
           final duration = (data['duration'] ?? '1 hour').toString();
           final description = (data['description'] ?? '').toString();
-          final ratingAvg =
-              ((data['ratingAvg'] as num?)?.toDouble() ?? 0.0).clamp(0.0, 5.0);
+          final ratingAvg = ((data['ratingAvg'] as num?)?.toDouble() ?? 0.0)
+              .clamp(0.0, 5.0);
           final ratingCount = (data['ratingCount'] as num?)?.toInt() ?? 0;
 
           final rawPetTypes = data['petTypes'] as List<dynamic>? ?? [];
@@ -528,7 +575,8 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
 
             // Apply filters
             final filteredServices = allServices.where((service) {
-              final matchesType = _selectedPetFilter == "All Pets" ||
+              final matchesType =
+                  _selectedPetFilter == "All Pets" ||
                   service.petTypes.isEmpty ||
                   service.petTypes.contains(_selectedPetFilter);
               final matchesOffer = !_filterByOffers || service.hasOffer;
@@ -604,11 +652,7 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        const Icon(
-                          Icons.star,
-                          color: Colors.amber,
-                          size: 14,
-                        ),
+                        const Icon(Icons.star, color: Colors.amber, size: 14),
                         const SizedBox(width: 4),
                         Text(
                           service.ratingAvg.toStringAsFixed(1),
@@ -826,9 +870,7 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
     final fallbackCount = _fallbackRatingCount();
 
     if (shopId.isEmpty) {
-      return _shopRatingBadgeChip(
-        _shopRatingLabel(fallbackAvg, fallbackCount),
-      );
+      return _shopRatingBadgeChip(_shopRatingLabel(fallbackAvg, fallbackCount));
     }
 
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
@@ -939,8 +981,13 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
       builder: (context) {
         return Dialog(
           backgroundColor: const Color(0xFFF0F9F9),
-          insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 22),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 18,
+            vertical: 22,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: SizedBox(
             width: 520,
             height: 560,
@@ -1010,22 +1057,24 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
                         );
                       }
 
-                      final docs = (snapshot.data?.docs ?? [])
-                          .where(
-                            (d) =>
-                                DatabaseService.reviewDocIsServiceShop(d.data()),
-                          )
-                          .toList()
-                        ..sort((a, b) {
-                          final ta = a.data()['createdAt'];
-                          final tb = b.data()['createdAt'];
-                          if (ta is Timestamp && tb is Timestamp) {
-                            return tb.compareTo(ta);
-                          }
-                          if (ta is Timestamp) return -1;
-                          if (tb is Timestamp) return 1;
-                          return 0;
-                        });
+                      final docs =
+                          (snapshot.data?.docs ?? [])
+                              .where(
+                                (d) => DatabaseService.reviewDocIsServiceShop(
+                                  d.data(),
+                                ),
+                              )
+                              .toList()
+                            ..sort((a, b) {
+                              final ta = a.data()['createdAt'];
+                              final tb = b.data()['createdAt'];
+                              if (ta is Timestamp && tb is Timestamp) {
+                                return tb.compareTo(ta);
+                              }
+                              if (ta is Timestamp) return -1;
+                              if (tb is Timestamp) return 1;
+                              return 0;
+                            });
 
                       final avg = docs.isEmpty
                           ? 0.0
@@ -1092,8 +1141,9 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
                                         (data['customerName'] ?? 'Customer')
                                             .toString()
                                             .trim();
-                                    final comment =
-                                        (data['comment'] ?? '').toString().trim();
+                                    final comment = (data['comment'] ?? '')
+                                        .toString()
+                                        .trim();
                                     final stars =
                                         ((data['stars'] as num?)?.toInt() ?? 0)
                                             .clamp(0, 5);
@@ -1159,28 +1209,97 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
     );
   }
 
-  Widget _buildInfoBubble(IconData icon, String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: Colors.grey.shade700),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              text,
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
-            ),
+  Widget _buildAvailableServicesChips() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('service_shops')
+          .doc(widget.provider.id)
+          .collection('services')
+          .where('isActive', isEqualTo: true)
+          .snapshots(),
+      builder: (context, snapshot) {
+        final serviceTypes = <String>{};
+        for (final doc in snapshot.data?.docs ?? []) {
+          final data = doc.data() as Map<String, dynamic>;
+          final name = data['name']?.toString() ?? '';
+          if (name.isNotEmpty) {
+            serviceTypes.add(name);
+          }
+        }
+        if (serviceTypes.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        return Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: serviceTypes.take(4).map((service) {
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+              decoration: BoxDecoration(
+                color: Colors.teal.shade50,
+                borderRadius: BorderRadius.circular(7),
+              ),
+              child: Text(
+                service,
+                style: const TextStyle(
+                  color: Color(0xFF5A2F0E),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                ),
+              ),
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
+
+  // _infoTile matching the store's style for displaying distance/hours
+  // with icon, title label, and value
+  Widget _infoTile({
+    required IconData icon,
+    required String title,
+    required String value,
+    bool green = false,
+  }) {
+    return Row(
+      children: [
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: green ? Colors.green.shade50 : Colors.blue.shade50,
+            borderRadius: BorderRadius.circular(7),
           ),
-        ],
-      ),
+          child: Icon(
+            icon,
+            size: 18,
+            color: green ? Colors.green : Colors.blueAccent,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(color: Colors.blueGrey, fontSize: 11),
+              ),
+              Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Color(0xFF5A2F0E),
+                  fontWeight: FontWeight.w800,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -1212,15 +1331,23 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
     if (url.startsWith('data:')) {
       try {
         final bytes = base64Decode(url.substring(url.indexOf(',') + 1));
-        return Image.memory(bytes, width: double.infinity, height: 170,
-            fit: BoxFit.cover,
-            errorBuilder: (context, e, stack) => placeholder);
+        return Image.memory(
+          bytes,
+          width: double.infinity,
+          height: 170,
+          fit: BoxFit.cover,
+          errorBuilder: (context, e, stack) => placeholder,
+        );
       } catch (_) {
         return placeholder;
       }
     }
-    return Image.network(url, width: double.infinity, height: 170,
-        fit: BoxFit.cover,
-        errorBuilder: (context, e, stack) => placeholder);
+    return Image.network(
+      url,
+      width: double.infinity,
+      height: 170,
+      fit: BoxFit.cover,
+      errorBuilder: (context, e, stack) => placeholder,
+    );
   }
 }
