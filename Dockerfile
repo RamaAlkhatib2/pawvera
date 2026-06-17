@@ -1,12 +1,18 @@
 # Build Flutter web app and serve with nginx
-FROM cirrusci/flutter:stable AS build
+FROM ghcr.io/cirruslabs/flutter:stable AS build
 WORKDIR /app
 
-# Cache dependencies
-COPY pubspec.* ./
+# Install git (required for many pub packages)
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y git --no-install-recommends \
+	&& rm -rf /var/lib/apt/lists/*
+
+# Copy pubspec files first to leverage Docker layer caching
+# If `pubspec.lock` is missing, create an empty file so COPY won't fail and `flutter pub get` runs.
+COPY pubspec.yaml pubspec.lock ./
+RUN if [ ! -f pubspec.lock ]; then touch pubspec.lock; fi
 RUN flutter pub get
 
-# Copy source and build
+# Copy rest of the source and build for web
 COPY . .
 RUN flutter build web --release
 
