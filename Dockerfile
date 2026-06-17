@@ -7,8 +7,8 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y git --no
 	&& rm -rf /var/lib/apt/lists/*
 
 # Copy pubspec files first to leverage Docker layer caching
-# If `pubspec.lock` is missing, create an empty file so COPY won't fail and `flutter pub get` runs.
-COPY pubspec.yaml pubspec.lock ./
+# Use a glob so `pubspec.lock` being absent doesn't make COPY fail.
+COPY pubspec.* ./
 RUN if [ ! -f pubspec.lock ]; then touch pubspec.lock; fi
 RUN flutter pub get
 
