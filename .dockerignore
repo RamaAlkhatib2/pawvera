@@ -1,0 +1,14 @@
+.git
+build/
+android/
+ios/
+macos/
+windows/
+linux/
+.DS_Store
+.gradle
+.packages
+.dart_tool
+.idea
+.vscode
+pubspec.lock
