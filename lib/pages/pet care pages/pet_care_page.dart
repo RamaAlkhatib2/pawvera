@@ -126,8 +126,7 @@ class _PetCarePageState extends State<PetCarePage> {
     return ServiceProvider(
       id: shopId,
       name: (data['shopName'] ?? 'Pet Shop').toString(),
-      description: (data['address'] ?? 'Professional pet care services')
-          .toString(),
+      description: (data['description'] ?? '').toString(),
       distance: '1.5 km', // default; could be derived from geolocation later
       location: (data['address'] ?? 'Unknown location').toString(),
       hours: (data['workingHours'] ?? '9:00 AM - 7:00 PM').toString(),
@@ -434,7 +433,9 @@ class _PetCarePageState extends State<PetCarePage> {
   }
 
   String _serviceShopRatingLabel(double fallbackAvg, int fallbackCount) {
-    if (fallbackCount > 0) return fallbackAvg.toStringAsFixed(1);
+    if (fallbackCount > 0) {
+      return '${fallbackAvg.toStringAsFixed(1)} ($fallbackCount)';
+    }
     return '0.0';
   }
 
@@ -469,7 +470,8 @@ class _PetCarePageState extends State<PetCarePage> {
           );
         }
         final avg = DatabaseService.averageStarsFromReviewDocs(docs);
-        return _serviceShopRatingChip(avg.toStringAsFixed(1));
+        final n = docs.length;
+        return _serviceShopRatingChip('${avg.toStringAsFixed(1)} ($n)');
       },
     );
   }
@@ -841,13 +843,23 @@ class _PetCarePageState extends State<PetCarePage> {
     if (url.startsWith('data:')) {
       try {
         final bytes = base64Decode(url.substring(url.indexOf(',') + 1));
-        return Image.memory(bytes, width: width, height: height, fit: BoxFit.cover,
-            errorBuilder: (context, e, stack) => placeholder);
+        return Image.memory(
+          bytes,
+          width: width,
+          height: height,
+          fit: BoxFit.cover,
+          errorBuilder: (context, e, stack) => placeholder,
+        );
       } catch (_) {
         return placeholder;
       }
     }
-    return Image.network(url, width: width, height: height, fit: BoxFit.cover,
-        errorBuilder: (context, e, stack) => placeholder);
+    return Image.network(
+      url,
+      width: width,
+      height: height,
+      fit: BoxFit.cover,
+      errorBuilder: (context, e, stack) => placeholder,
+    );
   }
 }

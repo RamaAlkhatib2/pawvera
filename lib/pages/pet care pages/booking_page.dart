@@ -12,6 +12,7 @@ class BookingPage extends StatefulWidget {
   final String clinicName;
   final String duration;
   final String shopId; // Firestore shop document ID for provider dashboard
+  final String serviceId;
 
   const BookingPage({
     super.key,
@@ -21,6 +22,7 @@ class BookingPage extends StatefulWidget {
     required this.clinicName,
     required this.duration,
     this.shopId = '',
+    this.serviceId = '',
   });
 
   @override
@@ -282,6 +284,7 @@ class _BookingPageState extends State<BookingPage> {
                         'email': _emailController.text,
                         'shopId': widget.shopId,
                         'clinicName': widget.clinicName,
+                        'serviceId': widget.serviceId,
                       };
 
                       

@@ -3312,6 +3312,13 @@ class _CreateStoreWideOfferDialogState extends State<_CreateStoreWideOfferDialog
         return '${p.round()}% Off on Orders Above ${mo.toStringAsFixed(0)} JOD';
       }
     }
+    if (_filterPriceRange) {
+      final pMin = double.tryParse(_priceMin.text.trim()) ?? 0;
+      final pMax = double.tryParse(_priceMax.text.trim()) ?? 0;
+      if (pMin > 0 && pMax > 0) {
+        return '${p.round()}% Off on Products ${pMin.toStringAsFixed(0)}–${pMax.toStringAsFixed(0)} JOD';
+      }
+    }
     return '${p.round()}% Off Store-Wide';
   }
 
@@ -3510,8 +3517,20 @@ class _CreateStoreWideOfferDialogState extends State<_CreateStoreWideOfferDialog
             final minJ =
                 _requireMinOrder ? double.tryParse(_minOrder.text.trim()) ?? 0 : 0;
             final title = _previewTitle();
-            final desc =
-                '${pct.round()}% discount when conditions are met. Valid until ${DateFormat.yMMMd().format(_validUntil!)}.';
+            final condParts = <String>[];
+            if (minJ > 0) condParts.add('Min. order ${minJ.toStringAsFixed(0)} JOD');
+            if (_filterPriceRange) {
+              final pMin = double.tryParse(_priceMin.text.trim()) ?? 0;
+              final pMax = double.tryParse(_priceMax.text.trim()) ?? 0;
+              if (pMin > 0 && pMax > 0) {
+                condParts.add(
+                  'Products ${pMin.toStringAsFixed(0)}–${pMax.toStringAsFixed(0)} JOD',
+                );
+              }
+            }
+            final desc = condParts.isEmpty
+                ? '${pct.round()}% off all products'
+                : condParts.join(' • ');
             final fields = <String, dynamic>{
               'kind': 'store_wide',
               'title': title,

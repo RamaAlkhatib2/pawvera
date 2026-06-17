@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pawvera/services/database_service.dart';
+import 'buyer_my_orders_page.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
@@ -20,6 +21,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
   final DatabaseService _db = DatabaseService();
   List<NotificationEntry> _notifications = [];
   StreamSubscription<QuerySnapshot>? _sub;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _orderSub;
 
   bool _selectionMode = false;
   final Set<String> _selectedIds = {};
@@ -31,18 +33,36 @@ class _NotificationsPageState extends State<NotificationsPage> {
   void initState() {
     super.initState();
     _db.checkAndFireDueReminderNotifications().catchError((_) {});
-    _sub = _db.streamMyNotifications().listen((snap) {
-      setState(() {
-        _notifications = snap.docs
-            .map((d) => NotificationEntry.fromFirestore(d.data(), d.id))
-            .toList();
-      });
+    _sub = _db.streamMyNotifications().listen(
+      (snap) {
+        setState(() {
+          _notifications = snap.docs
+              .map((d) => NotificationEntry.fromFirestore(d.data(), d.id))
+              .toList();
+        });
+      },
+      // ignore: avoid_print
+      onError: (e) => print('[PawVera] streamMyNotifications error: $e'),
+    );
+    // Self-generate order status notifications from the buyer's own order stream.
+    // This avoids cross-user Firestore writes and works regardless of security rules.
+    _orderSub = _db.streamMyOrders().listen((snap) {
+      for (final change in snap.docChanges) {
+        if (change.type == DocumentChangeType.added ||
+            change.type == DocumentChangeType.modified) {
+          _db.selfNotifyOrderStatus(
+            change.doc.id,
+            change.doc.data() ?? {},
+          );
+        }
+      }
     });
   }
 
   @override
   void dispose() {
     _sub?.cancel();
+    _orderSub?.cancel();
     super.dispose();
   }
 
@@ -365,7 +385,17 @@ class _NotificationsPageState extends State<NotificationsPage> {
           borderRadius: BorderRadius.circular(12),
           onTap: _selectionMode
               ? () => _toggleSelect(n.id)
-              : () => _markOneRead(n.id),
+              : () {
+                  _markOneRead(n.id);
+                  if (n.type == 'order') {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const MyOrdersPage(),
+                      ),
+                    );
+                  }
+                },
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
@@ -519,6 +549,8 @@ class NotificationEntry {
   final Color iconAccent;
   final Color iconBg;
   final bool isRead;
+  final String type;
+  final String orderId;
 
   const NotificationEntry({
     required this.id,
@@ -529,6 +561,8 @@ class NotificationEntry {
     required this.iconAccent,
     required this.iconBg,
     required this.isRead,
+    this.type = '',
+    this.orderId = '',
   });
 
   factory NotificationEntry.fromFirestore(
@@ -576,6 +610,8 @@ class NotificationEntry {
       iconAccent: accent,
       iconBg: bg,
       isRead: data['isRead'] as bool? ?? false,
+      type: type,
+      orderId: (data['orderId'] as String? ?? ''),
     );
   }
 

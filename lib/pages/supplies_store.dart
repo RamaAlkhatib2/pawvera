@@ -40,8 +40,8 @@ class _SuppliesStoreState extends State<SuppliesStore> {
         final bytes = base64Decode(url.substring(url.indexOf(',') + 1));
         return Image.memory(
           bytes,
-          width: 80,
-          height: 80,
+          width: 96,
+          height: 96,
           fit: BoxFit.cover,
           errorBuilder: (context, e, stack) => _storePlaceholder(),
         );
@@ -51,18 +51,18 @@ class _SuppliesStoreState extends State<SuppliesStore> {
     }
     return Image.network(
       url,
-      width: 80,
-      height: 80,
+      width: 96,
+      height: 96,
       fit: BoxFit.cover,
       errorBuilder: (context, e, stack) => _storePlaceholder(),
     );
   }
 
   Widget _storePlaceholder() => Container(
-    width: 80,
-    height: 80,
+    width: 96,
+    height: 96,
     color: Colors.grey.shade100,
-    child: const Icon(Icons.store, color: Colors.grey, size: 30),
+    child: const Icon(Icons.store, color: Colors.grey, size: 36),
   );
 
   void _toggleFavoriteStoresFilter() {
@@ -168,34 +168,86 @@ class _SuppliesStoreState extends State<SuppliesStore> {
             child: Row(
               children: [
                 Expanded(
-                  child: PopupMenuButton<String>(
-                    onSelected: (value) =>
-                        setState(() => _selectedSort = value),
-                    itemBuilder: (context) => const [
-                      PopupMenuItem(
-                        value: 'Nearest',
-                        child: Text('Sort: Nearest'),
+                  child: Container(
+                    height: 48,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: _selectedSort,
+                        isExpanded: true,
+                        items: ['Nearest', 'Top Rated', 'Popular']
+                            .map(
+                              (s) => DropdownMenuItem(
+                                value: s,
+                                child: Text(
+                                  s,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setState(() => _selectedSort = value);
+                          }
+                        },
+                        icon: const Icon(
+                          Icons.keyboard_arrow_down,
+                          color: Colors.black54,
+                        ),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Colors.black87,
+                        ),
                       ),
-                      PopupMenuItem(
-                        value: 'Top Rated',
-                        child: Text('Sort: Top Rated'),
-                      ),
-                      PopupMenuItem(
-                        value: 'Popular',
-                        child: Text('Sort: Popular'),
-                      ),
-                    ],
-                    child: _pill('Sort: $_selectedSort'),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 GestureDetector(
                   onTap: () =>
                       setState(() => _showOnlyOffers = !_showOnlyOffers),
-                  child: _pill(
-                    'Offers Only',
-                    selected: _showOnlyOffers,
-                    icon: Icons.local_offer_outlined,
+                  child: Container(
+                    height: 48,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: _showOnlyOffers
+                          ? const Color(0xFF3AA78E)
+                          : Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: _showOnlyOffers
+                            ? const Color(0xFF3AA78E)
+                            : Colors.grey.shade300,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.local_offer,
+                          size: 16,
+                          color: _showOnlyOffers ? Colors.white : Colors.grey,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Offers',
+                          style: TextStyle(
+                            color: _showOnlyOffers ? Colors.white : Colors.black,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -207,39 +259,34 @@ class _SuppliesStoreState extends State<SuppliesStore> {
               stream: _databaseService.streamFavoriteStores(),
               builder: (context, favoriteSnapshot) {
                 final favoriteCount = favoriteSnapshot.data?.docs.length ?? 0;
-                return InkWell(
+                return GestureDetector(
                   onTap: _toggleFavoriteStoresFilter,
-                  borderRadius: BorderRadius.circular(10),
                   child: Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    height: 48,
+                    padding: const EdgeInsets.symmetric(horizontal: 18),
                     decoration: BoxDecoration(
                       color: _showFavoriteStores
-                          ? const Color(0xFF5BA092)
-                          : const Color(0xFFEFFBFC),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.teal.shade100),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.teal.withValues(alpha: 0.12),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
+                          ? const Color(0xFF3AA78E)
+                          : Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: _showFavoriteStores
+                            ? const Color(0xFF3AA78E)
+                            : Colors.grey.shade300,
+                      ),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          _showFavoriteStores
-                              ? Icons.favorite
-                              : Icons.favorite_border,
-                          size: 19,
+                          Icons.favorite,
+                          size: 16,
                           color: _showFavoriteStores
                               ? Colors.white
-                              : const Color(0xFF5A3E2B),
+                              : Colors.grey,
                         ),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 8),
                         Text(
                           _showFavoriteStores
                               ? 'Favorite Stores ($favoriteCount)'
@@ -247,8 +294,9 @@ class _SuppliesStoreState extends State<SuppliesStore> {
                           style: TextStyle(
                             color: _showFavoriteStores
                                 ? Colors.white
-                                : const Color(0xFF5A3E2B),
-                            fontWeight: FontWeight.w700,
+                                : Colors.black,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
@@ -286,16 +334,32 @@ class _SuppliesStoreState extends State<SuppliesStore> {
                             : Colors.grey.shade200,
                       ),
                     ),
-                    child: Text(
-                      category,
-                      style: TextStyle(
-                        color: isSelected
-                            ? Colors.white
-                            : const Color(0xFF5A3E2B),
-                        fontWeight: isSelected
-                            ? FontWeight.bold
-                            : FontWeight.normal,
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (category == 'All') ...[
+                          Icon(
+                            Icons.tune_rounded,
+                            size: 13,
+                            color: isSelected
+                                ? Colors.white
+                                : const Color(0xFF5B9D8E),
+                          ),
+                          const SizedBox(width: 5),
+                        ],
+                        Text(
+                          category,
+                          style: TextStyle(
+                            color: isSelected
+                                ? Colors.white
+                                : const Color(0xFF5A3E2B),
+                            fontSize: 12,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 );
@@ -381,42 +445,6 @@ class _SuppliesStoreState extends State<SuppliesStore> {
     );
   }
 
-  Widget _pill(String label, {bool selected = false, IconData? icon}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: selected ? const Color(0xFFE8F4F1) : Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: selected ? const Color(0xFF3AA78E) : Colors.grey.shade200,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(
-              icon,
-              size: 18,
-              color: selected
-                  ? const Color(0xFF3AA78E)
-                  : const Color(0xFF5A3E2B),
-            ),
-            const SizedBox(width: 6),
-          ],
-          Text(
-            label,
-            style: const TextStyle(fontSize: 13, color: Color(0xFF5A3E2B)),
-          ),
-          if (icon == null) ...[
-            const SizedBox(width: 4),
-            const Icon(Icons.arrow_drop_down, color: Colors.grey),
-          ],
-        ],
-      ),
-    );
-  }
-
   Widget _buildTopButton(
     BuildContext context,
     IconData icon,
@@ -472,9 +500,9 @@ class _SuppliesStoreState extends State<SuppliesStore> {
     final activeOffers =
         (store['activeOffers'] as List?)?.cast<Map<String, dynamic>>() ??
         const <Map<String, dynamic>>[];
-    final offer = activeOffers.isNotEmpty
-        ? (activeOffers.first['title'] ?? '').toString()
-        : (store['offer'] ?? '').toString();
+    final hasOffer = activeOffers.isNotEmpty ||
+        (store['offer'] ?? '').toString().isNotEmpty;
+    final offerCount = activeOffers.isNotEmpty ? activeOffers.length : 1;
     final bannerUrl = store_pages.petStoreBannerImageUrl(store);
 
     return GestureDetector(
@@ -502,161 +530,203 @@ class _SuppliesStoreState extends State<SuppliesStore> {
         );
       },
       child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        padding: const EdgeInsets.all(12),
+        margin: const EdgeInsets.only(bottom: 15),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: Colors.grey.shade200),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: _buildStoreImage(bannerUrl),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              name,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.only(top: 5),
-                            child: _liveStoreRatingBadge(
-                              storeId,
-                              fallbackRating,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        (store['description'] ?? '').toString(),
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-                  stream: _databaseService.streamFavoriteStore(
-                    (store['id'] ?? '').toString(),
-                  ),
-                  builder: (context, snapshot) {
-                    final storeId = (store['id'] ?? '').toString();
-                    final backendFavorite = snapshot.data?.exists == true;
-                    final isFavorite =
-                        _favoriteStoreOverrides[storeId] ?? backendFavorite;
-                    return _storeFavoriteButton(
-                      isFavorite: isFavorite,
-                      onTap: () async {
-                        final nextFavorite = !isFavorite;
-                        setState(() {
-                          _favoriteStoreOverrides[storeId] = nextFavorite;
-                        });
-                        try {
-                          await _databaseService.toggleFavoriteStore(
-                            storeId: storeId,
-                            storeSnapshot: store,
-                          );
-                        } catch (e) {
-                          if (mounted) {
-                            setState(() {
-                              _favoriteStoreOverrides[storeId] = isFavorite;
-                            });
-                          }
-                          if (!context.mounted) return;
-                          ScaffoldMessenger.of(
-                            context,
-                          ).showSnackBar(SnackBar(content: Text('$e')));
-                        }
-                      },
-                    );
-                  },
-                ),
-              ],
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFE9F3F2)),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0F000000),
+              blurRadius: 18,
+              offset: Offset(0, 8),
             ),
-            if (offer.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange.shade200),
-                ),
-                child: Text(
-                  'ًںڈ· $offer',
-                  style: TextStyle(
-                    color: Colors.orange.shade800,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-            if (categories.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                children: categories
-                    .map(
-                      (category) => Chip(
-                        label: Text(category, style: const TextStyle(fontSize: 11)),
-                        backgroundColor: Colors.grey.shade50,
-                      ),
-                    )
-                    .toList(),
-              ),
-            ],
-            const SizedBox(height: 10),
-            if (addressLine.isNotEmpty) ...[
-              Text(
-                addressLine,
-                style: const TextStyle(
-                  color: Colors.grey,
-                  fontSize: 12,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 6),
-            ],
-            Row(
-              children: [
-                const Icon(Icons.access_time, size: 14, color: Colors.grey),
-                const SizedBox(width: 4),
-                Text(
-                  (store['hours'] ?? '9AM - 9PM').toString(),
-                  style: const TextStyle(color: Colors.black, fontSize: 12),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            const Divider(),
           ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Top row: image | name + rating | favourite ──
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: _buildStoreImage(bannerUrl),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                name,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: _liveStoreRatingBadge(storeId, fallbackRating),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          (store['description'] ?? '').toString(),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade700,
+                            height: 1.4,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+                    stream: _databaseService.streamFavoriteStore(
+                      (store['id'] ?? '').toString(),
+                    ),
+                    builder: (context, snapshot) {
+                      final sid = (store['id'] ?? '').toString();
+                      final backendFavorite = snapshot.data?.exists == true;
+                      final isFav = _favoriteStoreOverrides[sid] ?? backendFavorite;
+                      return GestureDetector(
+                        onTap: () async {
+                          final next = !isFav;
+                          setState(() => _favoriteStoreOverrides[sid] = next);
+                          try {
+                            await _databaseService.toggleFavoriteStore(
+                              storeId: sid,
+                              storeSnapshot: store,
+                            );
+                          } catch (e) {
+                            if (mounted) {
+                              setState(() => _favoriteStoreOverrides[sid] = isFav);
+                            }
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context)
+                                .showSnackBar(SnackBar(content: Text('$e')));
+                          }
+                        },
+                        child: Container(
+                          height: 36,
+                          width: 36,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey.shade200),
+                          ),
+                          child: Icon(
+                            isFav ? Icons.favorite : Icons.favorite_border,
+                            color: isFav ? Colors.red : Colors.grey.shade400,
+                            size: 20,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              // ── Category tags ──
+              if (categories.isNotEmpty) ...[
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: categories
+                      .map(
+                        (cat) => Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF3F7F6),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            cat,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
+                const SizedBox(height: 12),
+              ],
+              // ── Offer badge ──
+              if (hasOffer) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF3E0),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Text(
+                    '$offerCount Special Offer${offerCount == 1 ? '' : 's'}',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFFB6691D),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+              // ── Location row ──
+              if (addressLine.isNotEmpty) ...[
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.location_on_outlined,
+                      size: 14,
+                      color: Colors.grey,
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        addressLine,
+                        style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+              ],
+              // ── Hours row ──
+              Row(
+                children: [
+                  const Icon(Icons.access_time, size: 14, color: Colors.grey),
+                  const SizedBox(width: 4),
+                  Text(
+                    (store['hours'] ?? '9AM - 9PM').toString(),
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -710,54 +780,25 @@ class _SuppliesStoreState extends State<SuppliesStore> {
 
   Widget _storeRatingBadge(String rating) {
     return Container(
-      height: 28,
-      padding: const EdgeInsets.symmetric(horizontal: 9),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFF4FA294),
-        borderRadius: BorderRadius.circular(9),
+        color: const Color(0xFFF2F7F5),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.star, color: Colors.white, size: 15),
+          const Icon(Icons.star, color: Colors.amber, size: 12),
           const SizedBox(width: 4),
           Text(
             rating,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-            ),
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
           ),
         ],
       ),
     );
   }
 
-  Widget _storeFavoriteButton({
-    required bool isFavorite,
-    required Future<void> Function() onTap,
-  }) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(10),
-      elevation: 2,
-      shadowColor: Colors.black.withValues(alpha: 0.10),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: SizedBox(
-          width: 40,
-          height: 40,
-          child: Icon(
-            isFavorite ? Icons.favorite : Icons.favorite_border,
-            color: isFavorite ? Colors.redAccent : Colors.blueGrey.shade300,
-            size: 21,
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class MyWishlistPage extends StatelessWidget {
